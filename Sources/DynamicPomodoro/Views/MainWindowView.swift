@@ -15,8 +15,11 @@ struct MainWindowView: View {
                     IdleView(timer: timer, settings: settings)
                 case .focus:
                     FocusView(timer: timer)
-                case .breakPrompt, .breakRunning:
-                    BreakCardView(timer: timer)
+                case .breakRunning:
+                    // The real break UI is the full-screen overlay window;
+                    // this main-window placeholder just mirrors timer state
+                    // in case the user clicks back into the app window.
+                    BreakMirrorView(timer: timer)
                 }
             }
         }

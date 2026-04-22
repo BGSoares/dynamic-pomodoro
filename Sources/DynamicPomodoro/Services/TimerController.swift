@@ -7,8 +7,8 @@ import SwiftUI
 /// States:
 ///   .idle          → no active session; idle screen
 ///   .focus         → focus timer running
-///   .breakPrompt   → focus just ended; showing break card (not yet started)
-///   .breakRunning  → break timer running
+///   .breakRunning  → break timer running (auto-starts when focus completes;
+///                    the overlay's fade-in is the prep — no separate prompt)
 ///
 /// A paused/abandoned focus session is discarded (§3.5) — no partial credit.
 @MainActor
@@ -16,7 +16,6 @@ final class TimerController: ObservableObject {
     enum Phase: Equatable {
         case idle
         case focus
-        case breakPrompt
         case breakRunning
     }
 
@@ -111,7 +110,7 @@ final class TimerController: ObservableObject {
         }
         stopTimer()
         SoundService.focusComplete(enabled: settings.soundEnabled)
-        showBreakPrompt(now: now)
+        startBreak(now: now)
 
         notifications.notify(
             title: "Focus complete",
@@ -122,7 +121,8 @@ final class TimerController: ObservableObject {
 
     // MARK: - Break
 
-    private func showBreakPrompt(now: Date) {
+    /// Transition from focus → break. The overlay's fade-in is the prep; no separate prompt.
+    private func startBreak(now: Date) {
         let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: lastFocusMinutes)
         totalSeconds = breakMinutes * 60
         remainingSeconds = totalSeconds
@@ -138,9 +138,9 @@ final class TimerController: ObservableObject {
             currentReminderMessage = nil
         }
 
-        phase = .breakPrompt
-        phaseStart = nil
-        SoundService.breakReady(enabled: settings.soundEnabled)
+        phase = .breakRunning
+        phaseStart = now
+        startTicker()
     }
 
     private func selectActivity(now: Date) {
@@ -158,7 +158,7 @@ final class TimerController: ObservableObject {
 
     /// Swap to a different activity without changing the break timer.
     func swapActivity(now: Date = Date()) {
-        guard phase == .breakPrompt || phase == .breakRunning else { return }
+        guard phase == .breakRunning else { return }
         let currentID = currentActivity?.id
         // Simple swap: re-run selection, excluding the current activity.
         let filtered = library.filter { $0.id != currentID }
@@ -175,15 +175,8 @@ final class TimerController: ObservableObject {
         if let pick { currentActivity = pick }
     }
 
-    func startBreak(now: Date = Date()) {
-        guard phase == .breakPrompt else { return }
-        phase = .breakRunning
-        phaseStart = now
-        startTicker()
-    }
-
     func skipBreak(now: Date = Date()) {
-        guard phase == .breakPrompt || phase == .breakRunning else { return }
+        guard phase == .breakRunning else { return }
         log.append(SessionLogEntry(
             kind: .breakSkipped,
             startedAt: phaseStart ?? now,

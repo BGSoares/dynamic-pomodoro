@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 // Entry point. Uses AppKit directly (rather than SwiftUI's @main App + MenuBarExtra)
@@ -13,7 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var breakOverlayWindow: NSWindow?
     private var menuObservation: Any?
+    private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -36,6 +39,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.updateStatusItemTitle() }
         }
+
+        // Show/hide the full-screen break overlay in response to phase changes.
+        phaseCancellable = timer.$phase
+            .removeDuplicates()
+            .sink { [weak self] newPhase in
+                Task { @MainActor in self?.handlePhaseChange(newPhase) }
+            }
+    }
+
+    // MARK: - Break overlay
+
+    private func handlePhaseChange(_ phase: TimerController.Phase) {
+        switch phase {
+        case .breakRunning:
+            showBreakOverlay()
+        case .idle, .focus:
+            hideBreakOverlay()
+        }
+    }
+
+    private func showBreakOverlay() {
+        if breakOverlayWindow == nil {
+            let root = BreakOverlayView(timer: timer)
+            let controller = NSHostingController(rootView: root)
+            // Use a borderless NSPanel so it can join all spaces and cover menu bar.
+            let screen = NSScreen.main ?? NSScreen.screens.first
+            let frame = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            let panel = NSPanel(
+                contentRect: frame,
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+            panel.contentViewController = controller
+            panel.level = .screenSaver
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+            panel.isOpaque = true
+            panel.backgroundColor = .black
+            panel.hasShadow = false
+            panel.ignoresMouseEvents = false
+            panel.isReleasedWhenClosed = false
+            panel.hidesOnDeactivate = false
+            panel.alphaValue = 0
+            panel.setFrame(frame, display: false)
+            breakOverlayWindow = panel
+        }
+
+        guard let window = breakOverlayWindow else { return }
+
+        // Fade in slowly — the fade IS the prep. Concurrent dock bounce to nudge attention.
+        window.alphaValue = 0
+        window.orderFrontRegardless()
+        NSApp.requestUserAttention(.informationalRequest)
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 4.0
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().alphaValue = 1.0
+        }
+    }
+
+    private func hideBreakOverlay() {
+        guard let window = breakOverlayWindow, window.isVisible else { return }
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 1.5
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().alphaValue = 0
+        }, completionHandler: {
+            window.orderOut(nil)
+        })
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -88,8 +160,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.title = ""
         case .focus:
             button.title = " F \(timer.remainingFormatted)"
-        case .breakPrompt:
-            button.title = " Break ready"
         case .breakRunning:
             button.title = " B \(timer.remainingFormatted)"
         }

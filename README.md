@@ -33,7 +33,8 @@ Sources/DynamicPomodoro/
 │   ├── MainWindowView.swift
 │   ├── IdleView.swift
 │   ├── FocusView.swift
-│   ├── BreakCardView.swift
+│   ├── BreakOverlayView.swift         # Full-screen break overlay (fade-in prep)
+│   ├── BreakMirrorView.swift          # Placeholder in main window during break
 │   ├── OnboardingView.swift
 │   ├── SettingsView.swift
 │   └── CurvePreviewView.swift
