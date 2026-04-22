@@ -241,6 +241,19 @@ final class TimerController: ObservableObject {
         remainingSeconds -= 1
     }
 
+    // MARK: - Test mode
+
+    /// Force-complete the current timer phase immediately.
+    /// Used by the hidden ⌘⇧T shortcut to exercise the end-of-phase UI
+    /// without waiting out the full duration.
+    func fastForward() {
+        switch phase {
+        case .focus: completeFocus()
+        case .breakRunning: completeBreak()
+        case .idle: break
+        }
+    }
+
     // MARK: - Display helpers
 
     var remainingFormatted: String {

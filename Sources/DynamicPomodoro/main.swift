@@ -123,6 +123,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         action: #selector(openSettings),
                         keyEquivalent: ",").target = self
         appMenu.addItem(NSMenuItem.separator())
+        // Hidden test shortcut: ⌘⇧T fast-forwards the current timer so the
+        // end-of-phase UI can be exercised without waiting.
+        let fastForwardItem = NSMenuItem(title: "Fast-forward timer (test)",
+                                         action: #selector(menuFastForward),
+                                         keyEquivalent: "t")
+        fastForwardItem.keyEquivalentModifierMask = [.command, .shift]
+        fastForwardItem.target = self
+        appMenu.addItem(fastForwardItem)
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Quit Dynamic Pomodoro",
                         action: #selector(NSApplication.terminate(_:)),
                         keyEquivalent: "q")
@@ -215,6 +224,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuAbandon() {
         if timer.phase == .focus { timer.abandonFocus() }
+    }
+
+    @objc private func menuFastForward() {
+        timer.fastForward()
     }
 }
 
