@@ -29,7 +29,7 @@ struct FocusView: View {
                 titleVisibility: .visible
             ) {
                 Button("Abandon", role: .destructive) { timer.abandonFocus() }
-                Button("Keep going", role: .cancel) {}
+                Button("Continue", role: .cancel) {}
             } message: {
                 Text("Interrupted sessions are discarded — you'll start fresh next time.")
             }

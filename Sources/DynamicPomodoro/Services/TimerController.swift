@@ -74,7 +74,7 @@ final class TimerController: ObservableObject {
 
         notifications.notify(
             title: "Focus started",
-            body: "\(minutes) min. Let's go.",
+            body: "\(minutes) min.",
             playSound: settings.soundEnabled
         )
     }

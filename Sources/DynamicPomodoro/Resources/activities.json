@@ -47,7 +47,7 @@
   {
     "id": "box_breathing",
     "name": "Box breathing",
-    "instruction": "Inhale 4, hold 4, exhale 4, hold 4. Repeat for the full break. This is the one Navy SEALs use.",
+    "instruction": "Inhale 4, hold 4, exhale 4, hold 4. Repeat for the full break. Regulates the autonomic nervous system in minutes.",
     "category": "breathwork",
     "band": "short",
     "energy": "gentle",
@@ -74,7 +74,7 @@
   {
     "id": "twenty_twenty_twenty",
     "name": "20-20-20",
-    "instruction": "Look at something 20 feet away for 20 seconds. Then find another. Do this for the whole break. Let your eyes reset.",
+    "instruction": "Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break. Let your eyes reset.",
     "category": "eye_rest",
     "band": "short",
     "energy": "gentle",
@@ -101,7 +101,7 @@
   {
     "id": "short_walk",
     "name": "Short walk",
-    "instruction": "Out the door. Around the block. No phone. Come back when the timer says so.",
+    "instruction": "Out the door. Walk for the full duration. Leave the phone on your desk.",
     "category": "walk",
     "band": "medium",
     "energy": "moderate",
