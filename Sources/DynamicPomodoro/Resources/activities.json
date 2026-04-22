@@ -178,5 +178,14 @@
     "band": "medium",
     "energy": "gentle",
     "suitable_times": ["afternoon", "end_of_day"]
+  },
+  {
+    "id": "drink_water",
+    "name": "Drink water",
+    "instruction": "Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated.",
+    "category": "hydration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   }
 ]
