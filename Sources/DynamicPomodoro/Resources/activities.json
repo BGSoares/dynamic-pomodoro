@@ -1,0 +1,182 @@
+[
+  {
+    "id": "neck_rolls",
+    "name": "Neck rolls",
+    "instruction": "Stand tall. Slow, deliberate circles of the head — 5 each way. Breathe through your nose.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "shoulder_openers",
+    "name": "Shoulder openers",
+    "instruction": "Clasp hands behind back. Lift chest, drop shoulders back. Hold 20s, release, repeat 3x.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "hip_flexor_stretch",
+    "name": "Hip flexor stretch",
+    "instruction": "Kneel on one knee, drive hips forward. 45s each side. Your chair has been compressing this all morning.",
+    "category": "stretch",
+    "band": "medium",
+    "energy": "moderate",
+    "suitable_times": ["midday", "afternoon"]
+  },
+  {
+    "id": "forward_fold",
+    "name": "Standing forward fold",
+    "instruction": "Feet hip-width. Hinge at hips, let arms hang. Soft knees. Stay 90 seconds. Let gravity do the work.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "cat_cow",
+    "name": "Cat-cow flow",
+    "instruction": "On hands and knees. Inhale, arch. Exhale, round. 10 cycles at a pace that feels good.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "box_breathing",
+    "name": "Box breathing",
+    "instruction": "Inhale 4, hold 4, exhale 4, hold 4. Repeat for the full break. This is the one Navy SEALs use.",
+    "category": "breathwork",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "physiological_sigh",
+    "name": "Physiological sigh",
+    "instruction": "Double inhale through nose, one long exhale through mouth. Repeat for 3–5 minutes. Fastest way to downshift the nervous system.",
+    "category": "breathwork",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["afternoon", "end_of_day"]
+  },
+  {
+    "id": "wim_hof_light",
+    "name": "30 deep breaths",
+    "instruction": "30 full inhales through the nose, passive exhales. Then hold the exhale as long as comfortable. One round.",
+    "category": "breathwork",
+    "band": "medium",
+    "energy": "active",
+    "suitable_times": ["morning", "midday"]
+  },
+  {
+    "id": "twenty_twenty_twenty",
+    "name": "20-20-20",
+    "instruction": "Look at something 20 feet away for 20 seconds. Then find another. Do this for the whole break. Let your eyes reset.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "palming",
+    "name": "Palming",
+    "instruction": "Rub palms warm. Cup them over closed eyes without touching the lids. Breathe into the dark for the full break.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["afternoon", "end_of_day"]
+  },
+  {
+    "id": "focus_shifting",
+    "name": "Near-far focus",
+    "instruction": "Hold a finger at arm's length. Focus on it, then a distant object. Switch slowly, 20 cycles.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon"]
+  },
+  {
+    "id": "short_walk",
+    "name": "Short walk",
+    "instruction": "Out the door. Around the block. No phone. Come back when the timer says so.",
+    "category": "walk",
+    "band": "medium",
+    "energy": "moderate",
+    "suitable_times": ["midday", "afternoon"]
+  },
+  {
+    "id": "stairs",
+    "name": "Stairs",
+    "instruction": "Find the nearest staircase. Up and down at a pace that gets your heart moving. Stop when the timer does.",
+    "category": "walk",
+    "band": "medium",
+    "energy": "active",
+    "suitable_times": ["midday"]
+  },
+  {
+    "id": "window_stand",
+    "name": "Stand at the window",
+    "instruction": "Stand by a window. Look outside. Let your eyes travel — near, far, sky. No agenda.",
+    "category": "walk",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "body_scan",
+    "name": "Body scan",
+    "instruction": "Sit, eyes closed. Starting at your feet, move attention slowly up the body. Notice without fixing.",
+    "category": "mindfulness",
+    "band": "medium",
+    "energy": "gentle",
+    "suitable_times": ["afternoon", "end_of_day"]
+  },
+  {
+    "id": "breath_count",
+    "name": "Count to ten",
+    "instruction": "Sit. Count each exhale up to 10, then start again. When you lose count, restart without judgement.",
+    "category": "mindfulness",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "sound_listen",
+    "name": "Listen outward",
+    "instruction": "Close your eyes. For the full break, name each sound you hear in the order you hear it. That's the whole practice.",
+    "category": "mindfulness",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["afternoon", "end_of_day"]
+  },
+  {
+    "id": "wall_sit",
+    "name": "Wall sit",
+    "instruction": "Back flat to a wall, thighs parallel to the floor. Hold for 60 seconds, rest 30, repeat twice.",
+    "category": "stretch",
+    "band": "medium",
+    "energy": "active",
+    "suitable_times": ["midday"]
+  },
+  {
+    "id": "wrist_flexor_stretch",
+    "name": "Wrist stretch",
+    "instruction": "Arm out, palm up. Gently pull fingers down with the other hand. 30s each side, twice.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "legs_up_wall",
+    "name": "Legs up the wall",
+    "instruction": "Lie on the floor, legs straight up a wall. Arms relaxed. This does more than it looks like it should.",
+    "category": "mindfulness",
+    "band": "medium",
+    "energy": "gentle",
+    "suitable_times": ["afternoon", "end_of_day"]
+  }
+]
