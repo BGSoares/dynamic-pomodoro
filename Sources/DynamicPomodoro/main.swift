@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuObservation: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)  // menu-bar-only; no Dock icon
+        NSApp.setActivationPolicy(.regular)
         setupMainMenu()
         notifications.requestAuthorizationIfNeeded()
         setupStatusItem()
