@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let frame = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
             let panel = NSPanel(
                 contentRect: frame,
-                styleMask: [.borderless, .nonactivatingPanel],
+                styleMask: [.borderless],
                 backing: .buffered,
                 defer: false
             )
@@ -88,9 +88,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let window = breakOverlayWindow else { return }
 
-        // Fade in slowly — the fade IS the prep. Concurrent dock bounce to nudge attention.
+        // Fade in slowly — the fade IS the prep.
+        // Activate the app so SwiftUI gestures (hold-to-skip) receive events.
         window.alphaValue = 0
-        window.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
         NSApp.requestUserAttention(.informationalRequest)
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 4.0
