@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)  // menu-bar-only; no Dock icon
+        setupMainMenu()
         notifications.requestAuthorizationIfNeeded()
         setupStatusItem()
 
@@ -35,6 +36,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.updateStatusItemTitle() }
         }
+    }
+
+    // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
+
+    private func setupMainMenu() {
+        let main = NSMenu()
+
+        let appMenuItem = NSMenuItem()
+        main.addItem(appMenuItem)
+        let appMenu = NSMenu()
+        appMenuItem.submenu = appMenu
+        appMenu.addItem(withTitle: "Settings…",
+                        action: #selector(openSettings),
+                        keyEquivalent: ",").target = self
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(withTitle: "Quit Dynamic Pomodoro",
+                        action: #selector(NSApplication.terminate(_:)),
+                        keyEquivalent: "q")
+
+        NSApp.mainMenu = main
     }
 
     // MARK: - Menu bar

@@ -63,11 +63,21 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
     <true/>
     <key>NSUserNotificationAlertStyle</key>
     <string>alert</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>
 </plist>
 EOF
+
+# Copy app icon
+ICON_SRC="${SCRIPT_DIR}/Sources/DynamicPomodoro/Resources/AppIcon.icns"
+if [ -f "$ICON_SRC" ]; then
+    cp "$ICON_SRC" "${APP_DIR}/Contents/Resources/AppIcon.icns"
+else
+    echo "Warning: AppIcon.icns not found — run: swift generate-icon.swift"
+fi
 
 # Copy the bundled activities.json resource so the app can find it
 RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle/Contents/Resources" -type d 2>/dev/null | head -1)

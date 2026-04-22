@@ -110,6 +110,7 @@ final class TimerController: ObservableObject {
             ))
         }
         stopTimer()
+        SoundService.focusComplete(enabled: settings.soundEnabled)
         showBreakPrompt(now: now)
 
         notifications.notify(
@@ -139,6 +140,7 @@ final class TimerController: ObservableObject {
 
         phase = .breakPrompt
         phaseStart = nil
+        SoundService.breakReady(enabled: settings.soundEnabled)
     }
 
     private func selectActivity(now: Date) {
@@ -212,6 +214,7 @@ final class TimerController: ObservableObject {
         currentActivity = nil
         currentReminderMessage = nil
 
+        SoundService.breakComplete(enabled: settings.soundEnabled)
         notifications.notify(
             title: "Break complete",
             body: "Ready when you are.",
