@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var settings: Settings
+    @ObservedObject private var calendarService = CalendarService.shared
 
     var body: some View {
         Form {
@@ -56,10 +57,51 @@ struct SettingsView: View {
             Section("Notifications") {
                 Toggle("Sound on notification", isOn: $settings.soundEnabled)
             }
+
+            Section("iPhone / Calendar sync") {
+                Toggle("Mirror breaks to Calendar", isOn: Binding(
+                    get: { settings.calendarSyncEnabled },
+                    set: { newValue in
+                        if newValue {
+                            calendarService.requestAccess { granted in
+                                settings.calendarSyncEnabled = granted
+                                if granted, settings.calendarIdentifier == nil {
+                                    settings.calendarIdentifier = calendarService.suggestedCalendarIdentifier
+                                }
+                            }
+                        } else {
+                            settings.calendarSyncEnabled = false
+                        }
+                    }
+                ))
+
+                if settings.calendarSyncEnabled && calendarService.authorized {
+                    Picker("Calendar", selection: Binding(
+                        get: { settings.calendarIdentifier ?? "" },
+                        set: { settings.calendarIdentifier = $0.isEmpty ? nil : $0 }
+                    )) {
+                        ForEach(calendarService.writableCalendars) { cal in
+                            Text("\(cal.title)  ·  \(cal.sourceTitle)").tag(cal.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                if calendarService.authorizationDenied {
+                    Text("Calendar access was denied. Enable it in System Settings → Privacy & Security → Calendars.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                Text("Creates a Calendar event for each break. Pick an iCloud calendar and the end time appears on your iPhone lock screen and Apple Watch — handy when you walk away from your desk.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .frame(minWidth: 460, minHeight: 560)
         .padding(.bottom, 8)
+        .onAppear { calendarService.refreshAuthorizationStatus() }
     }
 }
 
