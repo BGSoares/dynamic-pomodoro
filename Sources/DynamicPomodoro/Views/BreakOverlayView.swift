@@ -119,7 +119,7 @@ struct BreakOverlayView: View {
 /// Circular button that fills a progress ring as the user holds it.
 /// Triggers onComplete after the full hold duration; cancels smoothly on early release.
 private struct HoldToSkipButton: View {
-    let holdDuration: TimeInterval = 30.0
+    let holdDuration: TimeInterval = 15.0
     var onComplete: () -> Void
 
     @State private var progress: Double = 0
