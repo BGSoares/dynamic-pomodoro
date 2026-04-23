@@ -15,6 +15,8 @@ final class Settings: ObservableObject {
         static let soundEnabled = "soundEnabled"
         static let disabledCategories = "disabledCategories"
         static let onboardingComplete = "onboardingComplete"
+        static let calendarSyncEnabled = "calendarSyncEnabled"
+        static let calendarIdentifier = "calendarIdentifier"
     }
 
     // Stored state (minutes since midnight for times)
@@ -41,6 +43,14 @@ final class Settings: ObservableObject {
     @Published var onboardingComplete: Bool {
         didSet { UserDefaults.standard.set(onboardingComplete, forKey: Key.onboardingComplete) }
     }
+    /// Mirror break sessions to Calendar so they sync to iPhone / Watch via iCloud.
+    @Published var calendarSyncEnabled: Bool {
+        didSet { UserDefaults.standard.set(calendarSyncEnabled, forKey: Key.calendarSyncEnabled) }
+    }
+    /// EKCalendar identifier to write break events to. Nil → system default.
+    @Published var calendarIdentifier: String? {
+        didSet { UserDefaults.standard.set(calendarIdentifier, forKey: Key.calendarIdentifier) }
+    }
 
     private init() {
         let d = UserDefaults.standard
@@ -51,6 +61,8 @@ final class Settings: ObservableObject {
         self.soundEnabled = d.object(forKey: Key.soundEnabled) as? Bool ?? true
         self.disabledCategories = Set((d.array(forKey: Key.disabledCategories) as? [String]) ?? [])
         self.onboardingComplete = d.bool(forKey: Key.onboardingComplete)
+        self.calendarSyncEnabled = d.bool(forKey: Key.calendarSyncEnabled)
+        self.calendarIdentifier = d.string(forKey: Key.calendarIdentifier)
     }
 
     /// Workday midpoint in minutes since midnight.

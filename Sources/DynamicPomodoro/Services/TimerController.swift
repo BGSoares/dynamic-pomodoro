@@ -36,7 +36,12 @@ final class TimerController: ObservableObject {
     private let log: SessionLogStore
     private let library: [Activity]
     private let notifications: NotificationService
+    private let calendar: CalendarService
     private var rng = SystemRandomNumberGenerator()
+
+    /// Event identifier for the Calendar mirror of the active break (if any).
+    /// Set in `startBreak` when sync is enabled; cleared on skip/complete.
+    private var currentBreakEventID: String?
 
     // Internal
     private var timer: Timer?
@@ -53,12 +58,14 @@ final class TimerController: ObservableObject {
         settings: Settings = .shared,
         log: SessionLogStore = .shared,
         library: [Activity] = ActivityLibrary.load(),
-        notifications: NotificationService = .shared
+        notifications: NotificationService = .shared,
+        calendar: CalendarService = .shared
     ) {
         self.settings = settings
         self.log = log
         self.library = library
         self.notifications = notifications
+        self.calendar = calendar
 
         #if canImport(AppKit)
         // On wake from system sleep, re-tick immediately so a phase whose
@@ -172,8 +179,30 @@ final class TimerController: ObservableObject {
 
         phase = .breakRunning
         phaseStart = now
-        phaseDeadline = now.addingTimeInterval(TimeInterval(totalSeconds))
+        let deadline = now.addingTimeInterval(TimeInterval(totalSeconds))
+        phaseDeadline = deadline
         startTicker()
+
+        if settings.calendarSyncEnabled {
+            let title: String
+            if let name = currentActivity?.name, !name.isEmpty {
+                title = "Break — \(name)"
+            } else {
+                title = "Pomodoro break"
+            }
+            currentBreakEventID = calendar.createBreakEvent(
+                start: now,
+                end: deadline,
+                title: title,
+                calendarIdentifier: settings.calendarIdentifier
+            )
+        }
+    }
+
+    private func removeCurrentBreakEvent() {
+        guard let id = currentBreakEventID else { return }
+        calendar.removeEvent(withIdentifier: id)
+        currentBreakEventID = nil
     }
 
     private func selectActivity(now: Date) {
@@ -217,6 +246,7 @@ final class TimerController: ObservableObject {
             plannedMinutes: totalSeconds / 60,
             activityID: currentActivity?.id
         ))
+        removeCurrentBreakEvent()
         stopTimer()
         phase = .idle
         remainingSeconds = 0
@@ -233,6 +263,7 @@ final class TimerController: ObservableObject {
             plannedMinutes: totalSeconds / 60,
             activityID: currentActivity?.id
         ))
+        removeCurrentBreakEvent()
         stopTimer()
         phase = .idle
         remainingSeconds = 0
