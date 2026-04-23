@@ -159,7 +159,7 @@ private struct HoldToSkipButton: View {
 
     private func startTicker() {
         tickTimer?.invalidate()
-        tickTimer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { t in
+        let t = Timer(timeInterval: 0.03, repeats: true) { t in
             guard let start = holdStart else { t.invalidate(); return }
             let elapsed = Date().timeIntervalSince(start)
             let p = min(elapsed / holdDuration, 1.0)
@@ -171,6 +171,8 @@ private struct HoldToSkipButton: View {
                 DispatchQueue.main.async { onComplete() }
             }
         }
+        RunLoop.main.add(t, forMode: .common)
+        tickTimer = t
     }
 
     private func cancelIfNotComplete() {
