@@ -1,6 +1,9 @@
 import Foundation
 import Combine
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// Central state machine for the pomodoro loop.
 ///
@@ -38,6 +41,13 @@ final class TimerController: ObservableObject {
     // Internal
     private var timer: Timer?
     private var phaseStart: Date?
+    /// Wall-clock end time for the current phase. `remainingSeconds` is computed
+    /// from this on every tick so the timer stays accurate across (a) event
+    /// tracking loops like the hold-to-skip drag, and (b) system sleep, where
+    /// the process is suspended and no ticks fire. Set alongside `phaseStart`
+    /// when a phase begins; cleared by `stopTimer()`.
+    private var phaseDeadline: Date?
+    private var wakeObserver: NSObjectProtocol?
 
     init(
         settings: Settings = .shared,
@@ -49,6 +59,27 @@ final class TimerController: ObservableObject {
         self.log = log
         self.library = library
         self.notifications = notifications
+
+        #if canImport(AppKit)
+        // On wake from system sleep, re-tick immediately so a phase whose
+        // deadline elapsed during sleep transitions without waiting for the
+        // next scheduled fire.
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.tick() }
+        }
+        #endif
+    }
+
+    deinit {
+        #if canImport(AppKit)
+        if let wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
+        }
+        #endif
     }
 
     // MARK: - Focus
@@ -70,6 +101,7 @@ final class TimerController: ObservableObject {
         remainingSeconds = totalSeconds
         phase = .focus
         phaseStart = now
+        phaseDeadline = now.addingTimeInterval(TimeInterval(totalSeconds))
         startTicker()
 
         notifications.notify(
@@ -140,6 +172,7 @@ final class TimerController: ObservableObject {
 
         phase = .breakRunning
         phaseStart = now
+        phaseDeadline = now.addingTimeInterval(TimeInterval(totalSeconds))
         startTicker()
     }
 
@@ -219,26 +252,33 @@ final class TimerController: ObservableObject {
 
     private func startTicker() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        // Scheduled in `.common` modes so the timer keeps firing while a
+        // modal event-tracking loop is active (e.g. while the user holds
+        // the skip button) — `.default` alone pauses during event tracking.
+        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+        phaseDeadline = nil
     }
 
-    private func tick() {
-        guard remainingSeconds > 0 else {
+    private func tick(now: Date = Date()) {
+        guard let deadline = phaseDeadline else { return }
+        let remaining = max(0, Int(ceil(deadline.timeIntervalSince(now))))
+        remainingSeconds = remaining
+        if remaining == 0 {
             switch phase {
-            case .focus: completeFocus()
-            case .breakRunning: completeBreak()
-            default: stopTimer()
+            case .focus: completeFocus(now: now)
+            case .breakRunning: completeBreak(now: now)
+            case .idle: stopTimer()
             }
-            return
         }
-        remainingSeconds -= 1
     }
 
     // MARK: - Test mode

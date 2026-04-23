@@ -36,9 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Drive title refresh once per second — cheap, and independent of the TimerController internals.
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        // Scheduled in `.common` modes so it keeps firing during event tracking
+        // (e.g. while the user holds the skip button).
+        let titleTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.updateStatusItemTitle() }
         }
+        RunLoop.main.add(titleTimer, forMode: .common)
 
         // Show/hide the full-screen break overlay in response to phase changes.
         phaseCancellable = timer.$phase
@@ -125,12 +128,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         action: #selector(openSettings),
                         keyEquivalent: ",").target = self
         appMenu.addItem(NSMenuItem.separator())
-        // Hidden test shortcut: ⌘⇧T fast-forwards the current timer so the
-        // end-of-phase UI can be exercised without waiting.
+        // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
+        // end-of-phase UI can be exercised without waiting. Deliberately awkward
+        // (all four modifiers) so it isn't hit accidentally.
         let fastForwardItem = NSMenuItem(title: "Fast-forward timer (test)",
                                          action: #selector(menuFastForward),
                                          keyEquivalent: "t")
-        fastForwardItem.keyEquivalentModifierMask = [.command, .shift]
+        fastForwardItem.keyEquivalentModifierMask = [.command, .control, .option, .shift]
         fastForwardItem.target = self
         appMenu.addItem(fastForwardItem)
         appMenu.addItem(NSMenuItem.separator())

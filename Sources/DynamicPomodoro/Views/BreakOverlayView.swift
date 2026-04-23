@@ -119,7 +119,7 @@ struct BreakOverlayView: View {
 /// Circular button that fills a progress ring as the user holds it.
 /// Triggers onComplete after the full hold duration; cancels smoothly on early release.
 private struct HoldToSkipButton: View {
-    let holdDuration: TimeInterval = 30.0
+    let holdDuration: TimeInterval = 15.0
     var onComplete: () -> Void
 
     @State private var progress: Double = 0
@@ -127,21 +127,25 @@ private struct HoldToSkipButton: View {
     @State private var holdStart: Date?
     @State private var completed = false
 
+    private var isHolding: Bool { progress > 0 }
+
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.18), lineWidth: 3)
+                .stroke(Color.white.opacity(0.22), lineWidth: 4)
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(Color.white.opacity(0.85),
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(Color.white.opacity(0.95),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.05), value: progress)
             Image(systemName: "xmark")
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(0.7 - 0.4 * progress))
                 .font(.system(size: 22, weight: .medium))
         }
         .frame(width: 64, height: 64)
+        .scaleEffect(isHolding ? 1.08 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: isHolding)
         .contentShape(Circle())
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -159,7 +163,7 @@ private struct HoldToSkipButton: View {
 
     private func startTicker() {
         tickTimer?.invalidate()
-        tickTimer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { t in
+        let t = Timer(timeInterval: 0.03, repeats: true) { t in
             guard let start = holdStart else { t.invalidate(); return }
             let elapsed = Date().timeIntervalSince(start)
             let p = min(elapsed / holdDuration, 1.0)
@@ -171,6 +175,8 @@ private struct HoldToSkipButton: View {
                 DispatchQueue.main.async { onComplete() }
             }
         }
+        RunLoop.main.add(t, forMode: .common)
+        tickTimer = t
     }
 
     private func cancelIfNotComplete() {
