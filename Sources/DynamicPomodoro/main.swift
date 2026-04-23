@@ -128,12 +128,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         action: #selector(openSettings),
                         keyEquivalent: ",").target = self
         appMenu.addItem(NSMenuItem.separator())
-        // Hidden test shortcut: ⌘⇧T fast-forwards the current timer so the
-        // end-of-phase UI can be exercised without waiting.
+        // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
+        // end-of-phase UI can be exercised without waiting. Deliberately awkward
+        // (all four modifiers) so it isn't hit accidentally.
         let fastForwardItem = NSMenuItem(title: "Fast-forward timer (test)",
                                          action: #selector(menuFastForward),
                                          keyEquivalent: "t")
-        fastForwardItem.keyEquivalentModifierMask = [.command, .shift]
+        fastForwardItem.keyEquivalentModifierMask = [.command, .control, .option, .shift]
         fastForwardItem.target = self
         appMenu.addItem(fastForwardItem)
         appMenu.addItem(NSMenuItem.separator())
