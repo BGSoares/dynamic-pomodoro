@@ -18,17 +18,41 @@ struct Activity: Identifiable, Codable, Hashable {
         }
     }
 
-    enum DurationBand: String, Codable {
+    enum DurationBand: String, Codable, CaseIterable {
         case short, medium
+
+        var displayName: String {
+            switch self {
+            case .short: return "Short (≤6 min)"
+            case .medium: return "Medium (7+ min)"
+            }
+        }
     }
 
-    enum Energy: String, Codable {
+    enum Energy: String, Codable, CaseIterable {
         case gentle, moderate, active
+
+        var displayName: String {
+            switch self {
+            case .gentle: return "Gentle"
+            case .moderate: return "Moderate"
+            case .active: return "Active"
+            }
+        }
     }
 
-    enum TimeOfDay: String, Codable {
+    enum TimeOfDay: String, Codable, CaseIterable {
         case morning, midday, afternoon
         case endOfDay = "end_of_day"
+
+        var displayName: String {
+            switch self {
+            case .morning: return "Morning"
+            case .midday: return "Midday"
+            case .afternoon: return "Afternoon"
+            case .endOfDay: return "End of day"
+            }
+        }
     }
 
     let id: String

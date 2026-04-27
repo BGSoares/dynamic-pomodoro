@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: Settings
     @ObservedObject private var calendarService = CalendarService.shared
+    @ObservedObject private var activityStore = ActivityStore.shared
+    @State private var showingActivityManager = false
 
     var body: some View {
         Form {
@@ -51,6 +53,16 @@ struct SettingsView: View {
                             else { settings.disabledCategories.insert(cat.rawValue) }
                         }
                     ))
+                }
+
+                HStack {
+                    Button("Manage activities…") {
+                        showingActivityManager = true
+                    }
+                    Spacer()
+                    Text("\(activityStore.activities.count) total")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -106,6 +118,9 @@ struct SettingsView: View {
         .frame(minWidth: 460, minHeight: 560)
         .padding(.bottom, 8)
         .onAppear { calendarService.refreshAuthorizationStatus() }
+        .sheet(isPresented: $showingActivityManager) {
+            ManageActivitiesView(store: activityStore)
+        }
     }
 }
 
