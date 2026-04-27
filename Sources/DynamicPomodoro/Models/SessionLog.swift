@@ -17,6 +17,48 @@ struct SessionLogEntry: Codable {
     let activityID: String?   // break kinds only
 }
 
+/// Aggregate of focus + break time for a given day.
+/// Completed focus contributes 1.0 to pomoCount and its planned duration to time.
+/// Abandoned focus contributes a fractional pomo (elapsed / planned, capped at 1.0)
+/// and its elapsed seconds. Skipped breaks are excluded — the break didn't happen.
+struct DailyStats: Equatable {
+    let pomoCount: Double
+    let focusSeconds: Int
+    let breakSeconds: Int
+
+    var totalSeconds: Int { focusSeconds + breakSeconds }
+
+    static let empty = DailyStats(pomoCount: 0, focusSeconds: 0, breakSeconds: 0)
+
+    static func compute(
+        from entries: [SessionLogEntry],
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> DailyStats {
+        var pomoCount = 0.0
+        var focusSeconds = 0
+        var breakSeconds = 0
+        for e in entries where calendar.isDate(e.startedAt, inSameDayAs: now) {
+            switch e.kind {
+            case .focusCompleted:
+                pomoCount += 1.0
+                focusSeconds += e.plannedMinutes * 60
+            case .focusAbandoned:
+                let elapsed = max(0, e.endedAt.timeIntervalSince(e.startedAt))
+                let plannedSeconds = Double(e.plannedMinutes * 60)
+                let proportion = plannedSeconds > 0 ? min(elapsed / plannedSeconds, 1.0) : 0
+                pomoCount += proportion
+                focusSeconds += Int(elapsed)
+            case .breakCompleted:
+                breakSeconds += e.plannedMinutes * 60
+            case .breakSkipped:
+                break
+            }
+        }
+        return DailyStats(pomoCount: pomoCount, focusSeconds: focusSeconds, breakSeconds: breakSeconds)
+    }
+}
+
 /// Persists session log + recent-activity recency window.
 /// Reads are synchronous; the data volume is small (one user, one machine).
 final class SessionLogStore {
@@ -102,5 +144,10 @@ final class SessionLogStore {
             if e.kind == .breakSkipped { return true }
         }
         return false
+    }
+
+    /// Aggregate completed focus + break time for the given day.
+    func dailyStats(calendar: Calendar = .current, now: Date = Date()) -> DailyStats {
+        DailyStats.compute(from: entries, calendar: calendar, now: now)
     }
 }
