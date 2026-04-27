@@ -58,6 +58,10 @@ struct SettingsView: View {
                 Toggle("Sound on notification", isOn: $settings.soundEnabled)
             }
 
+            Section("Display") {
+                Toggle("Show daily totals on idle screen", isOn: $settings.showDailyStats)
+            }
+
             Section("iPhone / Calendar sync") {
                 Toggle("Mirror breaks to Calendar", isOn: Binding(
                     get: { settings.calendarSyncEnabled },

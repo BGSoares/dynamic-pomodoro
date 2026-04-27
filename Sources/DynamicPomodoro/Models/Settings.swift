@@ -17,6 +17,7 @@ final class Settings: ObservableObject {
         static let onboardingComplete = "onboardingComplete"
         static let calendarSyncEnabled = "calendarSyncEnabled"
         static let calendarIdentifier = "calendarIdentifier"
+        static let showDailyStats = "showDailyStats"
     }
 
     // Stored state (minutes since midnight for times)
@@ -51,6 +52,10 @@ final class Settings: ObservableObject {
     @Published var calendarIdentifier: String? {
         didSet { UserDefaults.standard.set(calendarIdentifier, forKey: Key.calendarIdentifier) }
     }
+    /// Show today's pomo + break totals on the idle screen.
+    @Published var showDailyStats: Bool {
+        didSet { UserDefaults.standard.set(showDailyStats, forKey: Key.showDailyStats) }
+    }
 
     private init() {
         let d = UserDefaults.standard
@@ -63,6 +68,7 @@ final class Settings: ObservableObject {
         self.onboardingComplete = d.bool(forKey: Key.onboardingComplete)
         self.calendarSyncEnabled = d.bool(forKey: Key.calendarSyncEnabled)
         self.calendarIdentifier = d.string(forKey: Key.calendarIdentifier)
+        self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
     }
 
     /// Workday midpoint in minutes since midnight.

@@ -100,6 +100,11 @@ final class TimerController: ObservableObject {
         )
     }
 
+    /// Today's completed pomo + break totals.
+    func dailyStats(now: Date = Date()) -> DailyStats {
+        log.dailyStats(now: now)
+    }
+
     func startFocus(now: Date = Date()) {
         stopTimer()
         let minutes = suggestedFocusMinutes(now: now)
