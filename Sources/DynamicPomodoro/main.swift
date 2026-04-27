@@ -150,7 +150,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Dynamic Pomodoro")
+            // Bell curve evokes the way pomodoro durations rise and fall across the day.
+            let image = Bundle.module.image(forResource: "BellCurveTemplate")
+            image?.isTemplate = true
+            button.image = image
             button.imagePosition = .imageLeft
         }
 
