@@ -34,10 +34,14 @@ final class TimerController: ObservableObject {
     // Dependencies
     private let settings: Settings
     private let log: SessionLogStore
-    private let library: [Activity]
+    private let activityStore: ActivityStore
     private let notifications: NotificationService
     private let calendar: CalendarService
     private var rng = SystemRandomNumberGenerator()
+
+    /// Snapshot of the current activity library — read fresh on each selection
+    /// so user edits in the manage-activities sheet take effect immediately.
+    private var library: [Activity] { activityStore.activities }
 
     /// Event identifier for the Calendar mirror of the active break (if any).
     /// Set in `startBreak` when sync is enabled; cleared on skip/complete.
@@ -57,13 +61,13 @@ final class TimerController: ObservableObject {
     init(
         settings: Settings = .shared,
         log: SessionLogStore = .shared,
-        library: [Activity] = ActivityLibrary.load(),
+        activityStore: ActivityStore = .shared,
         notifications: NotificationService = .shared,
         calendar: CalendarService = .shared
     ) {
         self.settings = settings
         self.log = log
-        self.library = library
+        self.activityStore = activityStore
         self.notifications = notifications
         self.calendar = calendar
 
