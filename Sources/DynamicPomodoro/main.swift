@@ -172,14 +172,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusItemTitle() {
         guard let button = statusItem?.button else { return }
+        let text: String
         switch timer.phase {
         case .idle:
-            button.title = ""
+            text = ""
         case .focus:
-            button.title = " F \(timer.remainingFormatted)"
+            text = " F \(timer.remainingFormatted)"
         case .breakRunning:
-            button.title = " B \(timer.remainingFormatted)"
+            text = " B \(timer.remainingFormatted)"
         }
+        // Use tabular (monospaced) digits so each second's tick doesn't change
+        // the title's width — otherwise the variable-length status item resizes
+        // and the dolphin icon visibly shifts left/right in the menu bar.
+        let font = NSFont.menuBarFont(ofSize: 0)
+        let monospacedDigitFont = NSFont.monospacedDigitSystemFont(
+            ofSize: font.pointSize,
+            weight: .regular
+        )
+        button.attributedTitle = NSAttributedString(
+            string: text,
+            attributes: [.font: monospacedDigitFont]
+        )
     }
 
     // MARK: - Windows
