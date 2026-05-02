@@ -15,8 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
-    private var menuObservation: Any?
-    private var screenChangeObservation: Any?
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -27,14 +25,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Always open the main window on launch.
         openMainWindow()
-
-        // Keep the menu bar title live-updating.
-        menuObservation = NotificationCenter.default.addObserver(
-            forName: .init("PomodoroStateChanged"),
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.updateStatusItemTitle() }
-        }
 
         // Drive title refresh once per second — cheap, and independent of the TimerController internals.
         // Scheduled in `.common` modes so it keeps firing during event tracking
@@ -56,18 +46,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // drift off the visible content (clicks on the buttons "do nothing").
         // Between-break dock/undock is already handled by hideBreakOverlay
         // clearing the panel array.
-        screenChangeObservation = NotificationCenter.default.addObserver(
+        NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in self?.handleScreenParametersChanged() }
         }
-    }
-
-    deinit {
-        if let obs = menuObservation { NotificationCenter.default.removeObserver(obs) }
-        if let obs = screenChangeObservation { NotificationCenter.default.removeObserver(obs) }
     }
 
     // MARK: - Break overlay
@@ -92,28 +77,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return NSScreen.main ?? NSScreen.screens.first
     }
 
-    private func showBreakOverlay() {
-        if breakOverlayWindows.isEmpty {
-            // One panel per connected display. Only the primary panel hosts the
-            // SwiftUI timer/controls; the rest are pure black blockers so the
-            // user can't sneak work onto a secondary screen during a break.
-            // Pick primary by cursor location so the timer lands on the screen
-            // the user is actually looking at — `NSScreen.main` returns the
-            // screen with the key window, often a different display.
-            let primaryScreen = currentBreakScreen() ?? NSScreen.main ?? NSScreen.screens.first
-            for screen in NSScreen.screens {
-                let isPrimary = (screen == primaryScreen)
-                breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
-            }
+    /// Build one panel per connected display and bring them on screen.
+    /// Primary panel hosts the SwiftUI timer/controls; the rest are pure black
+    /// blockers so the user can't sneak work onto a secondary screen during a
+    /// break. Primary is picked by cursor location so the timer lands on the
+    /// screen the user is actually looking at — `NSScreen.main` returns the
+    /// screen with the key window, often a different display.
+    /// `fadeIn` is true at break start (the 4 s fade IS the prep) and false
+    /// when rebuilding mid-break for a display change (we're already running).
+    private func showBreakOverlay(fadeIn: Bool = true) {
+        let primaryScreen = currentBreakScreen()
+        for screen in NSScreen.screens {
+            let isPrimary = (screen == primaryScreen)
+            breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
         }
 
-        guard !breakOverlayWindows.isEmpty else { return }
-
-        // Fade in slowly — the fade IS the prep.
         // Activate the app so SwiftUI gestures (hold-to-skip) receive events.
         NSApp.activate(ignoringOtherApps: true)
         for window in breakOverlayWindows {
-            window.alphaValue = 0
+            window.alphaValue = fadeIn ? 0 : 1
             if window.contentViewController == nil {
                 // Secondary blockers shouldn't steal key status from the primary.
                 window.orderFrontRegardless()
@@ -123,6 +105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let primary = breakOverlayWindows.first(where: { $0.contentViewController != nil }) {
             primary.makeKeyAndOrderFront(nil)
         }
+
+        guard fadeIn else { return }
         NSApp.requestUserAttention(.informationalRequest)
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 4.0
@@ -166,19 +150,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func hideBreakOverlay() {
         let windows = breakOverlayWindows
         guard windows.contains(where: { $0.isVisible }) else { return }
+        // Clear synchronously so a screen-change racing with this fade-out
+        // doesn't see a stale array and rebuild on top of windows we're
+        // tearing down. The animation owns its captured `windows` snapshot.
+        breakOverlayWindows.removeAll()
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 1.5
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             for window in windows {
                 window.animator().alphaValue = 0
             }
-        }, completionHandler: { [weak self] in
+        }, completionHandler: {
             for window in windows {
                 window.orderOut(nil)
             }
-            // Clear so the next break rebuilds against the current screen set —
-            // handles dock/undock between breaks without a screen-change observer.
-            Task { @MainActor in self?.breakOverlayWindows.removeAll() }
         })
     }
 
@@ -192,24 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.orderOut(nil)
         }
         breakOverlayWindows.removeAll()
-
-        let primaryScreen = currentBreakScreen() ?? NSScreen.main ?? NSScreen.screens.first
-        for screen in NSScreen.screens {
-            let isPrimary = (screen == primaryScreen)
-            breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
-        }
-
-        // Snap to full alpha — we're already mid-break, the prep fade is over.
-        NSApp.activate(ignoringOtherApps: true)
-        for window in breakOverlayWindows {
-            window.alphaValue = 1.0
-            if window.contentViewController == nil {
-                window.orderFrontRegardless()
-            }
-        }
-        if let primary = breakOverlayWindows.first(where: { $0.contentViewController != nil }) {
-            primary.makeKeyAndOrderFront(nil)
-        }
+        showBreakOverlay(fadeIn: false)
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
