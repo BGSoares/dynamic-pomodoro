@@ -18,7 +18,6 @@ struct BreakOverlayView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .ignoresSafeArea()
 
             // Subtle radial vignette in the centre
             RadialGradient(
@@ -27,7 +26,6 @@ struct BreakOverlayView: View {
                 startRadius: 0,
                 endRadius: 500
             )
-            .ignoresSafeArea()
             .allowsHitTesting(false)
 
             VStack(spacing: 44) {
@@ -70,6 +68,11 @@ struct BreakOverlayView: View {
                     .padding(.bottom, 48)
             }
         }
+        // Ignore safe area at the root so the VStack centerline matches the
+        // window centerline. Without this, an asymmetric dock (left side, or
+        // any auto-hide config) inset the foreground content while the
+        // background still filled the screen, drifting the timer to the right.
+        .ignoresSafeArea()
     }
 
     private var countdownRing: some View {

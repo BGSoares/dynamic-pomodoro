@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
     private var menuObservation: Any?
+    private var screenChangeObservation: Any?
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -49,6 +50,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] newPhase in
                 Task { @MainActor in self?.handlePhaseChange(newPhase) }
             }
+
+        // If displays change mid-break, rebuild the overlay panels against the
+        // new screen set — otherwise stale frames make SwiftUI hit-testing
+        // drift off the visible content (clicks on the buttons "do nothing").
+        // Between-break dock/undock is already handled by hideBreakOverlay
+        // clearing the panel array.
+        screenChangeObservation = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleScreenParametersChanged() }
+        }
+    }
+
+    deinit {
+        if let obs = menuObservation { NotificationCenter.default.removeObserver(obs) }
+        if let obs = screenChangeObservation { NotificationCenter.default.removeObserver(obs) }
     }
 
     // MARK: - Break overlay
@@ -62,12 +81,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The break interrupts whatever the user is doing right now, so anchor the
+    /// overlay to the screen with the cursor — not whichever screen happens to
+    /// hold the key window (which is what `NSScreen.main` returns).
+    private func currentBreakScreen() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        if let s = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) {
+            return s
+        }
+        return NSScreen.main ?? NSScreen.screens.first
+    }
+
     private func showBreakOverlay() {
         if breakOverlayWindows.isEmpty {
             // One panel per connected display. Only the primary panel hosts the
             // SwiftUI timer/controls; the rest are pure black blockers so the
             // user can't sneak work onto a secondary screen during a break.
-            let primaryScreen = NSScreen.main ?? NSScreen.screens.first
+            // Pick primary by cursor location so the timer lands on the screen
+            // the user is actually looking at — `NSScreen.main` returns the
+            // screen with the key window, often a different display.
+            let primaryScreen = currentBreakScreen() ?? NSScreen.main ?? NSScreen.screens.first
             for screen in NSScreen.screens {
                 let isPrimary = (screen == primaryScreen)
                 breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
@@ -103,7 +136,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeBreakOverlayPanel(for screen: NSScreen, isPrimary: Bool) -> NSPanel {
         let frame = screen.frame
         // Use a borderless NSPanel so it can join all spaces and cover menu bar.
-        let panel = NSPanel(
+        // KeyablePanel opts in to canBecomeKey so the primary panel can route
+        // SwiftUI gestures through the responder chain.
+        let panel = KeyablePanel(
             contentRect: frame,
             styleMask: [.borderless],
             backing: .buffered,
@@ -145,6 +180,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // handles dock/undock between breaks without a screen-change observer.
             Task { @MainActor in self?.breakOverlayWindows.removeAll() }
         })
+    }
+
+    private func handleScreenParametersChanged() {
+        // If displays change mid-break, the existing panels are sized for the
+        // old screen set. Tear them down and rebuild against the current
+        // screens so the timer/controls land on a valid display and every
+        // connected screen stays blocked.
+        guard breakOverlayWindows.contains(where: { $0.isVisible }) else { return }
+        for window in breakOverlayWindows {
+            window.orderOut(nil)
+        }
+        breakOverlayWindows.removeAll()
+
+        let primaryScreen = currentBreakScreen() ?? NSScreen.main ?? NSScreen.screens.first
+        for screen in NSScreen.screens {
+            let isPrimary = (screen == primaryScreen)
+            breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
+        }
+
+        // Snap to full alpha — we're already mid-break, the prep fade is over.
+        NSApp.activate(ignoringOtherApps: true)
+        for window in breakOverlayWindows {
+            window.alphaValue = 1.0
+            if window.contentViewController == nil {
+                window.orderFrontRegardless()
+            }
+        }
+        if let primary = breakOverlayWindows.first(where: { $0.contentViewController != nil }) {
+            primary.makeKeyAndOrderFront(nil)
+        }
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -295,6 +360,12 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
         sender.orderOut(nil)
         return false
     }
+}
+
+/// Borderless panels are non-key by default. Opt in so SwiftUI gestures and
+/// any future keyboard shortcuts route correctly through the responder chain.
+private final class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
 }
 
 // MARK: - Bootstrap
