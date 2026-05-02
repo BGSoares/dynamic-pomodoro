@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var breakOverlayWindow: NSWindow?
     private var menuObservation: Any?
+    private var screenChangeObservation: Any?
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -49,6 +50,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] newPhase in
                 Task { @MainActor in self?.handlePhaseChange(newPhase) }
             }
+
+        // If displays change while the overlay is visible, reflow it onto the
+        // current screen — otherwise the panel keeps its stale frame and
+        // SwiftUI hit-testing drifts off the visible content.
+        screenChangeObservation = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleScreenParametersChanged() }
+        }
+    }
+
+    deinit {
+        if let obs = menuObservation { NotificationCenter.default.removeObserver(obs) }
+        if let obs = screenChangeObservation { NotificationCenter.default.removeObserver(obs) }
     }
 
     // MARK: - Break overlay
@@ -62,14 +79,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The break interrupts whatever the user is doing right now, so anchor the
+    /// overlay to the screen with the cursor — not whichever screen happens to
+    /// hold the key window (which is what `NSScreen.main` returns).
+    private func currentBreakScreen() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        if let s = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) {
+            return s
+        }
+        return NSScreen.main ?? NSScreen.screens.first
+    }
+
     private func showBreakOverlay() {
+        let screen = currentBreakScreen()
+        let frame = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+
         if breakOverlayWindow == nil {
             let root = BreakOverlayView(timer: timer)
             let controller = NSHostingController(rootView: root)
             // Use a borderless NSPanel so it can join all spaces and cover menu bar.
-            let screen = NSScreen.main ?? NSScreen.screens.first
-            let frame = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-            let panel = NSPanel(
+            let panel = KeyablePanel(
                 contentRect: frame,
                 styleMask: [.borderless],
                 backing: .buffered,
@@ -85,11 +114,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.isReleasedWhenClosed = false
             panel.hidesOnDeactivate = false
             panel.alphaValue = 0
-            panel.setFrame(frame, display: false)
             breakOverlayWindow = panel
         }
 
         guard let window = breakOverlayWindow else { return }
+        // Re-frame on every show so display changes that occurred while the
+        // overlay was hidden are reflected in the new break — otherwise
+        // SwiftUI lays out for the stale bounds and clicks miss the buttons.
+        window.setFrame(frame, display: false)
 
         // Fade in slowly — the fade IS the prep.
         // Activate the app so SwiftUI gestures (hold-to-skip) receive events.
@@ -113,6 +145,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }, completionHandler: {
             window.orderOut(nil)
         })
+    }
+
+    private func handleScreenParametersChanged() {
+        guard let window = breakOverlayWindow, window.isVisible else { return }
+        let frame = currentBreakScreen()?.frame ?? window.frame
+        window.setFrame(frame, display: true)
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -260,6 +298,12 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
         sender.orderOut(nil)
         return false
     }
+}
+
+/// Borderless panels are non-key by default. Opt in so SwiftUI gestures and
+/// any future keyboard shortcuts route correctly through the responder chain.
+private final class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
 }
 
 // MARK: - Bootstrap
