@@ -207,7 +207,9 @@ final class TimerController: ObservableObject {
             )
         }
 
-        MediaControlService.pauseAllMedia(enabled: settings.pauseMediaOnBreak)
+        if settings.pauseMediaOnBreak {
+            MediaControlService.pauseAllMedia()
+        }
     }
 
     private func removeCurrentBreakEvent() {
@@ -348,7 +350,10 @@ final class TimerController: ObservableObject {
         if remainingSeconds < 60 {
             return "\(remainingSeconds) s"
         }
-        return "\(remainingSeconds / 60) m"
+        // Ceiling-divide so a 6:00 phase reads "6 m" for the full first
+        // minute and ticks down at the minute boundary. Floor-dividing
+        // would drop to "5 m" one second after the phase started.
+        return "\((remainingSeconds + 59) / 60) m"
     }
 
     var progress: Double {

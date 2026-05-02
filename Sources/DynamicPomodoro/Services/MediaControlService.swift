@@ -6,15 +6,20 @@ import IOKit.hidsystem
 /// what the hardware Play/Pause key emits, and macOS routes it to the
 /// most-recently-active media app — so no per-app integration is needed.
 enum MediaControlService {
-    static func pauseAllMedia(enabled: Bool) {
-        guard enabled else { return }
+    static func pauseAllMedia() {
         sendMediaKey(NX_KEYTYPE_PLAY)
     }
 
     private static func sendMediaKey(_ key: Int32) {
-        for isDown in [true, false] {
-            let flags = NSEvent.ModifierFlags(rawValue: isDown ? 0xa00 : 0xb00)
-            let data1 = (Int(key) << 16) | ((isDown ? 0xa : 0xb) << 8)
+        // System-defined media-key events encode press/release as NX_KEYDOWN /
+        // NX_KEYUP packed into both the modifier-flag word (shifted left by 8)
+        // and the data1 second byte. The values aren't exposed as Swift
+        // constants so we name them locally to keep the bit layout legible.
+        let nxKeyDown = 0xa
+        let nxKeyUp = 0xb
+        for nxKeyState in [nxKeyDown, nxKeyUp] {
+            let flags = NSEvent.ModifierFlags(rawValue: UInt(nxKeyState) << 8)
+            let data1 = (Int(key) << 16) | (nxKeyState << 8)
             guard let event = NSEvent.otherEvent(
                 with: .systemDefined,
                 location: .zero,
