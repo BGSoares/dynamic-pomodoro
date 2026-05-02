@@ -206,6 +206,8 @@ final class TimerController: ObservableObject {
                 calendarIdentifier: settings.calendarIdentifier
             )
         }
+
+        MediaControlService.pauseAllMedia(enabled: settings.pauseMediaOnBreak)
     }
 
     private func removeCurrentBreakEvent() {

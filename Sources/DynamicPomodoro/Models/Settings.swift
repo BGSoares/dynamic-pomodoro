@@ -19,6 +19,7 @@ final class Settings: ObservableObject {
         static let calendarIdentifier = "calendarIdentifier"
         static let showDailyStats = "showDailyStats"
         static let compactMenuBarTimer = "compactMenuBarTimer"
+        static let pauseMediaOnBreak = "pauseMediaOnBreak"
     }
 
     // Stored state (minutes since midnight for times)
@@ -61,6 +62,11 @@ final class Settings: ObservableObject {
     @Published var compactMenuBarTimer: Bool {
         didSet { UserDefaults.standard.set(compactMenuBarTimer, forKey: Key.compactMenuBarTimer) }
     }
+    /// Send the system Play/Pause signal at the start of each break so any
+    /// active media (YouTube, Spotify, Music, …) pauses automatically.
+    @Published var pauseMediaOnBreak: Bool {
+        didSet { UserDefaults.standard.set(pauseMediaOnBreak, forKey: Key.pauseMediaOnBreak) }
+    }
 
     private init() {
         let d = UserDefaults.standard
@@ -75,6 +81,7 @@ final class Settings: ObservableObject {
         self.calendarIdentifier = d.string(forKey: Key.calendarIdentifier)
         self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
         self.compactMenuBarTimer = d.object(forKey: Key.compactMenuBarTimer) as? Bool ?? false
+        self.pauseMediaOnBreak = d.object(forKey: Key.pauseMediaOnBreak) as? Bool ?? true
     }
 
     /// Workday midpoint in minutes since midnight.
