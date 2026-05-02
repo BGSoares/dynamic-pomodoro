@@ -68,10 +68,12 @@ struct SettingsView: View {
 
             Section("Notifications") {
                 Toggle("Sound on notification", isOn: $settings.soundEnabled)
+                Toggle("Pause media when break starts", isOn: $settings.pauseMediaOnBreak)
             }
 
             Section("Display") {
                 Toggle("Show daily totals on idle screen", isOn: $settings.showDailyStats)
+                Toggle("Compact menu bar timer (e.g. \"6 m\")", isOn: $settings.compactMenuBarTimer)
             }
 
             Section("iPhone / Calendar sync") {

@@ -206,6 +206,8 @@ final class TimerController: ObservableObject {
                 calendarIdentifier: settings.calendarIdentifier
             )
         }
+
+        MediaControlService.pauseAllMedia(enabled: settings.pauseMediaOnBreak)
     }
 
     private func removeCurrentBreakEvent() {
@@ -340,6 +342,13 @@ final class TimerController: ObservableObject {
         let m = remainingSeconds / 60
         let s = remainingSeconds % 60
         return String(format: "%02d:%02d", m, s)
+    }
+
+    var remainingFormattedCompact: String {
+        if remainingSeconds < 60 {
+            return "\(remainingSeconds) s"
+        }
+        return "\(remainingSeconds / 60) m"
     }
 
     var progress: Double {
