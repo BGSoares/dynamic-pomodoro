@@ -73,6 +73,7 @@ struct SettingsView: View {
 
             Section("Display") {
                 Toggle("Show daily totals on idle screen", isOn: $settings.showDailyStats)
+                Toggle("Compact menu bar timer (e.g. \"6 m\")", isOn: $settings.compactMenuBarTimer)
             }
 
             Section("iPhone / Calendar sync") {

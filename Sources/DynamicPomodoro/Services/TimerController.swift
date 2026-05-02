@@ -344,6 +344,13 @@ final class TimerController: ObservableObject {
         return String(format: "%02d:%02d", m, s)
     }
 
+    var remainingFormattedCompact: String {
+        if remainingSeconds < 60 {
+            return "\(remainingSeconds) s"
+        }
+        return "\(remainingSeconds / 60) m"
+    }
+
     var progress: Double {
         guard totalSeconds > 0 else { return 0 }
         return 1.0 - Double(remainingSeconds) / Double(totalSeconds)

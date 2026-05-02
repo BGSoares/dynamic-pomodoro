@@ -18,6 +18,7 @@ final class Settings: ObservableObject {
         static let calendarSyncEnabled = "calendarSyncEnabled"
         static let calendarIdentifier = "calendarIdentifier"
         static let showDailyStats = "showDailyStats"
+        static let compactMenuBarTimer = "compactMenuBarTimer"
         static let pauseMediaOnBreak = "pauseMediaOnBreak"
     }
 
@@ -57,6 +58,10 @@ final class Settings: ObservableObject {
     @Published var showDailyStats: Bool {
         didSet { UserDefaults.standard.set(showDailyStats, forKey: Key.showDailyStats) }
     }
+    /// Hide seconds in the menu bar countdown when ≥ 1 min remains (e.g. "6 m").
+    @Published var compactMenuBarTimer: Bool {
+        didSet { UserDefaults.standard.set(compactMenuBarTimer, forKey: Key.compactMenuBarTimer) }
+    }
     /// Send the system Play/Pause signal at the start of each break so any
     /// active media (YouTube, Spotify, Music, …) pauses automatically.
     @Published var pauseMediaOnBreak: Bool {
@@ -75,6 +80,7 @@ final class Settings: ObservableObject {
         self.calendarSyncEnabled = d.bool(forKey: Key.calendarSyncEnabled)
         self.calendarIdentifier = d.string(forKey: Key.calendarIdentifier)
         self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
+        self.compactMenuBarTimer = d.object(forKey: Key.compactMenuBarTimer) as? Bool ?? false
         self.pauseMediaOnBreak = d.object(forKey: Key.pauseMediaOnBreak) as? Bool ?? true
     }
 
