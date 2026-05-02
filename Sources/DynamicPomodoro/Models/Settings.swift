@@ -18,6 +18,7 @@ final class Settings: ObservableObject {
         static let calendarSyncEnabled = "calendarSyncEnabled"
         static let calendarIdentifier = "calendarIdentifier"
         static let showDailyStats = "showDailyStats"
+        static let compactMenuBarTimer = "compactMenuBarTimer"
     }
 
     // Stored state (minutes since midnight for times)
@@ -56,6 +57,10 @@ final class Settings: ObservableObject {
     @Published var showDailyStats: Bool {
         didSet { UserDefaults.standard.set(showDailyStats, forKey: Key.showDailyStats) }
     }
+    /// Hide seconds in the menu bar countdown when ≥ 1 min remains (e.g. "6 m").
+    @Published var compactMenuBarTimer: Bool {
+        didSet { UserDefaults.standard.set(compactMenuBarTimer, forKey: Key.compactMenuBarTimer) }
+    }
 
     private init() {
         let d = UserDefaults.standard
@@ -69,6 +74,7 @@ final class Settings: ObservableObject {
         self.calendarSyncEnabled = d.bool(forKey: Key.calendarSyncEnabled)
         self.calendarIdentifier = d.string(forKey: Key.calendarIdentifier)
         self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
+        self.compactMenuBarTimer = d.object(forKey: Key.compactMenuBarTimer) as? Bool ?? false
     }
 
     /// Workday midpoint in minutes since midnight.
