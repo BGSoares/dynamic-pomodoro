@@ -68,6 +68,7 @@ struct SettingsView: View {
 
             Section("Notifications") {
                 Toggle("Sound on notification", isOn: $settings.soundEnabled)
+                Toggle("Pause media when break starts", isOn: $settings.pauseMediaOnBreak)
             }
 
             Section("Display") {
