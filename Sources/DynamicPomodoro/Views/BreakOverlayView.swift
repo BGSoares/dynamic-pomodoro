@@ -3,9 +3,13 @@ import SwiftUI
 /// Full-screen break view hosted in a shielding-level NSPanel.
 /// This is THE break UI — no separate prompt, no Start button; the overlay's
 /// fade-in is the prep, and the timer runs for its full duration.
-/// Skip requires a 2-second hold (intentional friction, not a lockout).
+/// Skip requires a 15-second hold (intentional friction, not a lockout).
 struct BreakOverlayView: View {
     @ObservedObject var timer: TimerController
+
+    /// Caption under the skip button. Switches to a one-line nudge from
+    /// `SkipNudgeMessages` while the user is mid-hold, then reverts on release.
+    @State private var skipNudge: String?
 
     var body: some View {
         ZStack {
@@ -107,12 +111,25 @@ struct BreakOverlayView: View {
     private var controls: some View {
         VStack(spacing: 10) {
             HStack(spacing: 28) {
-                HoldToSkipButton(onComplete: { timer.skipBreak() })
+                HoldToSkipButton(
+                    onComplete: { timer.skipBreak() },
+                    onHoldStateChange: { holding in
+                        if holding {
+                            var rng = SystemRandomNumberGenerator()
+                            skipNudge = SkipNudgeMessages.random(rng: &rng)
+                        } else {
+                            skipNudge = nil
+                        }
+                    }
+                )
                 SwapButton { timer.swapActivity() }
             }
-            Text("Hold to skip")
+            Text(skipNudge ?? "Hold to skip")
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.35))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+                .animation(.easeInOut(duration: 0.2), value: skipNudge)
         }
     }
 }
@@ -124,6 +141,10 @@ struct BreakOverlayView: View {
 private struct HoldToSkipButton: View {
     let holdDuration: TimeInterval = 15.0
     var onComplete: () -> Void
+    /// Called with `true` the moment the hold begins, and `false` when an
+    /// in-progress hold is released early. Not called when the hold completes
+    /// (the parent view dismisses on completion).
+    var onHoldStateChange: ((Bool) -> Void)? = nil
 
     @State private var progress: Double = 0
     @State private var tickTimer: Timer?
@@ -156,9 +177,12 @@ private struct HoldToSkipButton: View {
                     guard !completed, holdStart == nil else { return }
                     holdStart = Date()
                     startTicker()
+                    onHoldStateChange?(true)
                 }
                 .onEnded { _ in
+                    let wasHoldingEarly = holdStart != nil && !completed
                     cancelIfNotComplete()
+                    if wasHoldingEarly { onHoldStateChange?(false) }
                 }
         )
         .onDisappear { stopTicker() }

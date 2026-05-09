@@ -4,7 +4,7 @@ struct Activity: Identifiable, Codable, Hashable {
     enum Category: String, Codable, CaseIterable {
         case stretch, breathwork
         case eyeRest = "eye_rest"
-        case walk, mindfulness, hydration
+        case walk, mindfulness, hydration, inspiration
 
         var displayName: String {
             switch self {
@@ -14,6 +14,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .walk: return "Walk"
             case .mindfulness: return "Mindfulness"
             case .hydration: return "Hydration"
+            case .inspiration: return "Inspiration"
             }
         }
     }

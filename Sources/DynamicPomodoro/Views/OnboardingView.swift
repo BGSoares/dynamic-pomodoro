@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// First-run setup (§6). Five short steps + curve preview + start.
+/// First-run setup (§6). Six short steps + curve preview + start.
 struct OnboardingView: View {
     @ObservedObject var settings: Settings
     var onFinish: () -> Void
     @State private var step = 0
+    @State private var showBreakWhy = false
 
-    private let totalSteps = 6
+    private let totalSteps = 7
 
     var body: some View {
         VStack(spacing: 24) {
@@ -19,9 +20,10 @@ struct OnboardingView: View {
                 case 0: welcome
                 case 1: workdayStart
                 case 2: workdayEnd
-                case 3: peakFocus
-                case 4: minFocus
-                case 5: preview
+                case 3: breakPhilosophy
+                case 4: peakFocus
+                case 5: minFocus
+                case 6: preview
                 default: welcome
                 }
             }
@@ -135,6 +137,44 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
             CurvePreviewView(settings: settings)
                 .padding(.horizontal, 8)
+        }
+    }
+
+    private var breakPhilosophy: some View {
+        VStack(spacing: 18) {
+            Text("Breaks aren't optional here")
+                .font(.title.weight(.semibold))
+                .multilineTextAlignment(.center)
+
+            if showBreakWhy {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Skipping a break borrows from your next focus session, with interest.",
+                          systemImage: "arrow.uturn.backward.circle")
+                    Label("A break taken now prevents the long, foggy hour at 4pm.",
+                          systemImage: "clock.badge.exclamationmark")
+                    Label("Your best ideas arrive when the prefrontal cortex stops gripping the problem.",
+                          systemImage: "lightbulb")
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 440, alignment: .leading)
+            } else {
+                VStack(spacing: 10) {
+                    Text("Most timers let you skip with a tap. This one makes you hold for 15 seconds — not to lock you out, but to make sure you mean it.")
+                    Text("Each break gets one suggested activity. You can swap it. You can ignore it. But the timer runs its full length, because that's what makes the next session work.")
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 440)
+            }
+
+            Button(showBreakWhy ? "Got it" : "Why?") {
+                showBreakWhy.toggle()
+            }
+            .buttonStyle(.borderless)
+            .font(.callout)
+            .foregroundStyle(.tint)
         }
     }
 }
