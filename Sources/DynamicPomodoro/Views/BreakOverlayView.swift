@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Full-screen break view hosted in a screenSaver-level NSWindow.
+/// Full-screen break view hosted in a shielding-level NSPanel.
 /// This is THE break UI — no separate prompt, no Start button; the overlay's
 /// fade-in is the prep, and the timer runs for its full duration.
 /// Skip requires a 2-second hold (intentional friction, not a lockout).

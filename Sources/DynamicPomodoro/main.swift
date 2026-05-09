@@ -135,7 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Pure black blocker — no UI, no event handling.
             panel.ignoresMouseEvents = true
         }
-        panel.level = .screenSaver
+        // Shielding level (the one macOS uses for the lock-screen shield) sits above
+        // native fullscreen apps. `.screenSaver` is too low on modern macOS — apps
+        // in their own fullscreen Space punch through it.
+        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isOpaque = true
         panel.backgroundColor = .black
