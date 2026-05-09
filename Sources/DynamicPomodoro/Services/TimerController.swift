@@ -162,7 +162,7 @@ final class TimerController: ObservableObject {
 
         notifications.notify(
             title: "Focus complete",
-            body: "Time for a break.",
+            body: "Step away. The next session needs you fresh.",
             playSound: settings.soundEnabled
         )
     }
@@ -177,10 +177,14 @@ final class TimerController: ObservableObject {
 
         selectActivity(now: now)
 
-        // Reminder message rule (§4.5): only on first break of day, or after a skipped break.
+        // Reminder message rule: first break of day, after any skipped break,
+        // or every 3rd break otherwise — keeps the philosophy surfacing without
+        // turning every break card into a lecture.
         let isFirstBreakToday = !log.hasBreakEntryToday(now: now)
         let lastWasSkip = log.lastBreakWasSkipped()
-        if isFirstBreakToday || lastWasSkip {
+        let breaksToday = log.breakCountToday(now: now)
+        let everyThird = breaksToday > 0 && breaksToday % 3 == 0
+        if isFirstBreakToday || lastWasSkip || everyThird {
             currentReminderMessage = ReminderMessages.random(excluding: nil, rng: &rng)
         } else {
             currentReminderMessage = nil

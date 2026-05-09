@@ -18,27 +18,63 @@
     "suitable_times": ["morning", "afternoon", "end_of_day"]
   },
   {
-    "id": "hip_flexor_stretch",
-    "name": "Hip flexor stretch",
-    "instruction": "Kneel on one knee, drive hips forward. 45s each side. Your chair has been compressing this all morning.",
-    "category": "stretch",
-    "band": "medium",
-    "energy": "moderate",
-    "suitable_times": ["midday", "afternoon"]
-  },
-  {
     "id": "forward_fold",
     "name": "Standing forward fold",
-    "instruction": "Feet hip-width. Hinge at hips, let arms hang. Soft knees. Stay 90 seconds. Let gravity do the work.",
+    "instruction": "Find a doorway or quiet corner. Feet hip-width, hinge at the hips, let arms hang. Soft knees. 90 seconds. Let gravity do the work.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "afternoon", "end_of_day"]
   },
   {
-    "id": "cat_cow",
-    "name": "Cat-cow flow",
-    "instruction": "On hands and knees. Inhale, arch. Exhale, round. 10 cycles at a pace that feels good.",
+    "id": "wrist_flexor_stretch",
+    "name": "Wrist stretch",
+    "instruction": "Arm out, palm up. Gently pull fingers down with the other hand. 30s each side, twice.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wall_sit",
+    "name": "Wall sit",
+    "instruction": "Slip into a hallway or stairwell. Back flat to the wall, thighs parallel to the floor. Hold 60s, rest 30s, repeat twice. Quads will thank you on the bike.",
+    "category": "stretch",
+    "band": "medium",
+    "energy": "active",
+    "suitable_times": ["midday"]
+  },
+  {
+    "id": "calf_raises",
+    "name": "Calf raises",
+    "instruction": "Stand at your desk. Slow rise onto the balls of your feet, slow lower. 3 sets of 15. Wakes the calves up — they've been a footrest for hours.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "seated_spinal_twist",
+    "name": "Seated spinal twist",
+    "instruction": "Sit tall, feet flat. Twist gently to the right, hand on the chair back. Hold 30s. Repeat left. Once more each side.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "glute_squeezes",
+    "name": "Glute squeezes",
+    "instruction": "Sit upright. Squeeze your glutes hard for 5 seconds, release. 20 reps. Completely invisible. Reactivates muscles that have switched off.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "chest_doorway_stretch",
+    "name": "Chest opener",
+    "instruction": "Find a doorway. Forearm against the frame, step forward. Feel the chest open. 30s each side. Counters everything a keyboard does to your shoulders.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
@@ -61,15 +97,6 @@
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["afternoon", "end_of_day"]
-  },
-  {
-    "id": "wim_hof_light",
-    "name": "30 deep breaths",
-    "instruction": "30 full inhales through the nose, passive exhales. Then hold the exhale as long as comfortable. One round.",
-    "category": "breathwork",
-    "band": "medium",
-    "energy": "active",
-    "suitable_times": ["morning", "midday"]
   },
   {
     "id": "twenty_twenty_twenty",
@@ -99,6 +126,15 @@
     "suitable_times": ["morning", "midday", "afternoon"]
   },
   {
+    "id": "plant_gaze",
+    "name": "Plant gaze",
+    "instruction": "Find the nearest plant or tree out the window. Soften your gaze and look at it. Green at distance is what your eyes evolved for.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
     "id": "short_walk",
     "name": "Short walk",
     "instruction": "Out the door. Walk for the full duration. Leave the phone on your desk.",
@@ -114,7 +150,7 @@
     "category": "walk",
     "band": "medium",
     "energy": "active",
-    "suitable_times": ["midday"]
+    "suitable_times": ["morning", "midday", "afternoon"]
   },
   {
     "id": "window_stand",
@@ -124,6 +160,15 @@
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "outdoor_air",
+    "name": "Step outside",
+    "instruction": "Step outside. Even 3 minutes. Real light, real air, weather on your skin. The brain registers this as a different room — that's the point.",
+    "category": "walk",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
     "id": "body_scan",
@@ -153,37 +198,154 @@
     "suitable_times": ["afternoon", "end_of_day"]
   },
   {
-    "id": "wall_sit",
-    "name": "Wall sit",
-    "instruction": "Back flat to a wall, thighs parallel to the floor. Hold for 60 seconds, rest 30, repeat twice.",
-    "category": "stretch",
-    "band": "medium",
-    "energy": "active",
-    "suitable_times": ["midday"]
+    "id": "desk_reset",
+    "name": "Desk reset",
+    "instruction": "Push the chair back. Stand up. Adjust monitor to eye level, chair to height, tidy one thing on the desk. Sit back down with intention.",
+    "category": "mindfulness",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday"]
   },
   {
-    "id": "wrist_flexor_stretch",
-    "name": "Wrist stretch",
-    "instruction": "Arm out, palm up. Gently pull fingers down with the other hand. 30s each side, twice.",
-    "category": "stretch",
+    "id": "five_senses",
+    "name": "5-4-3-2-1",
+    "instruction": "Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.",
+    "category": "mindfulness",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "legs_up_wall",
-    "name": "Legs up the wall",
-    "instruction": "Lie on the floor, legs straight up a wall. Arms relaxed. This does more than it looks like it should.",
+    "id": "curiosity_capture",
+    "name": "Curiosity capture",
+    "instruction": "Open a note. Write down one non-work question you're curious about — to explore later. Frees the brain to actually rest now.",
     "category": "mindfulness",
-    "band": "medium",
+    "band": "short",
     "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
     "id": "drink_water",
     "name": "Drink water",
-    "instruction": "Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated.",
+    "instruction": "Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated, and so are your legs for tomorrow's ride.",
     "category": "hydration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "mindful_drink",
+    "name": "Mindful tea or coffee",
+    "instruction": "Make a slow tea or coffee. Don't multitask. Notice the smell, the warmth of the cup, the first sip. The whole break is the ritual.",
+    "category": "hydration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "next_ride_daydream",
+    "name": "Next-ride daydream",
+    "instruction": "Picture your next ride. Where do you start? What's the weather doing? Who's on your wheel? Plan it in your head, not on Strava.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "route_reverie",
+    "name": "Plan a new loop",
+    "instruction": "Open a maps app. Trace a loop you haven't ridden yet — coast road, the climb you've been eyeing, a café in the middle. Save it. Don't ride it now.",
+    "category": "inspiration",
+    "band": "medium",
+    "energy": "gentle",
+    "suitable_times": ["midday", "afternoon"]
+  },
+  {
+    "id": "kit_appreciation",
+    "name": "Kit appreciation",
+    "instruction": "Look at one piece of your kit you love — the bike, a jersey, the shoes. Notice the engineering. Beautiful objects deserve a moment of attention.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "climb_galibier",
+    "name": "Climb the Galibier",
+    "instruction": "Close your eyes. You're on the lower slopes of the Galibier — switchbacks ahead, valley falling away. Feel the rhythm of the cadence. Stay there until the timer rings.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon"]
+  },
+  {
+    "id": "climb_stelvio",
+    "name": "Climb the Stelvio",
+    "instruction": "Close your eyes. 48 hairpins above you, Italian Alps in every direction. Spin, don't grind. Feel the air thin out as you climb. Stay there for the break.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon"]
+  },
+  {
+    "id": "climb_ventoux",
+    "name": "Climb the Ventoux",
+    "instruction": "Close your eyes. Provence behind, the bald white moonscape ahead. The wind is doing what it always does on the Ventoux. Just keep turning the pedals.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon"]
+  },
+  {
+    "id": "history_lemond_fignon_89",
+    "name": "8 seconds, 1989",
+    "instruction": "1989 Tour de France, final time trial — LeMond starts 50 seconds down on Fignon. He wins the Tour by 8. Closest in history. Sit with that for the break.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "history_pantani_galibier",
+    "name": "Pantani's Galibier",
+    "instruction": "1998. Stage 15 of the Tour. Cold rain on the Galibier. Pantani attacks 8km from the summit, takes 9 minutes back from Ullrich, wins the Tour. One of the great rides.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "history_voigt_hour_record",
+    "name": "Voigt's hour, 2014",
+    "instruction": "September 2014, Grenchen. 43 years old, last race of his career. Jens Voigt rides 51.110 km in a single hour. The record stood for 7 weeks. Sometimes the point is just to try.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wisdom_merckx",
+    "name": "Eddy Merckx",
+    "instruction": "Eddy Merckx: 'Don't buy upgrades. Ride up grades.' Sit with it. The break is the recovery interval — you don't need to do anything to earn it.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wisdom_pantani",
+    "name": "Marco Pantani",
+    "instruction": "Marco Pantani, asked why he attacked uphill: 'To make the pain shorter.' Stopping is not the opposite of effort. It's part of it.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wisdom_voigt",
+    "name": "Jens Voigt",
+    "instruction": "Jens Voigt, when his legs wanted to quit: 'Shut up legs.' But also: 'I get up, I work hard, I go to bed.' Discipline includes the rest.",
+    "category": "inspiration",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]

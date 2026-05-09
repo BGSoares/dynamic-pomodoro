@@ -123,6 +123,25 @@ final class SessionLogStore {
         }
     }
 
+    /// Number of break entries (completed or skipped) recorded today.
+    /// Drives the every-Nth-break reminder rotation.
+    func breakCountToday(calendar: Calendar = .current, now: Date = Date()) -> Int {
+        Self.breakCountToday(in: entries, calendar: calendar, now: now)
+    }
+
+    /// Pure helper for `breakCountToday(now:)`. Exposed so tests can inject entries
+    /// without having to construct a `SessionLogStore` (which is a singleton).
+    static func breakCountToday(
+        in entries: [SessionLogEntry],
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> Int {
+        entries.reduce(0) { acc, e in
+            let isBreak = e.kind == .breakCompleted || e.kind == .breakSkipped
+            return acc + (isBreak && calendar.isDate(e.startedAt, inSameDayAs: now) ? 1 : 0)
+        }
+    }
+
     /// Most recent break-activity IDs, newest first.
     func recentBreakActivityIDs(limit: Int = 5) -> [String] {
         entries.reversed()

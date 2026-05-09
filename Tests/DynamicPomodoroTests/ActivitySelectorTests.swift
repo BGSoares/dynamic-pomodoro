@@ -110,4 +110,74 @@ final class ActivitySelectorTests: XCTestCase {
         XCTAssertEqual(streak, 0, "Stretch should be avoided when lastCategory == stretch")
         XCTAssertEqual(total, 50)
     }
+
+    // MARK: - Bundled library invariants
+
+    private static let removedIDs: Set<String> = [
+        "hip_flexor_stretch",
+        "cat_cow",
+        "wim_hof_light",
+        "legs_up_wall",
+    ]
+
+    func testBundledLibraryHasNoRemovedIDs() {
+        let library = ActivityLibrary.load()
+        XCTAssertFalse(library.isEmpty, "Bundled activities.json should load")
+        let ids = Set(library.map { $0.id })
+        for removed in Self.removedIDs {
+            XCTAssertFalse(ids.contains(removed),
+                           "Removed activity '\(removed)' should not appear in bundled library")
+        }
+    }
+
+    func testBundledLibraryHasInspirationCategory() {
+        let library = ActivityLibrary.load()
+        XCTAssertTrue(library.contains { $0.category == .inspiration },
+                      "Bundled library should include at least one inspiration activity")
+    }
+
+    func testInspirationCategorySelectable() {
+        var rng = SystemRandomNumberGenerator()
+        let library: [Activity] = [
+            Activity(id: "insp", name: "Inspire", instruction: "",
+                     category: .inspiration, band: .short, energy: .gentle,
+                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
+        ]
+        let pick = ActivitySelector.select(
+            from: library,
+            breakMinutes: 5,
+            now: date(hour: 10),
+            recentActivityIDs: [],
+            lastCategory: nil,
+            disabledCategories: [],
+            settings: settings(),
+            rng: &rng
+        )
+        XCTAssertEqual(pick?.id, "insp")
+    }
+
+    func testInspirationCategoryRespectsDisabled() {
+        var rng = SystemRandomNumberGenerator()
+        let library: [Activity] = [
+            Activity(id: "insp", name: "Inspire", instruction: "",
+                     category: .inspiration, band: .short, energy: .gentle,
+                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
+            Activity(id: "stretch_a", name: "A", instruction: "",
+                     category: .stretch, band: .short, energy: .gentle,
+                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
+        ]
+        for _ in 0..<20 {
+            let pick = ActivitySelector.select(
+                from: library,
+                breakMinutes: 5,
+                now: date(hour: 10),
+                recentActivityIDs: [],
+                lastCategory: nil,
+                disabledCategories: ["inspiration"],
+                settings: settings(),
+                rng: &rng
+            )
+            XCTAssertEqual(pick?.id, "stretch_a")
+        }
+    }
 }
