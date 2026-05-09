@@ -1,37 +1,20 @@
-import AppKit
-import IOKit.hidsystem
+import Foundation
 
-/// Sends the system Play/Pause media key so any actively playing
-/// audio/video (YouTube, Spotify, Music, …) pauses. The signal matches
-/// what the hardware Play/Pause key emits, and macOS routes it to the
-/// most-recently-active media app — so no per-app integration is needed.
+/// Sends an explicit pause command via the private MediaRemote framework
+/// — the same channel macOS's Now Playing widget uses, so it covers
+/// Spotify, Music, Podcasts, browser video (YouTube, etc.) without
+/// per-app integration. Unlike the hardware Play/Pause key, this is a
+/// one-way pause: if nothing is currently playing, the call is a no-op
+/// and will not start playback.
 enum MediaControlService {
     static func pauseAllMedia() {
-        sendMediaKey(NX_KEYTYPE_PLAY)
-    }
+        let url = URL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")
+        guard let bundle = CFBundleCreate(kCFAllocatorDefault, url as CFURL),
+              let pointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSendCommand" as CFString)
+        else { return }
 
-    private static func sendMediaKey(_ key: Int32) {
-        // System-defined media-key events encode press/release as NX_KEYDOWN /
-        // NX_KEYUP packed into both the modifier-flag word (shifted left by 8)
-        // and the data1 second byte. The values aren't exposed as Swift
-        // constants so we name them locally to keep the bit layout legible.
-        let nxKeyDown = 0xa
-        let nxKeyUp = 0xb
-        for nxKeyState in [nxKeyDown, nxKeyUp] {
-            let flags = NSEvent.ModifierFlags(rawValue: UInt(nxKeyState) << 8)
-            let data1 = (Int(key) << 16) | (nxKeyState << 8)
-            guard let event = NSEvent.otherEvent(
-                with: .systemDefined,
-                location: .zero,
-                modifierFlags: flags,
-                timestamp: 0,
-                windowNumber: 0,
-                context: nil,
-                subtype: 8, // NX_SUBTYPE_AUX_CONTROL_BUTTONS
-                data1: data1,
-                data2: -1
-            ) else { return }
-            event.cgEvent?.post(tap: .cghidEventTap)
-        }
+        typealias SendCommand = @convention(c) (Int, AnyObject?) -> Bool
+        let sendCommand = unsafeBitCast(pointer, to: SendCommand.self)
+        _ = sendCommand(/* kMRPause */ 1, nil)
     }
 }
