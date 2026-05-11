@@ -146,6 +146,7 @@ final class CalendarService: ObservableObject {
     private func sourcePriority(_ source: EKSource) -> Int {
         switch source.sourceType {
         case .calDAV: return 0    // iCloud / work CalDAV — syncs to phone
+        case .mobileMe: return 0  // legacy iCloud predecessor — treat like CalDAV
         case .exchange: return 1  // syncs too
         case .subscribed: return 2
         case .birthdays: return 3
