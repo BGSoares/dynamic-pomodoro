@@ -4,11 +4,14 @@ import SwiftUI
 /// reset-to-defaults. Shown as a sheet from SettingsView.
 struct ManageActivitiesView: View {
     @ObservedObject var store: ActivityStore
+    @ObservedObject var cyclingNews: CyclingNewsService = .shared
+    @ObservedObject var settings: Settings = .shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var editing: EditTarget?
     @State private var pendingDeleteID: String?
     @State private var showResetConfirm = false
+    @State private var refreshTask: Task<Void, Never>?
 
     /// Discriminator for the editor sheet — `Identifiable` so `.sheet(item:)` works.
     private enum EditTarget: Identifiable {
@@ -67,26 +70,30 @@ struct ManageActivitiesView: View {
     private var activitiesList: some View {
         List {
             ForEach(Activity.Category.allCases, id: \.self) { category in
-                let inCategory = store.activities.filter { $0.category == category }
-                if !inCategory.isEmpty {
-                    Section(category.displayName) {
-                        ForEach(inCategory) { activity in
-                            ActivityRow(activity: activity)
-                                .contentShape(Rectangle())
-                                .onTapGesture { editing = .existing(activity) }
-                                .contextMenu {
-                                    Button("Edit") { editing = .existing(activity) }
-                                    Button("Delete", role: .destructive) {
-                                        pendingDeleteID = activity.id
+                if category == .cyclingNews {
+                    cyclingNewsSection
+                } else {
+                    let inCategory = store.activities.filter { $0.category == category }
+                    if !inCategory.isEmpty {
+                        Section(category.displayName) {
+                            ForEach(inCategory) { activity in
+                                ActivityRow(activity: activity)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { editing = .existing(activity) }
+                                    .contextMenu {
+                                        Button("Edit") { editing = .existing(activity) }
+                                        Button("Delete", role: .destructive) {
+                                            pendingDeleteID = activity.id
+                                        }
                                     }
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        pendingDeleteID = activity.id
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            pendingDeleteID = activity.id
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
-                                }
+                            }
                         }
                     }
                 }
@@ -107,6 +114,68 @@ struct ManageActivitiesView: View {
             Button("Cancel", role: .cancel) { pendingDeleteID = nil }
         }
     }
+
+    @ViewBuilder
+    private var cyclingNewsSection: some View {
+        if settings.cyclingNewsEnabled || !cyclingNews.items.isEmpty {
+            Section {
+                if cyclingNews.items.isEmpty {
+                    Text(settings.cyclingNewsEnabled
+                         ? "No headlines cached yet. Pull a refresh from Settings → Cycling News."
+                         : "Cycling news is off. Enable it in Settings to start fetching.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(cyclingNews.items) { item in
+                        NewsRow(item: item)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if settings.openHeadlinesInBrowser {
+                                    cyclingNews.open(url: item.url)
+                                } else {
+                                    cyclingNews.saveHeadline(activityID: item.id)
+                                }
+                            }
+                            .contextMenu {
+                                Button("Save for later") {
+                                    cyclingNews.saveHeadline(activityID: item.id)
+                                }
+                                Button("Open in browser") {
+                                    cyclingNews.open(url: item.url)
+                                }
+                            }
+                    }
+                }
+            } header: {
+                HStack {
+                    Text(Activity.Category.cyclingNews.displayName)
+                    Spacer()
+                    if cyclingNews.isRefreshing {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Button("Refresh") {
+                            refreshTask?.cancel()
+                            refreshTask = Task { await cyclingNews.refresh(force: true) }
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                    }
+                }
+            } footer: {
+                if let last = cyclingNews.lastRefreshAt {
+                    Text("Updated \(Self.relativeTimeFormatter.localizedString(for: last, relativeTo: Date()))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private static let relativeTimeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return f
+    }()
 
     private var footer: some View {
         HStack {
@@ -158,6 +227,30 @@ private struct ActivityRow: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct NewsRow: View {
+    let item: NewsItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.body.weight(.medium))
+                    .lineLimit(2)
+                Text(NewsItem.clipSummary(item.summary, limit: 160))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 12)
+            Text(item.sourceName)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
     }

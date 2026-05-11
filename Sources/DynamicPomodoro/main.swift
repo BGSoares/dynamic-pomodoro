@@ -10,12 +10,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = Settings.shared
     private let timer = TimerController()
     private let notifications = NotificationService.shared
+    private let cyclingNews = CyclingNewsService.shared
 
     private var statusItem: NSStatusItem!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
     private var phaseCancellable: AnyCancellable?
+    private var newsRefreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -53,6 +55,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in self?.handleScreenParametersChanged() }
         }
+
+        scheduleCyclingNewsRefresh()
+    }
+
+    // MARK: - Cycling news
+
+    /// Refresh on launch (debounced by the service) and once an hour while the
+    /// app is foregrounded. Only runs while the feature is enabled — disabling
+    /// it from Settings stops the next tick from doing any network work.
+    private func scheduleCyclingNewsRefresh() {
+        // Launch refresh — service decides whether to actually hit the network
+        // based on its own debounce window.
+        Task { @MainActor in
+            if self.settings.cyclingNewsEnabled {
+                await self.cyclingNews.refresh()
+            }
+        }
+        let t = Timer(timeInterval: CyclingNewsService.autoRefreshInterval, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                if self.settings.cyclingNewsEnabled {
+                    await self.cyclingNews.refresh()
+                }
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        newsRefreshTimer = t
     }
 
     // MARK: - Break overlay

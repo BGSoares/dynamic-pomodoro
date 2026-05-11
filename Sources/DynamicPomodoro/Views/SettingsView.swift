@@ -4,7 +4,10 @@ struct SettingsView: View {
     @ObservedObject var settings: Settings
     @ObservedObject private var calendarService = CalendarService.shared
     @ObservedObject private var activityStore = ActivityStore.shared
+    @ObservedObject private var cyclingNews = CyclingNewsService.shared
     @State private var showingActivityManager = false
+    @State private var showingCyclingNewsManager = false
+    @State private var showingSavedHeadlines = false
 
     var body: some View {
         Form {
@@ -66,6 +69,38 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Cycling News") {
+                Toggle("Show cycling news during breaks", isOn: $settings.cyclingNewsEnabled)
+                if settings.cyclingNewsEnabled {
+                    Toggle("Open headlines in browser when saved", isOn: $settings.openHeadlinesInBrowser)
+                    HStack {
+                        Button("Manage feeds…") { showingCyclingNewsManager = true }
+                        Spacer()
+                        Button("Saved headlines…") { showingSavedHeadlines = true }
+                        Text("\(cyclingNews.saved.count)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let last = cyclingNews.lastRefreshAt {
+                        Text("Last refresh: \(last.formatted(date: .abbreviated, time: .shortened)) · \(cyclingNews.items.count) cached")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("No headlines fetched yet.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let err = cyclingNews.lastRefreshError {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                Text("Cycling news headlines are fetched from RSS feeds and shown read-only during breaks. Tap to save for later; the article opens in your browser after the break.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Notifications") {
                 Toggle("Sound on notification", isOn: $settings.soundEnabled)
                 Toggle("Pause media when break starts", isOn: $settings.pauseMediaOnBreak)
@@ -122,6 +157,12 @@ struct SettingsView: View {
         .onAppear { calendarService.refreshAuthorizationStatus() }
         .sheet(isPresented: $showingActivityManager) {
             ManageActivitiesView(store: activityStore)
+        }
+        .sheet(isPresented: $showingCyclingNewsManager) {
+            CyclingNewsSettingsView(service: cyclingNews)
+        }
+        .sheet(isPresented: $showingSavedHeadlines) {
+            SavedHeadlinesView(service: cyclingNews)
         }
     }
 }

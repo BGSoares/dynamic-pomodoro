@@ -156,6 +156,63 @@ final class ActivitySelectorTests: XCTestCase {
         XCTAssertEqual(pick?.id, "insp")
     }
 
+    func testCyclingNewsCategorySelectableButCapped() {
+        var rng = SystemRandomNumberGenerator()
+        let news: [Activity] = (0..<10).map {
+            Activity(id: "news_\($0)", name: "n", instruction: "",
+                     category: .cyclingNews, band: .short, energy: .gentle,
+                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay])
+        }
+        let other = Activity(id: "stretch_a", name: "A", instruction: "",
+                             category: .stretch, band: .short, energy: .gentle,
+                             suitableTimes: [.morning, .midday, .afternoon, .endOfDay])
+        let library = news + [other]
+        var newsPicks = 0
+        let trials = 400
+        for _ in 0..<trials {
+            let pick = ActivitySelector.select(
+                from: library,
+                breakMinutes: 5,
+                now: date(hour: 10),
+                recentActivityIDs: [],
+                lastCategory: nil,
+                disabledCategories: [],
+                settings: settings(),
+                rng: &rng
+            )
+            if pick?.category == .cyclingNews { newsPicks += 1 }
+        }
+        let rate = Double(newsPicks) / Double(trials)
+        // Quota is 25%; allow generous slack for randomness.
+        XCTAssertLessThan(rate, 0.40, "Cycling news quota should keep picks well under ~25% even with a news-heavy pool")
+        XCTAssertGreaterThan(rate, 0.10, "Cycling news should still be selected sometimes")
+    }
+
+    func testCyclingNewsCategoryRespectsDisabled() {
+        var rng = SystemRandomNumberGenerator()
+        let library: [Activity] = [
+            Activity(id: "news_a", name: "n", instruction: "",
+                     category: .cyclingNews, band: .short, energy: .gentle,
+                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
+            Activity(id: "stretch_a", name: "A", instruction: "",
+                     category: .stretch, band: .short, energy: .gentle,
+                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
+        ]
+        for _ in 0..<20 {
+            let pick = ActivitySelector.select(
+                from: library,
+                breakMinutes: 5,
+                now: date(hour: 10),
+                recentActivityIDs: [],
+                lastCategory: nil,
+                disabledCategories: ["cycling_news"],
+                settings: settings(),
+                rng: &rng
+            )
+            XCTAssertEqual(pick?.id, "stretch_a")
+        }
+    }
+
     func testInspirationCategoryRespectsDisabled() {
         var rng = SystemRandomNumberGenerator()
         let library: [Activity] = [

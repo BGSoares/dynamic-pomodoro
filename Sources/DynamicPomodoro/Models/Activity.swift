@@ -5,6 +5,7 @@ struct Activity: Identifiable, Codable, Hashable {
         case stretch, breathwork
         case eyeRest = "eye_rest"
         case walk, mindfulness, hydration, inspiration
+        case cyclingNews = "cycling_news"
 
         var displayName: String {
             switch self {
@@ -15,6 +16,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .mindfulness: return "Mindfulness"
             case .hydration: return "Hydration"
             case .inspiration: return "Inspiration"
+            case .cyclingNews: return "Cycling News"
             }
         }
     }

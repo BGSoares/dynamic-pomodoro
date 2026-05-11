@@ -63,7 +63,23 @@ enum ActivitySelector {
             if !withoutLastCat.isEmpty { pool = withoutLastCat }
         }
 
+        // Soft cap: cycling-news headlines are reading, not movement. They get
+        // ~25% of selections at most — when an unbiased pick lands outside the
+        // quota, drop news items from the pool. This keeps "Show cycling news
+        // during breaks" from monopolising the rotation when many headlines
+        // are cached, without ever forcing a news pick.
+        if !shouldAllowCyclingNewsThisPick(rng: &rng) {
+            let withoutNews = pool.filter { $0.category != .cyclingNews }
+            if !withoutNews.isEmpty { pool = withoutNews }
+        }
+
         // Weighted random — equal weights here; kept as an extension point.
         return pool.randomElement(using: &rng)
+    }
+
+    private static let cyclingNewsQuota: Double = 0.25
+
+    private static func shouldAllowCyclingNewsThisPick(rng: inout SystemRandomNumberGenerator) -> Bool {
+        Double.random(in: 0..<1, using: &rng) < cyclingNewsQuota
     }
 }

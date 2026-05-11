@@ -6,10 +6,13 @@ import SwiftUI
 /// Skip requires a 15-second hold (intentional friction, not a lockout).
 struct BreakOverlayView: View {
     @ObservedObject var timer: TimerController
+    @ObservedObject var cyclingNews: CyclingNewsService = .shared
+    @ObservedObject var settings: Settings = .shared
 
     /// Caption under the skip button. Switches to a one-line nudge from
     /// `SkipNudgeMessages` while the user is mid-hold, then reverts on release.
     @State private var skipNudge: String?
+    @State private var didSaveCurrent = false
 
     var body: some View {
         ZStack {
@@ -50,12 +53,18 @@ struct BreakOverlayView: View {
                         Text(activity.name)
                             .font(.system(size: 64, weight: .semibold))
                             .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 80)
+                            .frame(maxWidth: 1100)
                         Text(activity.instruction)
                             .font(.system(size: 22, weight: .regular))
                             .foregroundStyle(.white.opacity(0.72))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 120)
                             .frame(maxWidth: 1000)
+                        if activity.category == .cyclingNews {
+                            saveHeadlineButton(activityID: activity.id)
+                        }
                     }
                 } else {
                     Text("Take a break")
@@ -77,6 +86,36 @@ struct BreakOverlayView: View {
         // any auto-hide config) inset the foreground content while the
         // background still filled the screen, drifting the timer to the right.
         .ignoresSafeArea()
+    }
+
+    /// Pin a cycling-news headline for post-break reading. Keeps the click out
+    /// of the article so the user stays put for the rest of the break — the
+    /// link sits in Settings → Saved headlines for later. If the user opts
+    /// into "open headlines in browser", we open immediately as well.
+    private func saveHeadlineButton(activityID: String) -> some View {
+        Button {
+            cyclingNews.saveHeadline(
+                activityID: activityID,
+                openInBrowser: settings.openHeadlinesInBrowser
+            )
+            didSaveCurrent = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: didSaveCurrent ? "checkmark" : "bookmark")
+                Text(didSaveCurrent ? "Saved for later" : "Save for later")
+            }
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(didSaveCurrent)
+        .onChange(of: activityID) { _ in didSaveCurrent = false }
+        .padding(.top, 4)
     }
 
     private var countdownRing: some View {
