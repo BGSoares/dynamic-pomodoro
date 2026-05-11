@@ -33,7 +33,6 @@ struct CyclingNewsSettingsView: View {
                 Section("Add a feed") {
                     TextField("Name (e.g. GCN)", text: $newFeedName)
                     TextField("RSS or Atom URL (https://…)", text: $newFeedURL)
-                        .textContentType(.URL)
                     if let err = addError {
                         Text(err).font(.caption).foregroundStyle(.red)
                     }
