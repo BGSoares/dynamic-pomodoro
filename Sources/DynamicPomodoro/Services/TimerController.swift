@@ -37,11 +37,20 @@ final class TimerController: ObservableObject {
     private let activityStore: ActivityStore
     private let notifications: NotificationService
     private let calendar: CalendarService
+    private let cyclingNews: CyclingNewsService
     private var rng = SystemRandomNumberGenerator()
 
     /// Snapshot of the current activity library — read fresh on each selection
     /// so user edits in the manage-activities sheet take effect immediately.
-    private var library: [Activity] { activityStore.activities }
+    /// Cycling-news items join the pool only when enabled, so disabling the
+    /// feature is an instant on/off rather than a refresh cycle away.
+    private var library: [Activity] {
+        var lib = activityStore.activities
+        if settings.cyclingNewsEnabled {
+            lib.append(contentsOf: cyclingNews.activities)
+        }
+        return lib
+    }
 
     /// Event identifier for the Calendar mirror of the active break (if any).
     /// Set in `startBreak` when sync is enabled; cleared on skip/complete.
@@ -63,13 +72,15 @@ final class TimerController: ObservableObject {
         log: SessionLogStore = .shared,
         activityStore: ActivityStore = .shared,
         notifications: NotificationService = .shared,
-        calendar: CalendarService = .shared
+        calendar: CalendarService = .shared,
+        cyclingNews: CyclingNewsService = .shared
     ) {
         self.settings = settings
         self.log = log
         self.activityStore = activityStore
         self.notifications = notifications
         self.calendar = calendar
+        self.cyclingNews = cyclingNews
 
         #if canImport(AppKit)
         // On wake from system sleep, re-tick immediately so a phase whose

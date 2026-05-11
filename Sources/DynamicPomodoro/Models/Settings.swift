@@ -20,6 +20,8 @@ final class Settings: ObservableObject {
         static let showDailyStats = "showDailyStats"
         static let compactMenuBarTimer = "compactMenuBarTimer"
         static let pauseMediaOnBreak = "pauseMediaOnBreak"
+        static let cyclingNewsEnabled = "cyclingNewsEnabled"
+        static let openHeadlinesInBrowser = "openHeadlinesInBrowser"
     }
 
     // Stored state (minutes since midnight for times)
@@ -67,6 +69,18 @@ final class Settings: ObservableObject {
     @Published var pauseMediaOnBreak: Bool {
         didSet { UserDefaults.standard.set(pauseMediaOnBreak, forKey: Key.pauseMediaOnBreak) }
     }
+    /// Master toggle: include fetched cycling-news headlines as break activities.
+    /// Off by default — a fresh install should not pull network traffic until the
+    /// user has explicitly opted in.
+    @Published var cyclingNewsEnabled: Bool {
+        didSet { UserDefaults.standard.set(cyclingNewsEnabled, forKey: Key.cyclingNewsEnabled) }
+    }
+    /// If true, tapping the save button during a break opens the headline in
+    /// the default browser immediately. Default false — the break is for
+    /// stepping away, not jumping into a tab.
+    @Published var openHeadlinesInBrowser: Bool {
+        didSet { UserDefaults.standard.set(openHeadlinesInBrowser, forKey: Key.openHeadlinesInBrowser) }
+    }
 
     private init() {
         let d = UserDefaults.standard
@@ -82,6 +96,8 @@ final class Settings: ObservableObject {
         self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
         self.compactMenuBarTimer = d.object(forKey: Key.compactMenuBarTimer) as? Bool ?? false
         self.pauseMediaOnBreak = d.object(forKey: Key.pauseMediaOnBreak) as? Bool ?? true
+        self.cyclingNewsEnabled = d.object(forKey: Key.cyclingNewsEnabled) as? Bool ?? false
+        self.openHeadlinesInBrowser = d.object(forKey: Key.openHeadlinesInBrowser) as? Bool ?? false
     }
 
     /// Workday midpoint in minutes since midnight.
