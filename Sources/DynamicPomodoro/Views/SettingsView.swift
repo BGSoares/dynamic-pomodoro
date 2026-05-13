@@ -106,6 +106,13 @@ struct SettingsView: View {
                 Toggle("Pause media when break starts", isOn: $settings.pauseMediaOnBreak)
             }
 
+            Section("Security") {
+                Toggle("Lock screen when break ends", isOn: $settings.lockScreenAfterBreak)
+                Text("If you're not back at your desk when the break finishes, the screen locks so a passer-by can't see your session. Skipping the break doesn't lock — you're clearly present.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Display") {
                 Toggle("Show daily totals on idle screen", isOn: $settings.showDailyStats)
                 Toggle("Compact menu bar timer (e.g. \"6 m\")", isOn: $settings.compactMenuBarTimer)
