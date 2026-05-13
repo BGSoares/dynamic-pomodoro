@@ -305,6 +305,10 @@ final class TimerController: ObservableObject {
             body: "Ready when you are.",
             playSound: settings.soundEnabled
         )
+
+        if settings.lockScreenAfterBreak {
+            ScreenLockService.lockScreen()
+        }
     }
 
     // MARK: - Ticker

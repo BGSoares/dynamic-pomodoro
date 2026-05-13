@@ -20,6 +20,7 @@ final class Settings: ObservableObject {
         static let showDailyStats = "showDailyStats"
         static let compactMenuBarTimer = "compactMenuBarTimer"
         static let pauseMediaOnBreak = "pauseMediaOnBreak"
+        static let lockScreenAfterBreak = "lockScreenAfterBreak"
         static let cyclingNewsEnabled = "cyclingNewsEnabled"
         static let openHeadlinesInBrowser = "openHeadlinesInBrowser"
     }
@@ -69,6 +70,12 @@ final class Settings: ObservableObject {
     @Published var pauseMediaOnBreak: Bool {
         didSet { UserDefaults.standard.set(pauseMediaOnBreak, forKey: Key.pauseMediaOnBreak) }
     }
+    /// Lock the screen when a break completes naturally — so an unattended
+    /// desk isn't left logged-in if the user is still away when the timer
+    /// ends. Skipped breaks don't lock (the user is clearly present).
+    @Published var lockScreenAfterBreak: Bool {
+        didSet { UserDefaults.standard.set(lockScreenAfterBreak, forKey: Key.lockScreenAfterBreak) }
+    }
     /// Master toggle: include fetched cycling-news headlines as break activities.
     /// Off by default — a fresh install should not pull network traffic until the
     /// user has explicitly opted in.
@@ -96,6 +103,7 @@ final class Settings: ObservableObject {
         self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
         self.compactMenuBarTimer = d.object(forKey: Key.compactMenuBarTimer) as? Bool ?? false
         self.pauseMediaOnBreak = d.object(forKey: Key.pauseMediaOnBreak) as? Bool ?? true
+        self.lockScreenAfterBreak = d.object(forKey: Key.lockScreenAfterBreak) as? Bool ?? false
         self.cyclingNewsEnabled = d.object(forKey: Key.cyclingNewsEnabled) as? Bool ?? false
         self.openHeadlinesInBrowser = d.object(forKey: Key.openHeadlinesInBrowser) as? Bool ?? false
     }
