@@ -1,5 +1,7 @@
 # Dynamic Pomodoro
 
+> **Routine review agent:** the rotating Question 2 of the in-app feedback flow lives in [`Sources/DynamicPomodoro/Resources/feedback_question.json`](Sources/DynamicPomodoro/Resources/feedback_question.json). Read [`Sources/DynamicPomodoro/Resources/AGENT_README.md`](Sources/DynamicPomodoro/Resources/AGENT_README.md) for the schema and rules. User responses log to `~/Library/Application Support/DynamicPomodoro/feedback.json`.
+
 macOS menu-bar pomodoro timer with session durations that follow a bell curve across the workday, plus active break prompts drawn from a curated activity library.
 
 Built to the v0.2 spec in `spec.md` (your spec document). Native Swift / SwiftUI + AppKit, no dependencies.
