@@ -95,12 +95,7 @@ private struct DailyStatsFooter: View {
 
     private func formatPomos(_ count: Double) -> String {
         let rounded = (count * 10).rounded() / 10
-        let number: String
-        if rounded == rounded.rounded() {
-            number = String(format: "%.0f", rounded)
-        } else {
-            number = String(format: "%.1f", rounded)
-        }
+        let number = rounded == rounded.rounded() ? String(format: "%.0f", rounded) : String(format: "%.1f", rounded)
         let label = rounded == 1.0 ? "pomo" : "pomos"
         return "\(number) \(label)"
     }

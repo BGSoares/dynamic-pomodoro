@@ -41,23 +41,4 @@ enum DurationCurve {
         return Int(duration.rounded())
     }
 
-    /// Samples the curve every `stepMinutes` across the workday for the preview UI.
-    /// Returned pairs are (minutes-since-midnight, duration-minutes).
-    static func curveSamples(settings: Settings, stepMinutes: Int = 15) -> [(Int, Int)] {
-        var out: [(Int, Int)] = []
-        var m = settings.workdayStartMinutes
-        let calendar = Calendar.current
-        // Use an arbitrary reference date to avoid DST weirdness during sampling.
-        var base = DateComponents()
-        base.year = 2025; base.month = 1; base.day = 1
-        let baseDate = calendar.date(from: base) ?? Date()
-
-        while m <= settings.workdayEndMinutes {
-            let d = calendar.date(byAdding: .minute, value: m, to: baseDate) ?? baseDate
-            let dur = focusDuration(now: d, isFirstSessionOfDay: false, settings: settings, calendar: calendar)
-            out.append((m, dur))
-            m += stepMinutes
-        }
-        return out
-    }
 }
