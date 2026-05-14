@@ -8,16 +8,14 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = Settings.shared
-    private let timer = TimerController()
+    private let timer = TimerEngine()
     private let notifications = NotificationService.shared
-    private let cyclingNews = CyclingNewsService.shared
 
     private var statusItem: NSStatusItem!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
     private var phaseCancellable: AnyCancellable?
-    private var newsRefreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -25,20 +23,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notifications.requestAuthorizationIfNeeded()
         setupStatusItem()
 
-        // Always open the main window on launch.
         openMainWindow()
 
-        // Drive title refresh once per second — cheap, and independent of the TimerController internals.
-        // Scheduled in `.common` modes so it keeps firing during event tracking
-        // (e.g. while the user holds the skip button).
+        // Drive title refresh once per second — cheap, and independent of the
+        // engine's internal ticker. Scheduled in `.common` modes so it keeps
+        // firing during event tracking (e.g. while the user holds the skip
+        // button).
         let titleTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.updateStatusItemTitle() }
         }
         RunLoop.main.add(titleTimer, forMode: .common)
 
         // Show/hide the full-screen break overlay in response to phase changes.
-        phaseCancellable = timer.$phase
-            .removeDuplicates()
+        phaseCancellable = timer.$state
+            .map(\.phase)
+            .removeDuplicates(by: { Self.sameCase($0, $1) })
             .sink { [weak self] newPhase in
                 Task { @MainActor in self?.handlePhaseChange(newPhase) }
             }
@@ -46,8 +45,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // If displays change mid-break, rebuild the overlay panels against the
         // new screen set — otherwise stale frames make SwiftUI hit-testing
         // drift off the visible content (clicks on the buttons "do nothing").
-        // Between-break dock/undock is already handled by hideBreakOverlay
-        // clearing the panel array.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
@@ -55,38 +52,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in self?.handleScreenParametersChanged() }
         }
-
-        scheduleCyclingNewsRefresh()
     }
 
-    // MARK: - Cycling news
-
-    /// Refresh on launch (debounced by the service) and once an hour while the
-    /// app is foregrounded. Only runs while the feature is enabled — disabling
-    /// it from Settings stops the next tick from doing any network work.
-    private func scheduleCyclingNewsRefresh() {
-        // Launch refresh — service decides whether to actually hit the network
-        // based on its own debounce window.
-        Task { @MainActor in
-            if self.settings.cyclingNewsEnabled {
-                await self.cyclingNews.refresh()
-            }
+    /// Phase enums hold associated values that change per tick (deadlines).
+    /// For the overlay show/hide decision, only the case matters.
+    private static func sameCase(_ a: PomodoroState.Phase, _ b: PomodoroState.Phase) -> Bool {
+        switch (a, b) {
+        case (.idle, .idle), (.focus, .focus), (.breakRunning, .breakRunning):
+            return true
+        default:
+            return false
         }
-        let t = Timer(timeInterval: CyclingNewsService.autoRefreshInterval, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            Task { @MainActor in
-                if self.settings.cyclingNewsEnabled {
-                    await self.cyclingNews.refresh()
-                }
-            }
-        }
-        RunLoop.main.add(t, forMode: .common)
-        newsRefreshTimer = t
     }
 
     // MARK: - Break overlay
 
-    private func handlePhaseChange(_ phase: TimerController.Phase) {
+    private func handlePhaseChange(_ phase: PomodoroState.Phase) {
         switch phase {
         case .breakRunning:
             showBreakOverlay()
@@ -121,16 +102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
         }
 
-        // Activate the app so SwiftUI gestures (hold-to-skip) receive events.
         NSApp.activate(ignoringOtherApps: true)
         for window in breakOverlayWindows {
             window.alphaValue = fadeIn ? 0 : 1
             if window.contentViewController == nil {
-                // Secondary blockers shouldn't steal key status from the primary.
                 window.orderFrontRegardless()
             }
         }
-        // Order the primary last so it ends up as the key window for gestures.
         if let primary = breakOverlayWindows.first(where: { $0.contentViewController != nil }) {
             primary.makeKeyAndOrderFront(nil)
         }
@@ -148,9 +126,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeBreakOverlayPanel(for screen: NSScreen, isPrimary: Bool) -> NSPanel {
         let frame = screen.frame
-        // Use a borderless NSPanel so it can join all spaces and cover menu bar.
-        // KeyablePanel opts in to canBecomeKey so the primary panel can route
-        // SwiftUI gestures through the responder chain.
         let panel = KeyablePanel(
             contentRect: frame,
             styleMask: [.borderless],
@@ -161,7 +136,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.contentViewController = NSHostingController(rootView: BreakOverlayView(timer: timer))
             panel.ignoresMouseEvents = false
         } else {
-            // Pure black blocker — no UI, no event handling.
             panel.ignoresMouseEvents = true
         }
         // Shielding level (the one macOS uses for the lock-screen shield) sits above
@@ -200,10 +174,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleScreenParametersChanged() {
-        // If displays change mid-break, the existing panels are sized for the
-        // old screen set. Tear them down and rebuild against the current
-        // screens so the timer/controls land on a valid display and every
-        // connected screen stays blocked.
         guard breakOverlayWindows.contains(where: { $0.isVisible }) else { return }
         for window in breakOverlayWindows {
             window.orderOut(nil)
@@ -269,9 +239,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusItemTitle() {
         guard let button = statusItem?.button else { return }
-        let formatted = settings.compactMenuBarTimer
-            ? timer.remainingFormattedCompact
-            : timer.remainingFormatted
+        let formatted = timer.remainingFormatted
         let text: String
         switch timer.phase {
         case .idle:
@@ -281,9 +249,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .breakRunning:
             text = " B \(formatted)"
         }
-        // Use tabular (monospaced) digits so each second's tick doesn't change
-        // the title's width — otherwise the variable-length status item resizes
-        // and the dolphin icon visibly shifts left/right in the menu bar.
+        // Tabular (monospaced) digits so each tick doesn't change the title's
+        // width — otherwise the variable-length status item resizes and the
+        // dolphin icon visibly shifts left/right in the menu bar.
         let font = NSFont.menuBarFont(ofSize: 0)
         let monospacedDigitFont = NSFont.monospacedDigitSystemFont(
             ofSize: font.pointSize,
@@ -303,7 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let root = MainWindowView(timer: timer, settings: settings)
+        let root = MainWindowView(timer: timer)
         let controller = NSHostingController(rootView: root)
         let window = NSWindow(contentViewController: controller)
         window.title = "Dynamic Pomodoro"
@@ -328,7 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: controller)
         window.title = "Settings"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 480, height: 600))
+        window.setContentSize(NSSize(width: 380, height: 280))
         window.center()
         window.isReleasedWhenClosed = false
         settingsWindow = window
@@ -339,12 +307,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Menu actions
 
     @objc private func menuStartFocus() {
-        if timer.phase == .idle { timer.startFocus() }
+        if case .idle = timer.phase { timer.startFocus() }
         openMainWindow()
     }
 
     @objc private func menuAbandon() {
-        if timer.phase == .focus { timer.abandonFocus() }
+        if case .focus = timer.phase { timer.abandonFocus() }
     }
 
     @objc private func menuFastForward() {
@@ -373,7 +341,6 @@ private final class KeyablePanel: NSPanel {
 @MainActor
 private func bootstrap() {
     let app = NSApplication.shared
-    // Keep a strong reference so the delegate outlives this function.
     _bootstrapDelegate = AppDelegate()
     app.delegate = _bootstrapDelegate
     app.run()

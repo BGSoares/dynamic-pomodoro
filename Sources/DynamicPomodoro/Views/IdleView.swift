@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Pre-session screen. Shows the suggested focus duration and a single action.
+/// Daily stats footer is always shown (was a toggle in v1).
 struct IdleView: View {
-    @ObservedObject var timer: TimerController
-    @ObservedObject var settings: Settings
+    @ObservedObject var timer: TimerEngine
     @State private var suggested: Int = 0
     @State private var stats: DailyStats = .empty
     private let refresh = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -31,10 +31,8 @@ struct IdleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(32)
         .overlay(alignment: .bottom) {
-            if settings.showDailyStats {
-                DailyStatsFooter(stats: stats)
-                    .padding(.bottom, 20)
-            }
+            DailyStatsFooter(stats: stats)
+                .padding(.bottom, 20)
         }
         .onAppear {
             suggested = timer.suggestedFocusMinutes()
@@ -47,7 +45,6 @@ struct IdleView: View {
     }
 }
 
-/// Compact daily-totals footer for the idle screen.
 private struct DailyStatsFooter: View {
     let stats: DailyStats
 
@@ -73,7 +70,6 @@ private struct DailyStatsFooter: View {
         return "\(h)h \(m)m"
     }
 
-    /// "0 pomos" / "1 pomo" / "2 pomos" / "1.5 pomos" — 1 decimal, dropped if whole.
     private func formatPomos(_ count: Double) -> String {
         let rounded = (count * 10).rounded() / 10
         let number: String

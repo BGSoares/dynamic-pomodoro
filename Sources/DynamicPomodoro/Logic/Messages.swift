@@ -1,8 +1,7 @@
 import Foundation
 
 /// Reminder messages — §4.5.
-/// Shown on first break of day, on the break card following a skipped break,
-/// and on every Nth break otherwise (see TimerController).
+/// One line per day, deterministically chosen by date; shown on every break that day.
 enum ReminderMessages {
     static let pool: [String] = [
         // Science of rest
@@ -40,16 +39,18 @@ enum ReminderMessages {
         "Your best ideas are waiting on the other side of stopping. They will not come while you push."
     ]
 
-    static func random(excluding last: String? = nil, rng: inout SystemRandomNumberGenerator) -> String {
-        let candidates = pool.filter { $0 != last }
-        return (candidates.isEmpty ? pool : candidates).randomElement(using: &rng) ?? pool[0]
+    /// Pick today's line, deterministically. Same day → same line, no persistence.
+    /// The line rotates at midnight (user-local).
+    static func lineFor(date: Date, calendar: Calendar = .current) -> String {
+        guard !pool.isEmpty else { return "" }
+        let day = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
+        let idx = day % pool.count
+        return pool[idx]
     }
 }
 
 /// Short, sharper one-liners shown under the hold-to-skip button while the user
 /// is mid-hold. Goal: one final beat of resistance before the skip commits.
-/// Kept separate from the main pool because they're addressed *to* the user
-/// in the moment of skipping — not general reminders.
 enum SkipNudgeMessages {
     static let pool: [String] = [
         "The session you protect by skipping will be the worse for it.",

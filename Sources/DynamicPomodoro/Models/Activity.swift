@@ -5,7 +5,6 @@ struct Activity: Identifiable, Codable, Hashable {
         case stretch, breathwork
         case eyeRest = "eye_rest"
         case walk, mindfulness, hydration, inspiration
-        case cyclingNews = "cycling_news"
 
         var displayName: String {
             switch self {
@@ -16,7 +15,6 @@ struct Activity: Identifiable, Codable, Hashable {
             case .mindfulness: return "Mindfulness"
             case .hydration: return "Hydration"
             case .inspiration: return "Inspiration"
-            case .cyclingNews: return "Cycling News"
             }
         }
     }
@@ -89,6 +87,13 @@ enum ActivityLibrary {
             return []
         }
     }
+}
+
+extension Activity {
+    /// The full activity library, loaded once from the bundled JSON.
+    /// Source of truth — no per-user persistence, no in-app editing.
+    /// To customise: edit `Resources/activities.json` and rebuild.
+    static let defaultLibrary: [Activity] = ActivityLibrary.load()
 }
 
 extension Activity.TimeOfDay {
