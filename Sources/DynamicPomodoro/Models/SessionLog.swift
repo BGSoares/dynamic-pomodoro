@@ -126,10 +126,7 @@ final class SessionLogStore {
 
     /// Most recent break-activity IDs, newest first.
     func recentBreakActivityIDs(limit: Int = 5) -> [String] {
-        entries.reversed()
-            .compactMap { $0.activityID }
-            .prefix(limit)
-            .map { $0 }
+        Array(entries.reversed().compactMap { $0.activityID }.prefix(limit))
     }
 
     /// Category of the most recent break activity, if any.

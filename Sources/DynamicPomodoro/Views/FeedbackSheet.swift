@@ -204,15 +204,17 @@ struct FeedbackSheet: View {
         satisfaction = value
         // Hold the selection visible for a beat so the user sees confirmation
         // before the card slides away — feels less abrupt than instant-advance.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-            withAnimation { step = 1 }
-        }
+        advance(to: 1)
     }
 
     private func selectQ2Choice(_ option: String) {
         q2Choice = option
+        advance(to: 2)
+    }
+
+    private func advance(to nextStep: Int) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-            withAnimation { step = 2 }
+            withAnimation { self.step = nextStep }
         }
     }
 
