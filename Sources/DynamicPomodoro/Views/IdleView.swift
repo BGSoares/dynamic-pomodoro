@@ -6,6 +6,8 @@ struct IdleView: View {
     @ObservedObject var timer: TimerEngine
     @State private var suggested: Int = 0
     @State private var stats: DailyStats = .empty
+    @State private var showFeedback: Bool = false
+    @State private var feedbackQuestion: FeedbackQuestion? = nil
     private let refresh = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -37,10 +39,31 @@ struct IdleView: View {
         .onAppear {
             suggested = timer.suggestedFocusMinutes()
             stats = timer.dailyStats()
+            maybeShowFeedback()
         }
         .onReceive(refresh) { _ in
             suggested = timer.suggestedFocusMinutes()
             stats = timer.dailyStats()
+        }
+        .sheet(isPresented: $showFeedback, onDismiss: { FeedbackGate.markPrompted() }) {
+            FeedbackSheet(question: feedbackQuestion) { response in
+                FeedbackStore.shared.append(response)
+            }
+        }
+    }
+
+    /// Trigger the once-per-user feedback prompt on a "moment of success" —
+    /// the user has just landed back on Idle after enough completed sessions
+    /// to have an opinion worth collecting.
+    private func maybeShowFeedback() {
+        guard !showFeedback else { return }
+        let completed = SessionLogStore.shared.completedFocusCount()
+        guard FeedbackGate.shouldShow(completedFocusCount: completed) else { return }
+        feedbackQuestion = FeedbackQuestionLoader.load()
+        // Small delay so the Idle view has time to render under the sheet —
+        // otherwise the sheet appears against a blank window for a frame.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            showFeedback = true
         }
     }
 }
