@@ -1,26 +1,22 @@
 import SwiftUI
 
-/// Top-level router: onboarding on first run, then the phase-driven session UI.
+/// Phase-driven router for the main window.
+/// No onboarding screen — first launch lands on Idle with sensible defaults.
 struct MainWindowView: View {
-    @ObservedObject var timer: TimerController
-    @ObservedObject var settings: Settings
+    @ObservedObject var timer: TimerEngine
 
     var body: some View {
         Group {
-            if !settings.onboardingComplete {
-                OnboardingView(settings: settings, onFinish: {})
-            } else {
-                switch timer.phase {
-                case .idle:
-                    IdleView(timer: timer, settings: settings)
-                case .focus:
-                    FocusView(timer: timer)
-                case .breakRunning:
-                    // The real break UI is the full-screen overlay window;
-                    // this main-window placeholder just mirrors timer state
-                    // in case the user clicks back into the app window.
-                    BreakMirrorView(timer: timer)
-                }
+            switch timer.phase {
+            case .idle:
+                IdleView(timer: timer)
+            case .focus:
+                FocusView(timer: timer)
+            case .breakRunning:
+                // The real break UI is the full-screen overlay window;
+                // this main-window placeholder just mirrors timer state
+                // in case the user clicks back into the app window.
+                BreakMirrorView(timer: timer)
             }
         }
         .frame(minWidth: 520, minHeight: 480)

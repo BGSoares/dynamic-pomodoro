@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FocusView: View {
-    @ObservedObject var timer: TimerController
+    @ObservedObject var timer: TimerEngine
     @State private var confirmingAbandon = false
 
     var body: some View {

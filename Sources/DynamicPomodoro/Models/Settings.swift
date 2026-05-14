@@ -2,30 +2,17 @@ import Foundation
 import SwiftUI
 
 /// User-configurable settings, persisted in UserDefaults.
-/// Kept intentionally small — v1 exposes only what the spec calls out in §7.
+/// Four values. That's the whole surface.
 final class Settings: ObservableObject {
     static let shared = Settings()
 
-    // Keys
     private enum Key {
         static let workdayStartMinutes = "workdayStartMinutes"
         static let workdayEndMinutes = "workdayEndMinutes"
         static let minFocusMinutes = "minFocusMinutes"
         static let maxFocusMinutes = "maxFocusMinutes"
-        static let soundEnabled = "soundEnabled"
-        static let disabledCategories = "disabledCategories"
-        static let onboardingComplete = "onboardingComplete"
-        static let calendarSyncEnabled = "calendarSyncEnabled"
-        static let calendarIdentifier = "calendarIdentifier"
-        static let showDailyStats = "showDailyStats"
-        static let compactMenuBarTimer = "compactMenuBarTimer"
-        static let pauseMediaOnBreak = "pauseMediaOnBreak"
-        static let lockScreenAfterBreak = "lockScreenAfterBreak"
-        static let cyclingNewsEnabled = "cyclingNewsEnabled"
-        static let openHeadlinesInBrowser = "openHeadlinesInBrowser"
     }
 
-    // Stored state (minutes since midnight for times)
     @Published var workdayStartMinutes: Int {
         didSet { UserDefaults.standard.set(workdayStartMinutes, forKey: Key.workdayStartMinutes) }
     }
@@ -38,56 +25,6 @@ final class Settings: ObservableObject {
     @Published var maxFocusMinutes: Int {
         didSet { UserDefaults.standard.set(maxFocusMinutes, forKey: Key.maxFocusMinutes) }
     }
-    @Published var soundEnabled: Bool {
-        didSet { UserDefaults.standard.set(soundEnabled, forKey: Key.soundEnabled) }
-    }
-    @Published var disabledCategories: Set<String> {
-        didSet {
-            UserDefaults.standard.set(Array(disabledCategories), forKey: Key.disabledCategories)
-        }
-    }
-    @Published var onboardingComplete: Bool {
-        didSet { UserDefaults.standard.set(onboardingComplete, forKey: Key.onboardingComplete) }
-    }
-    /// Mirror break sessions to Calendar so they sync to iPhone / Watch via iCloud.
-    @Published var calendarSyncEnabled: Bool {
-        didSet { UserDefaults.standard.set(calendarSyncEnabled, forKey: Key.calendarSyncEnabled) }
-    }
-    /// EKCalendar identifier to write break events to. Nil → system default.
-    @Published var calendarIdentifier: String? {
-        didSet { UserDefaults.standard.set(calendarIdentifier, forKey: Key.calendarIdentifier) }
-    }
-    /// Show today's pomo + break totals on the idle screen.
-    @Published var showDailyStats: Bool {
-        didSet { UserDefaults.standard.set(showDailyStats, forKey: Key.showDailyStats) }
-    }
-    /// Hide seconds in the menu bar countdown when ≥ 1 min remains (e.g. "6 m").
-    @Published var compactMenuBarTimer: Bool {
-        didSet { UserDefaults.standard.set(compactMenuBarTimer, forKey: Key.compactMenuBarTimer) }
-    }
-    /// Send the system Play/Pause signal at the start of each break so any
-    /// active media (YouTube, Spotify, Music, …) pauses automatically.
-    @Published var pauseMediaOnBreak: Bool {
-        didSet { UserDefaults.standard.set(pauseMediaOnBreak, forKey: Key.pauseMediaOnBreak) }
-    }
-    /// Lock the screen when a break completes naturally — so an unattended
-    /// desk isn't left logged-in if the user is still away when the timer
-    /// ends. Skipped breaks don't lock (the user is clearly present).
-    @Published var lockScreenAfterBreak: Bool {
-        didSet { UserDefaults.standard.set(lockScreenAfterBreak, forKey: Key.lockScreenAfterBreak) }
-    }
-    /// Master toggle: include fetched cycling-news headlines as break activities.
-    /// Off by default — a fresh install should not pull network traffic until the
-    /// user has explicitly opted in.
-    @Published var cyclingNewsEnabled: Bool {
-        didSet { UserDefaults.standard.set(cyclingNewsEnabled, forKey: Key.cyclingNewsEnabled) }
-    }
-    /// If true, tapping the save button during a break opens the headline in
-    /// the default browser immediately. Default false — the break is for
-    /// stepping away, not jumping into a tab.
-    @Published var openHeadlinesInBrowser: Bool {
-        didSet { UserDefaults.standard.set(openHeadlinesInBrowser, forKey: Key.openHeadlinesInBrowser) }
-    }
 
     private init() {
         let d = UserDefaults.standard
@@ -95,28 +32,10 @@ final class Settings: ObservableObject {
         self.workdayEndMinutes = d.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
         self.minFocusMinutes = d.object(forKey: Key.minFocusMinutes) as? Int ?? 20
         self.maxFocusMinutes = d.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
-        self.soundEnabled = d.object(forKey: Key.soundEnabled) as? Bool ?? true
-        self.disabledCategories = Set((d.array(forKey: Key.disabledCategories) as? [String]) ?? [])
-        self.onboardingComplete = d.bool(forKey: Key.onboardingComplete)
-        self.calendarSyncEnabled = d.bool(forKey: Key.calendarSyncEnabled)
-        self.calendarIdentifier = d.string(forKey: Key.calendarIdentifier)
-        self.showDailyStats = d.object(forKey: Key.showDailyStats) as? Bool ?? true
-        self.compactMenuBarTimer = d.object(forKey: Key.compactMenuBarTimer) as? Bool ?? false
-        self.pauseMediaOnBreak = d.object(forKey: Key.pauseMediaOnBreak) as? Bool ?? true
-        self.lockScreenAfterBreak = d.object(forKey: Key.lockScreenAfterBreak) as? Bool ?? false
-        self.cyclingNewsEnabled = d.object(forKey: Key.cyclingNewsEnabled) as? Bool ?? false
-        self.openHeadlinesInBrowser = d.object(forKey: Key.openHeadlinesInBrowser) as? Bool ?? false
     }
 
-    /// Workday midpoint in minutes since midnight.
-    var midpointMinutes: Int {
-        (workdayStartMinutes + workdayEndMinutes) / 2
-    }
-
-    /// Half-length of the workday in minutes.
-    var halfDayMinutes: Int {
-        (workdayEndMinutes - workdayStartMinutes) / 2
-    }
+    var midpointMinutes: Int { (workdayStartMinutes + workdayEndMinutes) / 2 }
+    var halfDayMinutes: Int { (workdayEndMinutes - workdayStartMinutes) / 2 }
 }
 
 enum TimeFormat {

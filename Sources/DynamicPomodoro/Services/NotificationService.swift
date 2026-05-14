@@ -36,12 +36,12 @@ final class NotificationService {
         }
     }
 
-    func notify(title: String, body: String, playSound: Bool) {
+    func notify(title: String, body: String) {
         guard authorized, let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        if playSound { content.sound = .default }
+        content.sound = .default
         let req = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,

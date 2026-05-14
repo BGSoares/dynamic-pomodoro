@@ -23,7 +23,6 @@ final class ActivitySelectorTests: XCTestCase {
         let s = Settings.shared
         s.workdayStartMinutes = 9 * 60
         s.workdayEndMinutes = 18 * 60
-        s.disabledCategories = []
         return s
     }
 
@@ -42,7 +41,6 @@ final class ActivitySelectorTests: XCTestCase {
             now: date(hour: 13),
             recentActivityIDs: [],
             lastCategory: nil,
-            disabledCategories: [],
             settings: settings(),
             rng: &rng
         )
@@ -50,38 +48,16 @@ final class ActivitySelectorTests: XCTestCase {
         XCTAssertEqual(pick?.id, "c")
     }
 
-    func testExcludesDisabledCategory() {
-        var rng = SystemRandomNumberGenerator()
-        for _ in 0..<30 {
-            let pick = ActivitySelector.select(
-                from: makeLibrary(),
-                breakMinutes: 5,
-                now: date(hour: 10),
-                recentActivityIDs: [],
-                lastCategory: nil,
-                disabledCategories: ["stretch", "breathwork"],
-                settings: settings(),
-                rng: &rng
-            )
-            XCTAssertNotNil(pick)
-            XCTAssertNotEqual(pick?.category, .stretch)
-            XCTAssertNotEqual(pick?.category, .breathwork)
-        }
-    }
-
     func testAvoidsRecentWhenPossible() {
         var rng = SystemRandomNumberGenerator()
-        // Make "a", "b", "d" recent; "c" is medium-only, so with 5 min break
-        // the short pool is empty; soft filter should *try* to avoid recents
-        // but fall back to pool if that empties it. With all shorts recent,
-        // the selector is allowed to pick a recent one — just verify no crash.
+        // With all shorts recent, the selector is allowed to pick a recent
+        // one — just verify no crash and a result.
         let pick = ActivitySelector.select(
             from: makeLibrary(),
             breakMinutes: 5,
             now: date(hour: 10),
             recentActivityIDs: ["a", "b", "d"],
             lastCategory: nil,
-            disabledCategories: [],
             settings: settings(),
             rng: &rng
         )
@@ -99,7 +75,6 @@ final class ActivitySelectorTests: XCTestCase {
                 now: date(hour: 10),
                 recentActivityIDs: [],
                 lastCategory: .stretch,
-                disabledCategories: [],
                 settings: settings(),
                 rng: &rng
             )
@@ -109,6 +84,20 @@ final class ActivitySelectorTests: XCTestCase {
         // With stretch as last and non-stretch options available, should never repeat.
         XCTAssertEqual(streak, 0, "Stretch should be avoided when lastCategory == stretch")
         XCTAssertEqual(total, 50)
+    }
+
+    func testReturnsNilForEmptyLibrary() {
+        var rng = SystemRandomNumberGenerator()
+        let pick = ActivitySelector.select(
+            from: [],
+            breakMinutes: 5,
+            now: date(hour: 10),
+            recentActivityIDs: [],
+            lastCategory: nil,
+            settings: settings(),
+            rng: &rng
+        )
+        XCTAssertNil(pick)
     }
 
     // MARK: - Bundled library invariants
@@ -134,107 +123,5 @@ final class ActivitySelectorTests: XCTestCase {
         let library = ActivityLibrary.load()
         XCTAssertTrue(library.contains { $0.category == .inspiration },
                       "Bundled library should include at least one inspiration activity")
-    }
-
-    func testInspirationCategorySelectable() {
-        var rng = SystemRandomNumberGenerator()
-        let library: [Activity] = [
-            Activity(id: "insp", name: "Inspire", instruction: "",
-                     category: .inspiration, band: .short, energy: .gentle,
-                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
-        ]
-        let pick = ActivitySelector.select(
-            from: library,
-            breakMinutes: 5,
-            now: date(hour: 10),
-            recentActivityIDs: [],
-            lastCategory: nil,
-            disabledCategories: [],
-            settings: settings(),
-            rng: &rng
-        )
-        XCTAssertEqual(pick?.id, "insp")
-    }
-
-    func testCyclingNewsCategorySelectableButCapped() {
-        var rng = SystemRandomNumberGenerator()
-        let news: [Activity] = (0..<10).map {
-            Activity(id: "news_\($0)", name: "n", instruction: "",
-                     category: .cyclingNews, band: .short, energy: .gentle,
-                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay])
-        }
-        let other = Activity(id: "stretch_a", name: "A", instruction: "",
-                             category: .stretch, band: .short, energy: .gentle,
-                             suitableTimes: [.morning, .midday, .afternoon, .endOfDay])
-        let library = news + [other]
-        var newsPicks = 0
-        let trials = 400
-        for _ in 0..<trials {
-            let pick = ActivitySelector.select(
-                from: library,
-                breakMinutes: 5,
-                now: date(hour: 10),
-                recentActivityIDs: [],
-                lastCategory: nil,
-                disabledCategories: [],
-                settings: settings(),
-                rng: &rng
-            )
-            if pick?.category == .cyclingNews { newsPicks += 1 }
-        }
-        let rate = Double(newsPicks) / Double(trials)
-        // Quota is 25%; allow generous slack for randomness.
-        XCTAssertLessThan(rate, 0.40, "Cycling news quota should keep picks well under ~25% even with a news-heavy pool")
-        XCTAssertGreaterThan(rate, 0.10, "Cycling news should still be selected sometimes")
-    }
-
-    func testCyclingNewsCategoryRespectsDisabled() {
-        var rng = SystemRandomNumberGenerator()
-        let library: [Activity] = [
-            Activity(id: "news_a", name: "n", instruction: "",
-                     category: .cyclingNews, band: .short, energy: .gentle,
-                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
-            Activity(id: "stretch_a", name: "A", instruction: "",
-                     category: .stretch, band: .short, energy: .gentle,
-                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
-        ]
-        for _ in 0..<20 {
-            let pick = ActivitySelector.select(
-                from: library,
-                breakMinutes: 5,
-                now: date(hour: 10),
-                recentActivityIDs: [],
-                lastCategory: nil,
-                disabledCategories: ["cycling_news"],
-                settings: settings(),
-                rng: &rng
-            )
-            XCTAssertEqual(pick?.id, "stretch_a")
-        }
-    }
-
-    func testInspirationCategoryRespectsDisabled() {
-        var rng = SystemRandomNumberGenerator()
-        let library: [Activity] = [
-            Activity(id: "insp", name: "Inspire", instruction: "",
-                     category: .inspiration, band: .short, energy: .gentle,
-                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
-            Activity(id: "stretch_a", name: "A", instruction: "",
-                     category: .stretch, band: .short, energy: .gentle,
-                     suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
-        ]
-        for _ in 0..<20 {
-            let pick = ActivitySelector.select(
-                from: library,
-                breakMinutes: 5,
-                now: date(hour: 10),
-                recentActivityIDs: [],
-                lastCategory: nil,
-                disabledCategories: ["inspiration"],
-                settings: settings(),
-                rng: &rng
-            )
-            XCTAssertEqual(pick?.id, "stretch_a")
-        }
     }
 }

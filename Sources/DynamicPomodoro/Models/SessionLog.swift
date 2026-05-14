@@ -2,7 +2,7 @@ import Foundation
 
 /// One entry per focus session or break, for the success-metrics review (§10).
 /// Stored as JSON lines in Application Support.
-struct SessionLogEntry: Codable {
+struct SessionLogEntry: Codable, Equatable {
     enum Kind: String, Codable {
         case focusCompleted
         case focusAbandoned
@@ -68,22 +68,30 @@ final class SessionLogStore {
     private let queue = DispatchQueue(label: "pomodoro.sessionlog")
     private(set) var entries: [SessionLogEntry] = []
 
-    private init() {
+    private convenience init() {
+        self.init(directory: Self.defaultDirectory())
+    }
+
+    /// Construct against an explicit directory. Used by tests to point at a
+    /// temp dir instead of the user's real Application Support folder.
+    internal init(directory: URL) {
         let fm = FileManager.default
-        let dir: URL
+        try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
+        self.fileURL = directory.appendingPathComponent("sessions.json")
+        load()
+    }
+
+    private static func defaultDirectory() -> URL {
+        let fm = FileManager.default
         if let supportDir = try? fm.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         ) {
-            dir = supportDir.appendingPathComponent("DynamicPomodoro", isDirectory: true)
-        } else {
-            dir = fm.temporaryDirectory.appendingPathComponent("DynamicPomodoro", isDirectory: true)
+            return supportDir.appendingPathComponent("DynamicPomodoro", isDirectory: true)
         }
-        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        self.fileURL = dir.appendingPathComponent("sessions.json")
-        load()
+        return fm.temporaryDirectory.appendingPathComponent("DynamicPomodoro", isDirectory: true)
     }
 
     private func load() {
@@ -110,36 +118,10 @@ final class SessionLogStore {
     }
 
     /// Has any focus or break entry been recorded today (user-local day)?
+    /// Used to decide whether the next focus session is the day's first
+    /// (which forces the curve to its minimum duration).
     func hasEntryToday(calendar: Calendar = .current, now: Date = Date()) -> Bool {
         entries.contains { calendar.isDate($0.startedAt, inSameDayAs: now) }
-    }
-
-    /// Has the user completed (or skipped) any *break* today?
-    /// Used to decide whether to show the first-of-day reminder message.
-    func hasBreakEntryToday(calendar: Calendar = .current, now: Date = Date()) -> Bool {
-        entries.contains { e in
-            (e.kind == .breakCompleted || e.kind == .breakSkipped) &&
-            calendar.isDate(e.startedAt, inSameDayAs: now)
-        }
-    }
-
-    /// Number of break entries (completed or skipped) recorded today.
-    /// Drives the every-Nth-break reminder rotation.
-    func breakCountToday(calendar: Calendar = .current, now: Date = Date()) -> Int {
-        Self.breakCountToday(in: entries, calendar: calendar, now: now)
-    }
-
-    /// Pure helper for `breakCountToday(now:)`. Exposed so tests can inject entries
-    /// without having to construct a `SessionLogStore` (which is a singleton).
-    static func breakCountToday(
-        in entries: [SessionLogEntry],
-        calendar: Calendar = .current,
-        now: Date = Date()
-    ) -> Int {
-        entries.reduce(0) { acc, e in
-            let isBreak = e.kind == .breakCompleted || e.kind == .breakSkipped
-            return acc + (isBreak && calendar.isDate(e.startedAt, inSameDayAs: now) ? 1 : 0)
-        }
     }
 
     /// Most recent break-activity IDs, newest first.
@@ -154,15 +136,6 @@ final class SessionLogStore {
     func lastBreakCategory(library: [Activity]) -> Activity.Category? {
         guard let lastID = entries.reversed().compactMap({ $0.activityID }).first else { return nil }
         return library.first(where: { $0.id == lastID })?.category
-    }
-
-    /// Was the most recent break (completed or skipped) a skip?
-    func lastBreakWasSkipped() -> Bool {
-        for e in entries.reversed() {
-            if e.kind == .breakCompleted { return false }
-            if e.kind == .breakSkipped { return true }
-        }
-        return false
     }
 
     /// Aggregate completed focus + break time for the given day.

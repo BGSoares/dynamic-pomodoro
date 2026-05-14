@@ -3,7 +3,7 @@ import SwiftUI
 /// Small placeholder shown in the main window while the full-screen break overlay
 /// is the primary UI. Mirrors timer state for users who click into the app window.
 struct BreakMirrorView: View {
-    @ObservedObject var timer: TimerController
+    @ObservedObject var timer: TimerEngine
 
     var body: some View {
         VStack(spacing: 16) {

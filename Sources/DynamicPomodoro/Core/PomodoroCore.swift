@@ -1,0 +1,271 @@
+import Foundation
+
+/// Pure-Swift core of the pomodoro state machine.
+///
+/// `reduce(state, action)` is the only function that mutates state. It returns
+/// a list of `Effect` values describing what side effects to run — notifications
+/// to fire, log entries to persist, timers to start/stop, the screen to lock.
+/// The `TimerEngine` shell interprets those effects.
+///
+/// No AppKit, no Combine, no singletons. Every state transition can be exercised
+/// by passing a synthetic `Date`, so tests don't need real timers.
+
+// MARK: - State
+
+struct PomodoroState: Equatable {
+    enum Phase: Equatable {
+        case idle
+        case focus(deadline: Date, startedAt: Date, planned: Int)
+        case breakRunning(
+            deadline: Date,
+            startedAt: Date,
+            planned: Int,
+            activity: Activity,
+            reminder: String?
+        )
+    }
+
+    var phase: Phase = .idle
+    /// Seconds left in the current phase. Recomputed on each `.tick`.
+    var remainingSeconds: Int = 0
+    /// Total seconds for the current phase (for progress rendering).
+    var totalSeconds: Int = 0
+    /// Set once the 15s-into-break screen lock has fired for the current break.
+    /// Resets when the phase leaves `.breakRunning`.
+    var breakLockFired: Bool = false
+}
+
+extension PomodoroState {
+    var currentActivity: Activity? {
+        if case .breakRunning(_, _, _, let activity, _) = phase { return activity }
+        return nil
+    }
+
+    var currentReminderMessage: String? {
+        if case .breakRunning(_, _, _, _, let reminder) = phase { return reminder }
+        return nil
+    }
+
+    /// 0...1 elapsed. Returns 0 when no phase is active.
+    var progress: Double {
+        guard totalSeconds > 0 else { return 0 }
+        return 1.0 - Double(remainingSeconds) / Double(totalSeconds)
+    }
+
+    var remainingFormatted: String {
+        let m = remainingSeconds / 60
+        let s = remainingSeconds % 60
+        return String(format: "%02d:%02d", m, s)
+    }
+}
+
+// MARK: - Action
+
+enum PomodoroAction {
+    case startFocus(now: Date)
+    case abandonFocus(now: Date)
+    case skipBreak(now: Date)
+    case tick(now: Date)
+    case fastForward(now: Date)
+}
+
+// MARK: - Effect
+
+enum PomodoroEffect: Equatable {
+    case notify(title: String, body: String)
+    case logSession(SessionLogEntry)
+    case playFocusCompleteChime
+    case playBreakCompleteChime
+    case startTicker
+    case stopTicker
+    case lockScreen
+}
+
+// MARK: - Reducer
+
+enum PomodoroReducer {
+    /// Seconds after a break starts before the screen auto-locks.
+    /// Long enough to read the activity card; short enough that walking away
+    /// without the lock would be a security risk.
+    static let breakLockDelaySeconds: TimeInterval = 15
+
+    static func reduce(
+        _ state: inout PomodoroState,
+        _ action: PomodoroAction,
+        settings: Settings,
+        log: SessionLogStore,
+        library: [Activity],
+        rng: inout SystemRandomNumberGenerator
+    ) -> [PomodoroEffect] {
+        switch action {
+        case .startFocus(let now):
+            // Re-entrant starts are ignored — once running, you finish or abandon.
+            guard case .idle = state.phase else { return [] }
+            let minutes = DurationCurve.focusDuration(
+                now: now,
+                isFirstSessionOfDay: !log.hasEntryToday(now: now),
+                settings: settings
+            )
+            let deadline = now.addingTimeInterval(TimeInterval(minutes * 60))
+            state.phase = .focus(deadline: deadline, startedAt: now, planned: minutes)
+            state.totalSeconds = minutes * 60
+            state.remainingSeconds = state.totalSeconds
+            state.breakLockFired = false
+            return [
+                .startTicker,
+                .notify(title: "Focus started", body: "\(minutes) min."),
+            ]
+
+        case .abandonFocus(let now):
+            guard case .focus(_, let startedAt, let planned) = state.phase else { return [] }
+            state.phase = .idle
+            state.remainingSeconds = 0
+            state.totalSeconds = 0
+            return [
+                .stopTicker,
+                .logSession(SessionLogEntry(
+                    kind: .focusAbandoned,
+                    startedAt: startedAt,
+                    endedAt: now,
+                    plannedMinutes: planned,
+                    activityID: nil
+                )),
+            ]
+
+        case .skipBreak(let now):
+            guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
+            state.phase = .idle
+            state.remainingSeconds = 0
+            state.totalSeconds = 0
+            state.breakLockFired = false
+            return [
+                .stopTicker,
+                .logSession(SessionLogEntry(
+                    kind: .breakSkipped,
+                    startedAt: startedAt,
+                    endedAt: now,
+                    plannedMinutes: planned,
+                    activityID: activity.id
+                )),
+            ]
+
+        case .tick(let now):
+            switch state.phase {
+            case .idle:
+                return [.stopTicker]
+
+            case .focus(let deadline, _, _):
+                let remaining = max(0, Int(ceil(deadline.timeIntervalSince(now))))
+                state.remainingSeconds = remaining
+                if remaining == 0 {
+                    return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng)
+                }
+                return []
+
+            case .breakRunning(let deadline, let startedAt, _, _, _):
+                let remaining = max(0, Int(ceil(deadline.timeIntervalSince(now))))
+                state.remainingSeconds = remaining
+                if remaining == 0 {
+                    return completeBreak(state: &state, now: now)
+                }
+                if !state.breakLockFired,
+                   now.timeIntervalSince(startedAt) >= breakLockDelaySeconds {
+                    state.breakLockFired = true
+                    return [.lockScreen]
+                }
+                return []
+            }
+
+        case .fastForward(let now):
+            switch state.phase {
+            case .focus:
+                return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng)
+            case .breakRunning:
+                return completeBreak(state: &state, now: now)
+            case .idle:
+                return []
+            }
+        }
+    }
+
+    // MARK: - Transitions
+
+    private static func completeFocus(
+        state: inout PomodoroState,
+        now: Date,
+        settings: Settings,
+        log: SessionLogStore,
+        library: [Activity],
+        rng: inout SystemRandomNumberGenerator
+    ) -> [PomodoroEffect] {
+        guard case .focus(_, let startedAt, let planned) = state.phase else { return [] }
+
+        let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: planned)
+        let activity = ActivitySelector.select(
+            from: library,
+            breakMinutes: breakMinutes,
+            now: now,
+            recentActivityIDs: log.recentBreakActivityIDs(),
+            lastCategory: log.lastBreakCategory(library: library),
+            settings: settings,
+            rng: &rng
+        ) ?? Self.fallbackActivity
+
+        let deadline = now.addingTimeInterval(TimeInterval(breakMinutes * 60))
+        let reminderLine = ReminderMessages.lineFor(date: now)
+        state.phase = .breakRunning(
+            deadline: deadline,
+            startedAt: now,
+            planned: breakMinutes,
+            activity: activity,
+            reminder: reminderLine.isEmpty ? nil : reminderLine
+        )
+        state.totalSeconds = breakMinutes * 60
+        state.remainingSeconds = state.totalSeconds
+        state.breakLockFired = false
+
+        return [
+            .logSession(SessionLogEntry(
+                kind: .focusCompleted,
+                startedAt: startedAt,
+                endedAt: now,
+                plannedMinutes: planned,
+                activityID: nil
+            )),
+            .playFocusCompleteChime,
+            .notify(title: "Focus complete", body: "Step away. The next session needs you fresh."),
+        ]
+    }
+
+    private static func completeBreak(state: inout PomodoroState, now: Date) -> [PomodoroEffect] {
+        guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
+        state.phase = .idle
+        state.remainingSeconds = 0
+        state.totalSeconds = 0
+        state.breakLockFired = false
+        return [
+            .stopTicker,
+            .logSession(SessionLogEntry(
+                kind: .breakCompleted,
+                startedAt: startedAt,
+                endedAt: now,
+                plannedMinutes: planned,
+                activityID: activity.id
+            )),
+            .playBreakCompleteChime,
+            .notify(title: "Break complete", body: "Ready when you are."),
+        ]
+    }
+
+    /// Last-resort activity when no library entry matches the current band/time-of-day.
+    /// The break must still run — the user still needs to step away.
+    private static let fallbackActivity = Activity(
+        id: "rest",
+        name: "Take a break",
+        instruction: "Step away from the screen.",
+        category: .mindfulness,
+        band: .short,
+        energy: .gentle,
+        suitableTimes: Activity.TimeOfDay.allCases
+    )
+}
