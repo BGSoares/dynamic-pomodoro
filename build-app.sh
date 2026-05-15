@@ -137,6 +137,14 @@ fi
 echo "Embedding Sparkle.framework from ${SPARKLE_FRAMEWORK}..."
 cp -R "$SPARKLE_FRAMEWORK" "${APP_DIR}/Contents/Frameworks/"
 
+# `swift build` only emits `@loader_path` as an rpath, so dyld looks for
+# `@rpath/Sparkle.framework/...` next to the binary in Contents/MacOS/ and
+# never inside Contents/Frameworks/ where we just copied it. Add the
+# standard app-bundle Frameworks rpath before signing — adding it after
+# would invalidate the signature.
+install_name_tool -add_rpath @executable_path/../Frameworks \
+    "${APP_DIR}/Contents/MacOS/${APP_NAME}"
+
 # Ad-hoc code-signing so Gatekeeper lets Sparkle relaunch the app after an
 # update install. Without this, the relaunched binary can hit "killed: 9"
 # on Apple Silicon (the kernel rejects unsigned ARM64 mach-o on relaunch).
@@ -153,7 +161,9 @@ codesign --force --options runtime --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" 2>/dev/null || true
 codesign --force --options runtime --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework"
-codesign --force --options runtime --sign - "${APP_DIR}"
+codesign --force --options runtime \
+    --entitlements "${SCRIPT_DIR}/Entitlements.plist" \
+    --sign - "${APP_DIR}"
 
 if [ -z "$SU_PUBLIC_ED_KEY" ]; then
     echo ""
