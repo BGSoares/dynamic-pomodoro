@@ -25,8 +25,7 @@ enum FeedbackQuestionLoader {
     /// Reads the bundled JSON. Returns nil if missing or malformed —
     /// callers fall back to a generic open-ended prompt rather than crash.
     static func load() -> FeedbackQuestion? {
-        let url = Bundle.module.url(forResource: "feedback_question", withExtension: "json")
-            ?? Bundle.main.url(forResource: "feedback_question", withExtension: "json")
+        let url = BundleResource.url(forResource: "feedback_question", withExtension: "json")
         guard let url, let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(FeedbackQuestion.self, from: data)
     }

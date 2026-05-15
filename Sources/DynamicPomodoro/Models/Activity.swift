@@ -35,12 +35,10 @@ struct Activity: Identifiable, Codable, Hashable {
 }
 
 enum ActivityLibrary {
-    /// Load the bundled activities.json.
-    /// Checks Bundle.module first (SPM / `swift run`), then Bundle.main
-    /// (`.app` bundle where the build script copies the file to Contents/Resources).
+    /// Load the bundled activities.json. See `BundleResource` for why this
+    /// can't use `Bundle.module` directly.
     static func load() -> [Activity] {
-        let url = Bundle.module.url(forResource: "activities", withExtension: "json")
-            ?? Bundle.main.url(forResource: "activities", withExtension: "json")
+        let url = BundleResource.url(forResource: "activities", withExtension: "json")
         guard let url, let data = try? Data(contentsOf: url) else {
             return []
         }
