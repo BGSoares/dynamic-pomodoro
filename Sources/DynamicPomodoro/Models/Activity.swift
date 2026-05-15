@@ -5,55 +5,19 @@ struct Activity: Identifiable, Codable, Hashable {
         case stretch, breathwork
         case eyeRest = "eye_rest"
         case walk, mindfulness, hydration, inspiration
-
-        var displayName: String {
-            switch self {
-            case .stretch: return "Stretch"
-            case .breathwork: return "Breathwork"
-            case .eyeRest: return "Eye rest"
-            case .walk: return "Walk"
-            case .mindfulness: return "Mindfulness"
-            case .hydration: return "Hydration"
-            case .inspiration: return "Inspiration"
-            }
-        }
     }
 
     enum DurationBand: String, Codable, CaseIterable {
         case short, medium
-
-        var displayName: String {
-            switch self {
-            case .short: return "Short (≤6 min)"
-            case .medium: return "Medium (7+ min)"
-            }
-        }
     }
 
     enum Energy: String, Codable, CaseIterable {
         case gentle, moderate, active
-
-        var displayName: String {
-            switch self {
-            case .gentle: return "Gentle"
-            case .moderate: return "Moderate"
-            case .active: return "Active"
-            }
-        }
     }
 
     enum TimeOfDay: String, Codable, CaseIterable {
         case morning, midday, afternoon
         case endOfDay = "end_of_day"
-
-        var displayName: String {
-            switch self {
-            case .morning: return "Morning"
-            case .midday: return "Midday"
-            case .afternoon: return "Afternoon"
-            case .endOfDay: return "End of day"
-            }
-        }
     }
 
     let id: String

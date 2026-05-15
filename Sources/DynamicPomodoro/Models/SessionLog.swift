@@ -1,5 +1,21 @@
 import Foundation
 
+/// Shared Application Support directory for all on-disk persistence.
+enum AppSupport {
+    static var directory: URL {
+        let fm = FileManager.default
+        if let dir = try? fm.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ) {
+            return dir.appendingPathComponent("DynamicPomodoro", isDirectory: true)
+        }
+        return fm.temporaryDirectory.appendingPathComponent("DynamicPomodoro", isDirectory: true)
+    }
+}
+
 /// One entry per focus session or break, for the success-metrics review (§10).
 /// Stored as JSON lines in Application Support.
 struct SessionLogEntry: Codable, Equatable {
@@ -69,7 +85,7 @@ final class SessionLogStore {
     private(set) var entries: [SessionLogEntry] = []
 
     private convenience init() {
-        self.init(directory: Self.defaultDirectory())
+        self.init(directory: AppSupport.directory)
     }
 
     /// Construct against an explicit directory. Used by tests to point at a
@@ -79,19 +95,6 @@ final class SessionLogStore {
         try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
         self.fileURL = directory.appendingPathComponent("sessions.json")
         load()
-    }
-
-    private static func defaultDirectory() -> URL {
-        let fm = FileManager.default
-        if let supportDir = try? fm.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        ) {
-            return supportDir.appendingPathComponent("DynamicPomodoro", isDirectory: true)
-        }
-        return fm.temporaryDirectory.appendingPathComponent("DynamicPomodoro", isDirectory: true)
     }
 
     private func load() {

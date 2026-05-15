@@ -57,7 +57,7 @@ final class FeedbackStore {
     private(set) var responses: [FeedbackResponse] = []
 
     private convenience init() {
-        self.init(directory: Self.defaultDirectory())
+        self.init(directory: AppSupport.directory)
     }
 
     internal init(directory: URL) {
@@ -65,19 +65,6 @@ final class FeedbackStore {
         try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
         self.fileURL = directory.appendingPathComponent("feedback.json")
         load()
-    }
-
-    private static func defaultDirectory() -> URL {
-        let fm = FileManager.default
-        if let supportDir = try? fm.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        ) {
-            return supportDir.appendingPathComponent("DynamicPomodoro", isDirectory: true)
-        }
-        return fm.temporaryDirectory.appendingPathComponent("DynamicPomodoro", isDirectory: true)
     }
 
     private func load() {
