@@ -16,9 +16,11 @@ VERSION="${1:-1.0}"
 BUILD="${2:-1}"
 
 # Sparkle appcast URL — Sparkle fetches this at startup (and on demand) to
-# discover new versions. Hosted as a raw file on the main branch so no
-# GitHub Pages setup is required. Update tag/path here if the repo moves.
-FEED_URL="https://raw.githubusercontent.com/BGSoares/dynamic-pomodoro/main/appcast.xml"
+# discover new versions. Points at GitHub's `releases/latest/download/`
+# redirect so the URL is stable: each release uploads a fresh appcast.xml
+# as an asset, and GitHub transparently serves the latest one here. No
+# committed-to-main copy, no GitHub Pages.
+FEED_URL="https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml"
 
 # Sparkle EdDSA public key. Generated once via `generate_keys` (private key
 # stays in your Keychain — never check it in). Paste the public key here.

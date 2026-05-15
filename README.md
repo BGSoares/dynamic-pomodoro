@@ -16,7 +16,7 @@ The app launches into the menu bar (no Dock icon). Look for the timer icon in th
 
 ## Auto-update
 
-The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Out of the box, installed clients check `appcast.xml` on the `main` branch (raw URL — no GitHub Pages required) once every 24 hours and via the menu bar's "Check for Updates…" item.
+The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Installed clients fetch the appcast from `https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml` — GitHub transparently redirects this URL to the latest published release's `appcast.xml` asset, so there's no copy of the manifest committed to `main` and no GitHub Pages needed. This matches the pattern used by [Lede](https://github.com/BGSoares/lede). Clients check once every 24 hours and via the menu bar's "Check for Updates…" item.
 
 ### One-time setup (release maintainer only)
 
@@ -35,7 +35,7 @@ The app uses [Sparkle](https://sparkle-project.org) to check for new versions, p
 ./release.sh 1.0.1
 ```
 
-`release.sh` does, in order: builds the .app, zips it from `/Applications`, signs the zip with your EdDSA private key, regenerates `appcast.xml`, commits + tags + pushes, then creates a GitHub release with the zip attached. Installed clients see the update on their next check.
+`release.sh` does, in order: builds the .app, zips it from `/Applications`, signs the zip with your EdDSA private key, generates `appcast.xml` under `dist/`, tags the commit, pushes the tag, then creates a GitHub release with **both** the zip and `appcast.xml` attached as assets. The `releases/latest/download/appcast.xml` redirect picks up the new file automatically, so installed clients see the update on their next check.
 
 The build number (`CFBundleVersion`, used by Sparkle to decide whether an update is newer) defaults to the count of git commits, so it increases monotonically without manual bookkeeping.
 
