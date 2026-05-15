@@ -221,7 +221,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            let image = Bundle.module.image(forResource: "DolphinTemplate")
+            let image = BundleResource.image(forResource: "DolphinTemplate")
             image?.isTemplate = true
             button.image = image
             button.imagePosition = .imageLeft

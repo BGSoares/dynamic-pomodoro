@@ -126,14 +126,29 @@ else
     echo "Warning: AppIcon.icns not found — run: swift generate-icon.swift"
 fi
 
-# Copy the bundled activities.json resource so the app can find it
-RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle/Contents/Resources" -type d 2>/dev/null | head -1)
-if [ -n "$RESOURCES_SRC" ]; then
-    cp "${RESOURCES_SRC}/activities.json" "${APP_DIR}/Contents/Resources/"
-else
-    # Fallback: copy directly from source
-    cp "${SCRIPT_DIR}/Sources/DynamicPomodoro/Resources/activities.json" "${APP_DIR}/Contents/Resources/"
+# Copy bundled resources (JSON, status-bar image assets) into the .app.
+# We can't rely on `Bundle.module` at runtime — its lazy initializer
+# `Swift.fatalError`s when the SPM-generated resource bundle isn't at one
+# of two compile-baked paths, which is exactly the case inside an
+# installed `.app`. So we copy loose files into Contents/Resources/ and
+# resolve them via `Bundle.main`. See Sources/DynamicPomodoro/ResourceBundle.swift.
+RESOURCE_FILES=(
+    activities.json
+    feedback_question.json
+    DolphinTemplate.png
+    DolphinTemplate@2x.png
+)
+RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle" -type d 2>/dev/null | grep release | head -1)
+if [ -z "$RESOURCES_SRC" ]; then
+    RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle" -type d 2>/dev/null | head -1)
 fi
+for file in "${RESOURCE_FILES[@]}"; do
+    if [ -n "$RESOURCES_SRC" ] && [ -f "${RESOURCES_SRC}/${file}" ]; then
+        cp "${RESOURCES_SRC}/${file}" "${APP_DIR}/Contents/Resources/"
+    else
+        cp "${SCRIPT_DIR}/Sources/DynamicPomodoro/Resources/${file}" "${APP_DIR}/Contents/Resources/"
+    fi
+done
 
 # Bundle Sparkle.framework. SPM links against the framework but doesn't copy
 # it into our app bundle (Xcode normally handles that via a build phase).
