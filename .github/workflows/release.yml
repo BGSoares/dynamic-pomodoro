@@ -1,0 +1,132 @@
+name: Release
+
+# Mirrors Lede's tag-push release pattern: tag `vX.Y.Z`, push, and CI
+# builds the .app, signs the zip with the Sparkle EdDSA key from
+# repository secrets, generates appcast.xml, and creates a GitHub
+# release with both files attached. The `releases/latest/download/`
+# redirect picks the new appcast up automatically.
+#
+# One-time secret: SPARKLE_ED_PRIVATE_KEY — 44-char base64 EdDSA
+# private key, generated locally via Sparkle's `generate_keys` tool
+# and stored via `gh secret set`. The matching public key is
+# checked in to build-app.sh as SU_PUBLIC_ED_KEY.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # release.sh / build-app.sh derive CFBundleVersion from the
+          # full commit count, so we need the whole history.
+          fetch-depth: 0
+
+      - name: Derive version and build number
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BUILD="$(git rev-list --count HEAD)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Build .app bundle
+        run: ./build-app.sh "${{ steps.meta.outputs.version }}" "${{ steps.meta.outputs.build }}"
+
+      - name: Zip the .app
+        run: |
+          mkdir -p dist
+          (cd /Applications && ditto -c -k --keepParent --sequesterRsrc \
+              DynamicPomodoro.app \
+              "$GITHUB_WORKSPACE/dist/DynamicPomodoro-${{ steps.meta.outputs.version }}.zip")
+
+      - name: Sign zip with Sparkle EdDSA key
+        id: sign
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          # sign_update can read the key from a file via -f, avoiding any
+          # need to put the key on the command line (where it would show
+          # up in `ps`). Trap ensures the keyfile is shredded even if
+          # signing fails.
+          KEYFILE="$(mktemp -u)"
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEYFILE"
+          trap 'rm -P "$KEYFILE" 2>/dev/null; rm -f "$KEYFILE"' EXIT
+
+          SIGN_UPDATE=$(find .build/artifacts -name sign_update -type f | head -1)
+          if [ -z "$SIGN_UPDATE" ]; then
+              echo "ERROR: sign_update not found in .build/artifacts (expected after build-app.sh)"
+              exit 1
+          fi
+
+          ZIP="dist/DynamicPomodoro-${{ steps.meta.outputs.version }}.zip"
+          SIG_OUTPUT=$("$SIGN_UPDATE" -f "$KEYFILE" "$ZIP")
+          ED_SIGNATURE=$(echo "$SIG_OUTPUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+          LENGTH=$(echo "$SIG_OUTPUT" | sed -n 's/.*length="\([^"]*\)".*/\1/p')
+          if [ -z "$ED_SIGNATURE" ] || [ -z "$LENGTH" ]; then
+              echo "ERROR: sign_update output unexpected: $SIG_OUTPUT"
+              exit 1
+          fi
+          echo "ed_signature=$ED_SIGNATURE" >> "$GITHUB_OUTPUT"
+          echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
+
+      - name: Generate appcast.xml
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          BUILD="${{ steps.meta.outputs.build }}"
+          PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
+          REPO="${{ github.repository }}"
+          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${VERSION}/DynamicPomodoro-${VERSION}.zip"
+          FEED_URL="https://github.com/${REPO}/releases/latest/download/appcast.xml"
+          cat > dist/appcast.xml <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+              <channel>
+                  <title>Dynamic Pomodoro</title>
+                  <link>${FEED_URL}</link>
+                  <description>Updates for Dynamic Pomodoro</description>
+                  <language>en</language>
+                  <item>
+                      <title>Version ${VERSION}</title>
+                      <pubDate>${PUB_DATE}</pubDate>
+                      <sparkle:version>${BUILD}</sparkle:version>
+                      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+                      <enclosure
+                          url="${DOWNLOAD_URL}"
+                          length="${{ steps.sign.outputs.length }}"
+                          type="application/octet-stream"
+                          sparkle:edSignature="${{ steps.sign.outputs.ed_signature }}" />
+                  </item>
+              </channel>
+          </rss>
+          EOF
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          # Idempotent: if the tag was pushed by a local release.sh that
+          # already created the release, just upload/replace the assets
+          # instead of failing. --clobber lets us re-run on the same tag.
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+              echo "Release v$VERSION already exists — uploading assets with --clobber"
+              gh release upload "v$VERSION" \
+                  "dist/DynamicPomodoro-$VERSION.zip" \
+                  "dist/appcast.xml" \
+                  --clobber
+          else
+              gh release create "v$VERSION" \
+                  "dist/DynamicPomodoro-$VERSION.zip" \
+                  "dist/appcast.xml" \
+                  --title "v$VERSION" \
+                  --notes "Auto-update release. Existing installs will pick this up via Sparkle."
+          fi
