@@ -1,15 +1,25 @@
 name: Release
 
-# Mirrors Lede's tag-push release pattern: tag `vX.Y.Z`, push, and CI
-# builds the .app, signs the zip with the Sparkle EdDSA key from
-# repository secrets, generates appcast.xml, and creates a GitHub
-# release with both files attached. The `releases/latest/download/`
-# redirect picks the new appcast up automatically.
+# Tag-push release pattern: tag `vX.Y.Z`, push, and CI builds the .app,
+# signs the zip with the Sparkle EdDSA key from repository secrets,
+# creates a GitHub release with the zip as an asset, then commits a
+# fresh appcast.xml to main so installed clients pick it up via
+# `raw.githubusercontent.com/.../main/appcast.xml`.
 #
-# One-time secret: SPARKLE_ED_PRIVATE_KEY — 44-char base64 EdDSA
-# private key, generated locally via Sparkle's `generate_keys` tool
-# and stored via `gh secret set`. The matching public key is
-# checked in to build-app.sh as SU_PUBLIC_ED_KEY.
+# Why not the Lede-style `releases/latest/download/<file>` URL: GitHub
+# serves that URL with 404 to authenticated requests on private repos
+# (it only works anonymously, for public repos). For a private repo
+# the two URL patterns that DO accept Bearer auth are
+# `raw.githubusercontent.com` (regular files in the repo) and
+# `api.github.com/repos/.../releases/assets/<id>` (release assets).
+# So we host the appcast on main and reference the zip by its API
+# asset URL inside that appcast.
+#
+# Required repository secrets:
+#   SPARKLE_ED_PRIVATE_KEY — 44-char base64 EdDSA private key.
+#   GH_PRIVATE_REPO_PAT    — fine-grained PAT, Contents:Read on this
+#                            repo only. Baked into Info.plist so the
+#                            installed app can fetch its own updates.
 
 on:
   push:
@@ -38,6 +48,11 @@ jobs:
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
 
       - name: Build .app bundle
+        env:
+          # PAT baked into Info.plist so the resulting binary can fetch
+          # release assets from this private repo over Sparkle's
+          # auth-headered URLSession.
+          GITHUB_PAT: ${{ secrets.GH_PRIVATE_REPO_PAT }}
         run: ./build-app.sh "${{ steps.meta.outputs.version }}" "${{ steps.meta.outputs.build }}"
 
       - name: Zip the .app
@@ -77,15 +92,41 @@ jobs:
           echo "ed_signature=$ED_SIGNATURE" >> "$GITHUB_OUTPUT"
           echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
 
+      - name: Create GitHub release (zip only)
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          ZIP="dist/DynamicPomodoro-$VERSION.zip"
+          # Idempotent: if the tag was pushed by a local release.sh that
+          # already created the release, just upload/replace the zip
+          # instead of failing.
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+              echo "Release v$VERSION already exists — uploading zip with --clobber"
+              gh release upload "v$VERSION" "$ZIP" --clobber
+          else
+              gh release create "v$VERSION" "$ZIP" \
+                  --title "v$VERSION" \
+                  --notes "Auto-update release. Existing installs will pick this up via Sparkle."
+          fi
+          ASSET_ID=$(gh api "repos/${{ github.repository }}/releases/tags/v$VERSION" \
+              --jq ".assets[] | select(.name == \"DynamicPomodoro-$VERSION.zip\") | .id")
+          if [ -z "$ASSET_ID" ]; then
+              echo "ERROR: couldn't look up asset id for DynamicPomodoro-$VERSION.zip"
+              exit 1
+          fi
+          echo "asset_id=$ASSET_ID" >> "$GITHUB_OUTPUT"
+
       - name: Generate appcast.xml
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
           BUILD="${{ steps.meta.outputs.build }}"
           PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
           REPO="${{ github.repository }}"
-          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${VERSION}/DynamicPomodoro-${VERSION}.zip"
-          FEED_URL="https://github.com/${REPO}/releases/latest/download/appcast.xml"
-          cat > dist/appcast.xml <<EOF
+          DOWNLOAD_URL="https://api.github.com/repos/${REPO}/releases/assets/${{ steps.release.outputs.asset_id }}"
+          FEED_URL="https://raw.githubusercontent.com/${REPO}/main/appcast.xml"
+          cat > appcast.xml <<EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
               <channel>
@@ -109,24 +150,24 @@ jobs:
           </rss>
           EOF
 
-      - name: Create GitHub release
+      - name: Commit appcast.xml to main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
-          # Idempotent: if the tag was pushed by a local release.sh that
-          # already created the release, just upload/replace the assets
-          # instead of failing. --clobber lets us re-run on the same tag.
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
-              echo "Release v$VERSION already exists — uploading assets with --clobber"
-              gh release upload "v$VERSION" \
-                  "dist/DynamicPomodoro-$VERSION.zip" \
-                  "dist/appcast.xml" \
-                  --clobber
+          # We were checked out at the tag (detached HEAD). Switch to a
+          # fresh checkout of main, apply the new appcast, and push.
+          # `git push` uses the GITHUB_TOKEN credentials helper that
+          # actions/checkout set up.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          cp "$GITHUB_WORKSPACE/appcast.xml" appcast.xml
+          git add appcast.xml
+          if git diff --cached --quiet; then
+              echo "No changes to appcast.xml — skipping commit"
           else
-              gh release create "v$VERSION" \
-                  "dist/DynamicPomodoro-$VERSION.zip" \
-                  "dist/appcast.xml" \
-                  --title "v$VERSION" \
-                  --notes "Auto-update release. Existing installs will pick this up via Sparkle."
+              git commit -m "Release v${VERSION} appcast"
+              git push origin main
           fi

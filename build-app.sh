@@ -16,11 +16,16 @@ VERSION="${1:-1.0}"
 BUILD="${2:-1}"
 
 # Sparkle appcast URL — Sparkle fetches this at startup (and on demand) to
-# discover new versions. Points at GitHub's `releases/latest/download/`
-# redirect so the URL is stable: each release uploads a fresh appcast.xml
-# as an asset, and GitHub transparently serves the latest one here. No
-# committed-to-main copy, no GitHub Pages.
-FEED_URL="https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml"
+# discover new versions. Hosted on raw.githubusercontent.com because this
+# repo is private: GitHub's `releases/latest/download/` redirect refuses
+# auth tokens (returns 404 even with a valid PAT — that pattern only
+# works anonymously, for public repos), but `raw.githubusercontent.com`
+# happily accepts a Bearer token. The release workflow commits a fresh
+# appcast.xml to main with each release. Inside the appcast, the zip's
+# enclosure URL points at the API asset endpoint
+# (`api.github.com/repos/.../releases/assets/<id>`), which is the other
+# private-repo-friendly download URL.
+FEED_URL="https://raw.githubusercontent.com/BGSoares/dynamic-pomodoro/main/appcast.xml"
 
 # Sparkle EdDSA public key. Generated once via `generate_keys`; the
 # private half lives in the release maintainer's macOS Keychain (for
@@ -29,6 +34,13 @@ FEED_URL="https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/
 # checked in — it's how installed clients verify the signature on
 # downloaded updates.
 SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-3ZTTqmnStf8m2JQVxofLJ75c+o4ekG3lEpBjqdLLpmg=}"
+
+# GitHub PAT for fetching updates from this private repo. Read-only,
+# scoped to this repo's Contents only — see README "Auto-update" for
+# how to generate. Baked into Info.plist (never committed to source —
+# committing `ghp_*` to git would trip GitHub's secret-scanning and
+# auto-revoke the token).
+GITHUB_PAT="${GITHUB_PAT:-}"
 
 echo "Building release binary (v${VERSION} build ${BUILD})..."
 cd "$SCRIPT_DIR"
@@ -100,6 +112,8 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
     <true/>
     <key>SUScheduledCheckInterval</key>
     <integer>86400</integer>
+    <key>GHPrivateRepoPAT</key>
+    <string>${GITHUB_PAT}</string>
 </dict>
 </plist>
 EOF
@@ -174,6 +188,15 @@ if [ -z "$SU_PUBLIC_ED_KEY" ]; then
     echo "         signed appcasts. Generate keys before your first release:"
     echo "           $(dirname "$SPARKLE_FRAMEWORK")/../Resources/generate_keys"
     echo "         …or via Homebrew: brew install --cask sparkle"
+fi
+
+if [ -z "$GITHUB_PAT" ]; then
+    echo ""
+    echo "WARNING: GITHUB_PAT is empty. Auto-update will 404 against the private"
+    echo "         repo — Sparkle's HTTP GETs to GitHub will look anonymous."
+    echo "         Generate a fine-grained PAT (Contents: Read-only) at"
+    echo "         https://github.com/settings/personal-access-tokens/new"
+    echo "         and re-run as: GITHUB_PAT=ghp_... $0 $@"
 fi
 
 echo ""
