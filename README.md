@@ -31,11 +31,16 @@ The app uses [Sparkle](https://sparkle-project.org) to check for new versions, p
 
 ### Cutting a release
 
+Preferred (CI): tag the commit and push — `.github/workflows/release.yml` builds, signs, and publishes the release automatically.
+
 ```bash
-./release.sh 1.0.1
+git tag -a v1.0.1 -m "Release v1.0.1"
+git push origin v1.0.1
 ```
 
-`release.sh` does, in order: builds the .app, zips it from `/Applications`, signs the zip with your EdDSA private key, generates `appcast.xml` under `dist/`, tags the commit, pushes the tag, then creates a GitHub release with **both** the zip and `appcast.xml` attached as assets. The `releases/latest/download/appcast.xml` redirect picks up the new file automatically, so installed clients see the update on their next check.
+The workflow uses the `SPARKLE_ED_PRIVATE_KEY` repository secret to sign the zip, so no Sparkle install or local Keychain key is needed for releases. Mirrors Lede's `tauri-action` setup.
+
+Fallback (local): `./release.sh 1.0.1` does the same thing on your machine — builds, signs (with the Keychain key from `generate_keys`), tags, and creates the release with both assets attached. Useful if CI is broken or you want to ship a build without pushing the tag through CI. The workflow is idempotent: if it fires on a tag that release.sh already published, it just re-uploads the assets with `--clobber`.
 
 The build number (`CFBundleVersion`, used by Sparkle to decide whether an update is newer) defaults to the count of git commits, so it increases monotonically without manual bookkeeping.
 

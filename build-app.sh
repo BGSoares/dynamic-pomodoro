@@ -22,12 +22,13 @@ BUILD="${2:-1}"
 # committed-to-main copy, no GitHub Pages.
 FEED_URL="https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml"
 
-# Sparkle EdDSA public key. Generated once via `generate_keys` (private key
-# stays in your Keychain — never check it in). Paste the public key here.
-# An empty value disables update verification, which Sparkle treats as a
-# hard error — leaving it empty also leaves you defenceless against a
-# tampered zip, so fill it in before publishing any release.
-SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-}"
+# Sparkle EdDSA public key. Generated once via `generate_keys`; the
+# private half lives in the release maintainer's macOS Keychain (for
+# local release.sh) and in the SPARKLE_PRIVATE_KEY GitHub Actions
+# secret (for the CI workflow). The public key is deliberately
+# checked in — it's how installed clients verify the signature on
+# downloaded updates.
+SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-3ZTTqmnStf8m2JQVxofLJ75c+o4ekG3lEpBjqdLLpmg=}"
 
 echo "Building release binary (v${VERSION} build ${BUILD})..."
 cd "$SCRIPT_DIR"
