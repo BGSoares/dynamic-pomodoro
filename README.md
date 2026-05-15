@@ -18,7 +18,7 @@ The app launches into the menu bar (no Dock icon). Look for the timer icon in th
 
 The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Installed clients fetch the appcast from `https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml` — GitHub transparently redirects this URL to the latest published release's `appcast.xml` asset, so there's no copy of the manifest committed to `main` and no GitHub Pages needed. This matches the pattern used by [Lede](https://github.com/BGSoares/lede). Clients check once every 24 hours and via the menu bar's "Check for Updates…" item.
 
-Because this repo is private, Sparkle's anonymous GETs to `github.com` return 404. A fine-grained GitHub PAT (read-only, scoped to this repo's Contents) is baked into `Info.plist` at build time and sent as a `Bearer` token on every request via Sparkle's `httpHeaders`. The PAT is **never** committed to source — GitHub's secret-scanning would auto-revoke it. It only lives in (a) the binary on the maintainer's Mac and (b) the `GH_PRIVATE_REPO_PAT` GitHub Actions secret.
+The redirect requires the repo to be public — `releases/latest/download/<file>` returns 404 to authenticated requests on private repos.
 
 ### One-time setup (release maintainer only)
 
@@ -29,15 +29,7 @@ Because this repo is private, Sparkle's anonymous GETs to `github.com` return 40
    ```
    The private key is stored in your login Keychain; **never** commit it. Copy the printed public key.
 3. Paste the public key into `build-app.sh` as `SU_PUBLIC_ED_KEY`. Commit this — the public key is meant to be public.
-4. Generate a fine-grained GitHub PAT at <https://github.com/settings/personal-access-tokens/new>:
-   - Repository access → **Only select repositories** → `dynamic-pomodoro`
-   - Repository permissions → **Contents: Read-only**
-   - Copy the `ghp_...` token. Set `GITHUB_PAT` in your shell profile (e.g. `~/.zprofile`) so `build-app.sh` picks it up locally:
-     ```bash
-     export GITHUB_PAT="ghp_..."
-     ```
-   - Add the same value as repository secret `GH_PRIVATE_REPO_PAT` (`gh secret set GH_PRIVATE_REPO_PAT`) so the release workflow can bake it in too.
-5. Ensure `gh auth login` is set up so `release.sh` can create GitHub releases.
+4. Ensure `gh auth login` is set up so `release.sh` can create GitHub releases.
 
 ### Cutting a release
 
