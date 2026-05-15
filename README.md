@@ -14,6 +14,31 @@ swift run
 
 The app launches into the menu bar (no Dock icon). Look for the timer icon in the upper-right of the screen. First run shows onboarding.
 
+## Auto-update
+
+The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Out of the box, installed clients check `appcast.xml` on the `main` branch (raw URL — no GitHub Pages required) once every 24 hours and via the menu bar's "Check for Updates…" item.
+
+### One-time setup (release maintainer only)
+
+1. `brew install --cask sparkle` — provides `generate_keys` and `sign_update`.
+2. Generate an EdDSA key pair:
+   ```bash
+   "/Applications/Sparkle.app/Contents/Resources/generate_keys"
+   ```
+   The private key is stored in your login Keychain; **never** commit it. Copy the printed public key.
+3. Paste the public key into `build-app.sh` as `SU_PUBLIC_ED_KEY`. Commit this — the public key is meant to be public.
+4. Ensure `gh auth login` is set up so `release.sh` can create GitHub releases.
+
+### Cutting a release
+
+```bash
+./release.sh 1.0.1
+```
+
+`release.sh` does, in order: builds the .app, zips it from `/Applications`, signs the zip with your EdDSA private key, regenerates `appcast.xml`, commits + tags + pushes, then creates a GitHub release with the zip attached. Installed clients see the update on their next check.
+
+The build number (`CFBundleVersion`, used by Sparkle to decide whether an update is newer) defaults to the count of git commits, so it increases monotonically without manual bookkeeping.
+
 ## Architecture
 
 ```
@@ -30,7 +55,8 @@ Sources/DynamicPomodoro/
 │   └── Messages.swift                 # §4.5 — reminder pool
 ├── Services/
 │   ├── TimerController.swift          # State machine (idle → focus → break)
-│   └── NotificationService.swift      # UNUserNotificationCenter
+│   ├── NotificationService.swift      # UNUserNotificationCenter
+│   └── UpdaterService.swift           # Sparkle wrapper (auto-update)
 ├── Views/                             # SwiftUI
 │   ├── MainWindowView.swift
 │   ├── IdleView.swift

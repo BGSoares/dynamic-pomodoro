@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Sparkle
 import SwiftUI
 
 // Entry point. Uses AppKit directly (rather than SwiftUI's @main App + MenuBarExtra)
@@ -10,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = Settings.shared
     private let timer = TimerEngine()
     private let notifications = NotificationService.shared
+    private let updater = UpdaterService.shared
 
     private var statusItem: NSStatusItem!
     private var mainWindow: NSWindow?
@@ -195,6 +197,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         action: #selector(openSettings),
                         keyEquivalent: ",").target = self
         appMenu.addItem(NSMenuItem.separator())
+        addCheckForUpdatesItem(to: appMenu)
+        appMenu.addItem(NSMenuItem.separator())
         // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
         // end-of-phase UI can be exercised without waiting. Deliberately awkward
         // (all four modifiers) so it isn't hit accidentally.
@@ -230,6 +234,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Abandon session", action: #selector(menuAbandon), keyEquivalent: "").target = self
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        menu.addItem(NSMenuItem.separator())
+        addCheckForUpdatesItem(to: menu)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
@@ -317,6 +323,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuFastForward() {
         timer.fastForward()
+    }
+
+    /// Point the menu item at Sparkle's controller so its built-in
+    /// `validateMenuItem:` greys the item out while a check is in flight.
+    /// When the controller is nil (no bundle, i.e. `swift run`), fall back to
+    /// the wrapper's no-op forwarder so the menu still validates.
+    private func addCheckForUpdatesItem(to menu: NSMenu) {
+        let item = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        if let controller = updater.controller {
+            item.target = controller
+        } else {
+            item.target = updater
+            item.action = #selector(UpdaterService.checkForUpdates(_:))
+        }
+        menu.addItem(item)
     }
 }
 
