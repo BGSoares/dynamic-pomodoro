@@ -272,40 +272,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Windows
 
     @objc private func openMainWindow() {
-        if let w = mainWindow {
-            w.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
+        open(window: &mainWindow,
+             title: "Dynamic Pomodoro",
+             size: NSSize(width: 560, height: 520),
+             styleMask: [.titled, .closable, .miniaturizable],
+             delegate: MainWindowDelegate.shared) {
+            NSHostingController(rootView: MainWindowView(timer: self.timer))
         }
-        let root = MainWindowView(timer: timer)
-        let controller = NSHostingController(rootView: root)
-        let window = NSWindow(contentViewController: controller)
-        window.title = "Dynamic Pomodoro"
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        window.setContentSize(NSSize(width: 560, height: 520))
-        window.center()
-        window.isReleasedWhenClosed = false
-        window.delegate = MainWindowDelegate.shared
-        mainWindow = window
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func openSettings() {
-        if let w = settingsWindow {
+        open(window: &settingsWindow,
+             title: "Settings",
+             size: NSSize(width: 380, height: 280),
+             styleMask: [.titled, .closable]) {
+            NSHostingController(rootView: SettingsView(settings: self.settings))
+        }
+    }
+
+    private func open(
+        window windowRef: inout NSWindow?,
+        title: String,
+        size: NSSize,
+        styleMask: NSWindow.StyleMask,
+        delegate: NSWindowDelegate? = nil,
+        makeController: () -> NSViewController
+    ) {
+        if let w = windowRef {
             w.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let root = SettingsView(settings: settings)
-        let controller = NSHostingController(rootView: root)
-        let window = NSWindow(contentViewController: controller)
-        window.title = "Settings"
-        window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 380, height: 280))
+        let window = NSWindow(contentViewController: makeController())
+        window.title = title
+        window.styleMask = styleMask
+        window.setContentSize(size)
         window.center()
         window.isReleasedWhenClosed = false
-        settingsWindow = window
+        window.delegate = delegate
+        windowRef = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

@@ -97,18 +97,26 @@ final class SessionLogStore {
         load()
     }
 
+    private static let dec: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    private static let enc: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        e.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return e
+    }()
+
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        let dec = JSONDecoder()
-        dec.dateDecodingStrategy = .iso8601
-        self.entries = (try? dec.decode([SessionLogEntry].self, from: data)) ?? []
+        self.entries = (try? Self.dec.decode([SessionLogEntry].self, from: data)) ?? []
     }
 
     private func save() {
-        let enc = JSONEncoder()
-        enc.dateEncodingStrategy = .iso8601
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? enc.encode(entries) {
+        if let data = try? Self.enc.encode(entries) {
             try? data.write(to: fileURL, options: .atomic)
         }
     }
