@@ -35,6 +35,14 @@ struct PomodoroState: Equatable {
     var breakLockFired: Bool = false
 }
 
+extension PomodoroState.Phase {
+    /// Integer discriminator that ignores associated values — used to
+    /// deduplicate phase-change events that differ only in deadline/activity data.
+    var tag: Int {
+        switch self { case .idle: 0; case .focus: 1; case .breakRunning: 2 }
+    }
+}
+
 extension PomodoroState {
     var currentActivity: Activity? {
         if case .breakRunning(_, _, _, let activity, _) = phase { return activity }

@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Show/hide the full-screen break overlay in response to phase changes.
         phaseCancellable = timer.$state
             .map(\.phase)
-            .removeDuplicates(by: { Self.sameCase($0, $1) })
+            .removeDuplicates(by: { $0.tag == $1.tag })
             .sink { [weak self] newPhase in
                 Task { @MainActor in self?.handlePhaseChange(newPhase) }
             }
@@ -53,17 +53,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in self?.handleScreenParametersChanged() }
-        }
-    }
-
-    /// Phase enums hold associated values that change per tick (deadlines).
-    /// For the overlay show/hide decision, only the case matters.
-    private static func sameCase(_ a: PomodoroState.Phase, _ b: PomodoroState.Phase) -> Bool {
-        switch (a, b) {
-        case (.idle, .idle), (.focus, .focus), (.breakRunning, .breakRunning):
-            return true
-        default:
-            return false
         }
     }
 
