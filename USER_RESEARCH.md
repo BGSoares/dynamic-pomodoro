@@ -17,6 +17,10 @@ No session or feedback data available in this environment (dev machine, no `~/Li
 
 "Do the breaks actually help you refocus?" — multiple choice: Yes, consistently / Usually / Sometimes / Rarely. Direct measure of the core value proposition. No responses yet.
 
+## Active thumbs probe
+
+**Reminder quotes** — A 👍/👎 widget appears on `IdleView` after the first completed break (once only, gated by `reminderMsgThumb` in UserDefaults). Question: "Are the reminder quotes useful?" Response is stored as "up" or "down" in UserDefaults. **Remove `ReminderThumbProbe` from `IdleView.swift` once the rating is read here.**
+
 ## Feature status
 
 | Feature | Status |
@@ -26,10 +30,11 @@ No session or feedback data available in this environment (dev machine, no `~/Li
 | Full-screen overlay + screen lock | Load-bearing |
 | Hold-to-skip friction | Load-bearing |
 | Skip nudge messages (pool of 5) | Presumed load-bearing; no data |
-| Reminder messages (pool of 26, daily rotation) | Presumed load-bearing; no data |
+| Reminder messages (pool of 26, daily rotation) | Thumbs probe active; awaiting first rating |
 | Daily stats footer | Load-bearing |
 | One-shot feedback survey | Active; awaiting first response |
 
 ## Next
 
-Read `~/Library/Application Support/DynamicPomodoro/feedback.json` and `sessions.json` once available to validate feature utility and curve calibration.
+- Read `reminderMsgThumb` from UserDefaults on next routine to see thumbs rating; remove probe widget if rated.
+- Read `~/Library/Application Support/DynamicPomodoro/feedback.json` and `sessions.json` once available to validate feature utility and curve calibration.

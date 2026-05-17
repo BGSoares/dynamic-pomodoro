@@ -8,7 +8,12 @@ struct IdleView: View {
     @State private var stats: DailyStats = .empty
     @State private var showFeedback: Bool = false
     @State private var feedbackQuestion: FeedbackQuestion? = nil
+    @State private var showReminderThumb: Bool = false
     private let refresh = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+
+    /// UserDefaults key for the one-shot reminder-quote thumbs probe.
+    /// Once set ("up" or "down"), the widget is never shown again.
+    private static let reminderThumbKey = "reminderMsgThumb"
 
     var body: some View {
         VStack(spacing: 28) {
@@ -33,13 +38,22 @@ struct IdleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(32)
         .overlay(alignment: .bottom) {
-            DailyStatsFooter(stats: stats)
-                .padding(.bottom, 20)
+            VStack(spacing: 8) {
+                if showReminderThumb {
+                    ReminderThumbProbe { up in
+                        UserDefaults.standard.set(up ? "up" : "down", forKey: Self.reminderThumbKey)
+                        withAnimation { showReminderThumb = false }
+                    }
+                }
+                DailyStatsFooter(stats: stats)
+            }
+            .padding(.bottom, 20)
         }
         .onAppear {
             suggested = timer.suggestedFocusMinutes()
             stats = timer.dailyStats()
             maybeShowFeedback()
+            checkReminderThumb()
         }
         .onReceive(refresh) { _ in
             suggested = timer.suggestedFocusMinutes()
@@ -65,6 +79,39 @@ struct IdleView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             showFeedback = true
         }
+    }
+
+    /// Show the reminder-quote thumbs probe after the first completed break,
+    /// but only once (UserDefaults gate).
+    private func checkReminderThumb() {
+        guard UserDefaults.standard.string(forKey: Self.reminderThumbKey) == nil else { return }
+        let hasHadBreak = SessionLogStore.shared.entries.contains { $0.kind == .breakCompleted }
+        showReminderThumb = hasHadBreak
+    }
+}
+
+/// One-shot thumbs up/down probe for the reminder-quote feature.
+/// Shown once after the first completed break. Remove this view permanently
+/// once the rating is collected and read in USER_RESEARCH.md.
+private struct ReminderThumbProbe: View {
+    let onRate: (Bool) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("Are the reminder quotes useful?")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("👍") { onRate(true) }
+                .buttonStyle(.plain)
+            Button("👎") { onRate(false) }
+                .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.secondary.opacity(0.07))
+        )
     }
 }
 
@@ -94,9 +141,8 @@ private struct DailyStatsFooter: View {
     }
 
     private func formatPomos(_ count: Double) -> String {
-        let rounded = (count * 10).rounded() / 10
-        let number = rounded == rounded.rounded() ? String(format: "%.0f", rounded) : String(format: "%.1f", rounded)
-        let label = rounded == 1.0 ? "pomo" : "pomos"
-        return "\(number) \(label)"
+        let r = (count * 10).rounded() / 10
+        let n = r == r.rounded() ? String(format: "%.0f", r) : String(format: "%.1f", r)
+        return "\(n) \(r == 1.0 ? "pomo" : "pomos")"
     }
 }
