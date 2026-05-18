@@ -129,9 +129,9 @@ final class PomodoroCoreTests: XCTestCase {
         XCTAssertFalse(state.breakLockFired)
     }
 
-    // MARK: - 15s break lock
+    // MARK: - 30s break lock
 
-    func testTickAt15SecondsIntoBreakEmitsLockScreenOnce() {
+    func testTickAt30SecondsIntoBreakEmitsLockScreenOnce() {
         var state = PomodoroState()
         _ = reduce(&state, .startFocus(now: date(hour: 13)))
         guard case .focus(let focusDeadline, _, _) = state.phase else {
@@ -140,23 +140,23 @@ final class PomodoroCoreTests: XCTestCase {
         _ = reduce(&state, .tick(now: focusDeadline)) // transition into break
         let breakStart = focusDeadline
 
-        // Tick at 14s — no lock yet.
-        let e14 = reduce(&state, .tick(now: breakStart.addingTimeInterval(14)))
-        XCTAssertFalse(e14.contains(.lockScreen))
+        // Tick at 29s — no lock yet.
+        let e29 = reduce(&state, .tick(now: breakStart.addingTimeInterval(29)))
+        XCTAssertFalse(e29.contains(.lockScreen))
         XCTAssertFalse(state.breakLockFired)
 
-        // Tick at exactly 15s — lock fires.
-        let e15 = reduce(&state, .tick(now: breakStart.addingTimeInterval(15)))
-        XCTAssertTrue(e15.contains(.lockScreen))
+        // Tick at exactly 30s — lock fires.
+        let e30 = reduce(&state, .tick(now: breakStart.addingTimeInterval(30)))
+        XCTAssertTrue(e30.contains(.lockScreen))
         XCTAssertTrue(state.breakLockFired)
 
-        // Tick at 20s — already fired, must not fire again.
-        let e20 = reduce(&state, .tick(now: breakStart.addingTimeInterval(20)))
-        XCTAssertFalse(e20.contains(.lockScreen))
+        // Tick at 40s — already fired, must not fire again.
+        let e40 = reduce(&state, .tick(now: breakStart.addingTimeInterval(40)))
+        XCTAssertFalse(e40.contains(.lockScreen))
         XCTAssertTrue(state.breakLockFired)
     }
 
-    func testBreakLockNotFiredIfSkippedBefore15s() {
+    func testBreakLockNotFiredIfSkippedBefore30s() {
         var state = PomodoroState()
         _ = reduce(&state, .startFocus(now: date(hour: 13)))
         guard case .focus(let focusDeadline, _, _) = state.phase else {

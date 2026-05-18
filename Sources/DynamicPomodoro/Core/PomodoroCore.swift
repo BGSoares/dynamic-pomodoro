@@ -30,7 +30,7 @@ struct PomodoroState: Equatable {
     var remainingSeconds: Int = 0
     /// Total seconds for the current phase (for progress rendering).
     var totalSeconds: Int = 0
-    /// Set once the 15s-into-break screen lock has fired for the current break.
+    /// Set once the 30s-into-break screen lock has fired for the current break.
     /// Resets when the phase leaves `.breakRunning`.
     var breakLockFired: Bool = false
 }
@@ -95,7 +95,7 @@ enum PomodoroReducer {
     /// Seconds after a break starts before the screen auto-locks.
     /// Long enough to read the activity card; short enough that walking away
     /// without the lock would be a security risk.
-    static let breakLockDelaySeconds: TimeInterval = 15
+    static let breakLockDelaySeconds: TimeInterval = 30
 
     static func reduce(
         _ state: inout PomodoroState,

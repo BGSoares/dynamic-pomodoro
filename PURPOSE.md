@@ -28,7 +28,7 @@ This is the cycling metaphor that runs through the entire app: pros recover betw
 A break that says "take 5 minutes" produces another browser tab. A break that says "find a doorway, forearm against the frame, step forward, feel the chest open" produces a body that is no longer collapsed over a keyboard. The activity library is the content of the app. It is curated, not crowd-sourced, not customisable through the UI — it is the opinion of the tool.
 
 **4. Friction belongs in the right places.**
-Starting a focus session is one click. Skipping a break costs a 15-second hold and one final line of resistance. The screen locks 15 seconds into the break. Every other display is blacked out. This is not a productivity-shaming UX — it is the recognition that the impulse to skip a break is *exactly* the moment willpower fails, so the tool absorbs that decision instead of asking you to make it.
+Starting a focus session is one click. Skipping a break costs a 15-second hold and one final line of resistance. The screen locks 30 seconds into the break. Every other display is blacked out. This is not a productivity-shaming UX — it is the recognition that the impulse to skip a break is *exactly* the moment willpower fails, so the tool absorbs that decision instead of asking you to make it.
 
 **5. The smallest surface that does the job.**
 Four settings. No onboarding. No accounts. No cloud. No streaks, scores, leaderboards, or weekly summary emails. The recent collapse from ~4k to ~1.8k LOC was not refactoring for its own sake — it was deleting everything that wasn't the core loop, and the core loop is small. New features have to earn their way in past this principle.

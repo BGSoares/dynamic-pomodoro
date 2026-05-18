@@ -9,7 +9,7 @@ No session or feedback data available in this environment (dev machine, no `~/Li
 ## What we know (from code + commit history)
 
 - The core loop (focus → full-screen break → focus) is working and intentional.
-- Screen lock fires 15 seconds into every break. Unconditional — toggle removed in the reducer collapse (commit 3589d0d). Justified in PURPOSE.md: friction belongs here.
+- Screen lock fires 30 seconds into every break. Unconditional — toggle removed in the reducer collapse (commit 3589d0d). Justified in PURPOSE.md: friction belongs here.
 - Break activities: 40 entries across 7 categories. Cycling-themed inspiration category is load-bearing per PURPOSE.md §7.
 - Hold-to-skip (15s) is core friction, not a lockout.
 
