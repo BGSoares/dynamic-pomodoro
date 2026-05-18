@@ -17,6 +17,18 @@ Edit it to change Q2. The app reads the file on every Idle-screen visit; changes
 | `options` | 2–5 strings, ≤ 24 chars each. **Required** for `multiple_choice`, **omit** for `open_ended` |
 | `_revision` | Bump every time you change anything — tags the response so future-you can trace which question yielded what |
 
+## Writing the question
+
+The user sees Q2 with **no surrounding context**: just one sentence on a card. Most features in this app have **no agreed user-facing name** — internal labels like "reminder quote", "skip nudge", "idle stats footer" mean nothing to them. So:
+
+- **Name the feature by what the user actually sees**, not by its code name. Don't say "the reminder quote" — say "the short italic line shown above the activity during breaks".
+- **Anchor it to where and when it appears**: which window/screen, at what stage of the flow (idle, focus, break, post-skip, etc.). The user can't rate a feature they can't locate in their memory.
+- **Quote a concrete example** when the feature is text-based and short — one short example resolves ambiguity faster than two sentences of description.
+- **If you can't fit all that in ≤ 80 chars**, the question is too granular for Q2. Pick a narrower scope or ask about the overall behavior instead. Don't ship an ambiguous prompt.
+- **Avoid jargon from `PURPOSE.md` / the spec** — those are author-facing terms. The user only knows what they've seen on screen.
+
+Quick check before saving: would a user who skimmed the app once know exactly what you're asking about? If not, rewrite.
+
 ## What you must not change
 
 - **Q1** — satisfaction emoji scale (😖 😕 😐 🙂 😍). Fixed, longitudinal anchor. Hard-coded in [`../Views/FeedbackSheet.swift`](../Views/FeedbackSheet.swift).

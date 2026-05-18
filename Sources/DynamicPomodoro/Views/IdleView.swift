@@ -90,24 +90,36 @@ struct IdleView: View {
     }
 }
 
-/// One-shot thumbs up/down probe for the reminder-quote feature.
+/// One-shot thumbs up/down probe for the reminder-message feature
+/// (the short italic line shown at the top of the full-screen break overlay,
+/// rotating once per day — see `ReminderMessages` and `BreakOverlayView`).
 /// Shown once after the first completed break. Remove this view permanently
 /// once the rating is collected and read in USER_RESEARCH.md.
+///
+/// Wording note: users have no internal name for this feature, so the prompt
+/// has to spell out *where* it appears (break screen) and *what* it looks like
+/// (short italic line at the top) — otherwise the rating is meaningless.
 private struct ReminderThumbProbe: View {
     let onRate: (Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text("Are the reminder quotes useful?")
+        VStack(spacing: 6) {
+            Text("The short italic line at the top of the full-screen break overlay (e.g. *“Rest is when your brain consolidates what you just learned.”*) — is it useful?")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Button("👍") { onRate(true) }
-                .buttonStyle(.plain)
-            Button("👎") { onRate(false) }
-                .buttonStyle(.plain)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 460)
+
+            HStack(spacing: 20) {
+                Button("👍") { onRate(true) }
+                    .buttonStyle(.plain)
+                Button("👎") { onRate(false) }
+                    .buttonStyle(.plain)
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.secondary.opacity(0.07))
