@@ -2,7 +2,7 @@
   {
     "id": "neck_rolls",
     "name": "Neck rolls",
-    "instruction": "Stand tall. Slow, deliberate circles of the head — 5 each way. Breathe through your nose.",
+    "instruction": "Loosen the neck? Stand tall. Slow, deliberate circles of the head — 5 each way. Breathe through your nose.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
@@ -11,7 +11,7 @@
   {
     "id": "shoulder_openers",
     "name": "Shoulder openers",
-    "instruction": "Clasp hands behind back. Lift chest, drop shoulders back. Hold 20s, release, repeat 3x.",
+    "instruction": "Open the shoulders? Clasp hands behind your back. Lift chest, drop shoulders back. Hold 20s, release, repeat 3x.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
@@ -20,7 +20,7 @@
   {
     "id": "forward_fold",
     "name": "Standing forward fold",
-    "instruction": "Find a doorway or quiet corner. Feet hip-width, hinge at the hips, let arms hang. Soft knees. 90 seconds. Let gravity do the work.",
+    "instruction": "Fancy a hang? Find a doorway or quiet corner. Feet hip-width, hinge at the hips, let arms hang. Soft knees. 90 seconds. Let gravity do the work.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
@@ -29,43 +29,16 @@
   {
     "id": "wrist_flexor_stretch",
     "name": "Wrist stretch",
-    "instruction": "Arm out, palm up. Gently pull fingers down with the other hand. 30s each side, twice.",
+    "instruction": "Wrists feeling tight? Arm out, palm up. Gently pull the fingers down with the other hand. 30s each side, twice.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "wall_sit",
-    "name": "Wall sit",
-    "instruction": "Slip into a hallway or stairwell. Back flat to the wall, thighs parallel to the floor. Hold 60s, rest 30s, repeat twice. Quads will thank you on the bike.",
-    "category": "stretch",
-    "band": "medium",
-    "energy": "active",
-    "suitable_times": ["midday"]
   },
   {
     "id": "calf_raises",
     "name": "Calf raises",
-    "instruction": "Stand at your desk. Slow rise onto the balls of your feet, slow lower. 3 sets of 15. Wakes the calves up — they've been a footrest for hours.",
-    "category": "stretch",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "seated_spinal_twist",
-    "name": "Seated spinal twist",
-    "instruction": "Sit tall, feet flat. Twist gently to the right, hand on the chair back. Hold 30s. Repeat left. Once more each side.",
-    "category": "stretch",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "glute_squeezes",
-    "name": "Glute squeezes",
-    "instruction": "Sit upright. Squeeze your glutes hard for 5 seconds, release. 20 reps. Completely invisible. Reactivates muscles that have switched off.",
+    "instruction": "Wake the calves up? Stand at your desk. Slow rise onto the balls of your feet, slow lower. 3 sets of 15. They've been a footrest for hours.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
@@ -74,7 +47,7 @@
   {
     "id": "chest_doorway_stretch",
     "name": "Chest opener",
-    "instruction": "Find a doorway. Forearm against the frame, step forward. Feel the chest open. 30s each side. Counters everything a keyboard does to your shoulders.",
+    "instruction": "Open the chest? Find a doorway. Forearm against the frame, step forward. Feel the chest open. 30s each side. Counters everything a keyboard does to your shoulders.",
     "category": "stretch",
     "band": "short",
     "energy": "gentle",
@@ -83,7 +56,7 @@
   {
     "id": "box_breathing",
     "name": "Box breathing",
-    "instruction": "Inhale 4, hold 4, exhale 4, hold 4. Repeat for the full break. Regulates the autonomic nervous system in minutes.",
+    "instruction": "Settle the nervous system? Inhale 4, hold 4, exhale 4, hold 4. Repeat for the full break. Regulates the autonomic nervous system in minutes.",
     "category": "breathwork",
     "band": "short",
     "energy": "gentle",
@@ -92,7 +65,7 @@
   {
     "id": "physiological_sigh",
     "name": "Physiological sigh",
-    "instruction": "Double inhale through nose, one long exhale through mouth. Repeat for 3–5 minutes. Fastest way to downshift the nervous system.",
+    "instruction": "Downshift in under a minute? Double inhale through the nose, one long exhale through the mouth. Repeat for 3–5 minutes. Fastest reset there is.",
     "category": "breathwork",
     "band": "short",
     "energy": "gentle",
@@ -101,25 +74,16 @@
   {
     "id": "twenty_twenty_twenty",
     "name": "20-20-20",
-    "instruction": "Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break. Let your eyes reset.",
+    "instruction": "Reset the eyes? Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break.",
     "category": "eye_rest",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "palming",
-    "name": "Palming",
-    "instruction": "Rub palms warm. Cup them over closed eyes without touching the lids. Breathe into the dark for the full break.",
-    "category": "eye_rest",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
-  },
-  {
     "id": "focus_shifting",
     "name": "Near-far focus",
-    "instruction": "Hold a finger at arm's length. Focus on it, then a distant object. Switch slowly, 20 cycles.",
+    "instruction": "Stretch the eye muscles? Hold a finger at arm's length. Focus on it, then on a distant object. Switch slowly, 20 cycles.",
     "category": "eye_rest",
     "band": "short",
     "energy": "gentle",
@@ -128,7 +92,7 @@
   {
     "id": "plant_gaze",
     "name": "Plant gaze",
-    "instruction": "Find the nearest plant or tree out the window. Soften your gaze and look at it. Green at distance is what your eyes evolved for.",
+    "instruction": "Look at something green? Find the nearest plant or tree out the window. Soften your gaze and let it rest. Green at distance is what your eyes evolved for.",
     "category": "eye_rest",
     "band": "short",
     "energy": "gentle",
@@ -137,7 +101,7 @@
   {
     "id": "short_walk",
     "name": "Short walk",
-    "instruction": "Out the door. Walk for the full duration. Leave the phone on your desk.",
+    "instruction": "Up for a walk? Out the door. Walk for the full duration. Leave the phone on your desk.",
     "category": "walk",
     "band": "medium",
     "energy": "moderate",
@@ -146,7 +110,7 @@
   {
     "id": "stairs",
     "name": "Stairs",
-    "instruction": "Find the nearest staircase. Up and down at a pace that gets your heart moving. Stop when the timer does.",
+    "instruction": "Find a staircase? Up and down at a pace that gets your heart moving. Stop when the timer does.",
     "category": "walk",
     "band": "medium",
     "energy": "active",
@@ -155,7 +119,7 @@
   {
     "id": "window_stand",
     "name": "Stand at the window",
-    "instruction": "Stand by a window. Look outside. Let your eyes travel — near, far, sky. No agenda.",
+    "instruction": "Come to the window? Stand by it. Look outside. Let your eyes travel — near, far, sky. No agenda.",
     "category": "walk",
     "band": "short",
     "energy": "gentle",
@@ -164,61 +128,16 @@
   {
     "id": "outdoor_air",
     "name": "Step outside",
-    "instruction": "Step outside. Even 3 minutes. Real light, real air, weather on your skin. The brain registers this as a different room — that's the point.",
+    "instruction": "Step outside? Even 3 minutes. Real light, real air, weather on your skin. The brain registers this as a different room — that's the point.",
     "category": "walk",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "body_scan",
-    "name": "Body scan",
-    "instruction": "Sit, eyes closed. Starting at your feet, move attention slowly up the body. Notice without fixing.",
-    "category": "mindfulness",
-    "band": "medium",
-    "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
-  },
-  {
-    "id": "breath_count",
-    "name": "Count to ten",
-    "instruction": "Sit. Count each exhale up to 10, then start again. When you lose count, restart without judgement.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "sound_listen",
-    "name": "Listen outward",
-    "instruction": "Close your eyes. For the full break, name each sound you hear in the order you hear it. That's the whole practice.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
-  },
-  {
-    "id": "desk_reset",
-    "name": "Desk reset",
-    "instruction": "Push the chair back. Stand up. Adjust monitor to eye level, chair to height, tidy one thing on the desk. Sit back down with intention.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday"]
-  },
-  {
     "id": "five_senses",
     "name": "5-4-3-2-1",
-    "instruction": "Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "curiosity_capture",
-    "name": "Curiosity capture",
-    "instruction": "Open a note. Write down one non-work question you're curious about — to explore later. Frees the brain to actually rest now.",
+    "instruction": "Land back in the room? Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.",
     "category": "mindfulness",
     "band": "short",
     "energy": "gentle",
@@ -227,7 +146,7 @@
   {
     "id": "drink_water",
     "name": "Drink water",
-    "instruction": "Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated, and so are your legs for tomorrow's ride.",
+    "instruction": "Top up? Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated, and so are your legs for tomorrow's ride.",
     "category": "hydration",
     "band": "short",
     "energy": "gentle",
@@ -236,7 +155,7 @@
   {
     "id": "mindful_drink",
     "name": "Mindful tea or coffee",
-    "instruction": "Make a slow tea or coffee. Don't multitask. Notice the smell, the warmth of the cup, the first sip. The whole break is the ritual.",
+    "instruction": "Make a slow tea or coffee? Don't multitask. Notice the smell, the warmth of the cup, the first sip. The whole break is the ritual.",
     "category": "hydration",
     "band": "short",
     "energy": "gentle",
@@ -245,56 +164,20 @@
   {
     "id": "next_ride_daydream",
     "name": "Next-ride daydream",
-    "instruction": "Picture your next ride. Where do you start? What's the weather doing? Who's on your wheel? Plan it in your head, not on Strava.",
+    "instruction": "Plan the next ride in your head? Where do you start? What's the weather doing? Who's on your wheel? Not on Strava — just in your head.",
     "category": "inspiration",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "route_reverie",
-    "name": "Plan a new loop",
-    "instruction": "Open a maps app. Trace a loop you haven't ridden yet — coast road, the climb you've been eyeing, a café in the middle. Save it. Don't ride it now.",
-    "category": "inspiration",
-    "band": "medium",
-    "energy": "gentle",
-    "suitable_times": ["midday", "afternoon"]
-  },
-  {
     "id": "kit_appreciation",
     "name": "Kit appreciation",
-    "instruction": "Look at one piece of your kit you love — the bike, a jersey, the shoes. Notice the engineering. Beautiful objects deserve a moment of attention.",
+    "instruction": "Notice your kit? Look at one piece you love — the bike, a jersey, the shoes. Notice the engineering. Beautiful objects deserve a moment of attention.",
     "category": "inspiration",
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "climb_galibier",
-    "name": "Climb the Galibier",
-    "instruction": "Close your eyes. You're on the lower slopes of the Galibier — switchbacks ahead, valley falling away. Feel the rhythm of the cadence. Stay there until the timer rings.",
-    "category": "inspiration",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon"]
-  },
-  {
-    "id": "climb_stelvio",
-    "name": "Climb the Stelvio",
-    "instruction": "Close your eyes. 48 hairpins above you, Italian Alps in every direction. Spin, don't grind. Feel the air thin out as you climb. Stay there for the break.",
-    "category": "inspiration",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon"]
-  },
-  {
-    "id": "climb_ventoux",
-    "name": "Climb the Ventoux",
-    "instruction": "Close your eyes. Provence behind, the bald white moonscape ahead. The wind is doing what it always does on the Ventoux. Just keep turning the pedals.",
-    "category": "inspiration",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon"]
   },
   {
     "id": "history_lemond_fignon_89",
