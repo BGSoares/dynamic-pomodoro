@@ -55,19 +55,6 @@ final class FeedbackStore {
     private let queue = DispatchQueue(label: "pomodoro.feedback")
     private(set) var responses: [FeedbackResponse] = []
 
-    private static let dec: JSONDecoder = {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
-        return d
-    }()
-
-    private static let enc: JSONEncoder = {
-        let e = JSONEncoder()
-        e.dateEncodingStrategy = .iso8601
-        e.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return e
-    }()
-
     private convenience init() {
         self.init(directory: AppSupport.directory)
     }
@@ -81,11 +68,11 @@ final class FeedbackStore {
 
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        self.responses = (try? Self.dec.decode([FeedbackResponse].self, from: data)) ?? []
+        self.responses = (try? AppSupport.decoder.decode([FeedbackResponse].self, from: data)) ?? []
     }
 
     private func save() {
-        if let data = try? Self.enc.encode(responses) {
+        if let data = try? AppSupport.encoder.encode(responses) {
             try? data.write(to: fileURL, options: .atomic)
         }
     }

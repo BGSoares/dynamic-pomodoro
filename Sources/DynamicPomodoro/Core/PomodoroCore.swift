@@ -126,9 +126,7 @@ enum PomodoroReducer {
 
         case .abandonFocus(let now):
             guard case .focus(_, let startedAt, let planned) = state.phase else { return [] }
-            state.phase = .idle
-            state.remainingSeconds = 0
-            state.totalSeconds = 0
+            resetToIdle(&state)
             return [
                 .stopTicker,
                 .logSession(SessionLogEntry(
@@ -142,10 +140,7 @@ enum PomodoroReducer {
 
         case .skipBreak(let now):
             guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
-            state.phase = .idle
-            state.remainingSeconds = 0
-            state.totalSeconds = 0
-            state.breakLockFired = false
+            resetToIdle(&state)
             return [
                 .stopTicker,
                 .logSession(SessionLogEntry(
@@ -247,10 +242,7 @@ enum PomodoroReducer {
 
     private static func completeBreak(state: inout PomodoroState, now: Date) -> [PomodoroEffect] {
         guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
-        state.phase = .idle
-        state.remainingSeconds = 0
-        state.totalSeconds = 0
-        state.breakLockFired = false
+        resetToIdle(&state)
         return [
             .stopTicker,
             .logSession(SessionLogEntry(
@@ -263,6 +255,13 @@ enum PomodoroReducer {
             .playBreakCompleteChime,
             .notify(title: "Break complete", body: "Ready when you are."),
         ]
+    }
+
+    private static func resetToIdle(_ state: inout PomodoroState) {
+        state.phase = .idle
+        state.remainingSeconds = 0
+        state.totalSeconds = 0
+        state.breakLockFired = false
     }
 
     /// Last-resort activity when no library entry matches the current band/time-of-day.

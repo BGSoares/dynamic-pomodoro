@@ -1,19 +1,26 @@
 import Foundation
 
-/// Shared Application Support directory for all on-disk persistence.
+/// Shared Application Support directory and codecs for all on-disk persistence.
 enum AppSupport {
     static var directory: URL {
         let fm = FileManager.default
-        if let dir = try? fm.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        ) {
-            return dir.appendingPathComponent("DynamicPomodoro", isDirectory: true)
-        }
-        return fm.temporaryDirectory.appendingPathComponent("DynamicPomodoro", isDirectory: true)
+        let base = (try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
+            ?? fm.temporaryDirectory
+        return base.appendingPathComponent("DynamicPomodoro", isDirectory: true)
     }
+
+    static let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    static let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        e.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return e
+    }()
 }
 
 /// One entry per focus session or break, for the success-metrics review (§10).
@@ -97,26 +104,13 @@ final class SessionLogStore {
         load()
     }
 
-    private static let dec: JSONDecoder = {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
-        return d
-    }()
-
-    private static let enc: JSONEncoder = {
-        let e = JSONEncoder()
-        e.dateEncodingStrategy = .iso8601
-        e.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return e
-    }()
-
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        self.entries = (try? Self.dec.decode([SessionLogEntry].self, from: data)) ?? []
+        self.entries = (try? AppSupport.decoder.decode([SessionLogEntry].self, from: data)) ?? []
     }
 
     private func save() {
-        if let data = try? Self.enc.encode(entries) {
+        if let data = try? AppSupport.encoder.encode(entries) {
             try? data.write(to: fileURL, options: .atomic)
         }
     }
