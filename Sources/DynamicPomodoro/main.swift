@@ -122,10 +122,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             panel.ignoresMouseEvents = true
         }
-        // Shielding level (the one macOS uses for the lock-screen shield) sits above
-        // native fullscreen apps. `.screenSaver` is too low on modern macOS — apps
-        // in their own fullscreen Space punch through it.
-        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+        // Use a high-but-normal window level so `.fullScreenAuxiliary` actually
+        // takes effect. Shielding-level windows are treated by WindowServer as
+        // system shields (lockscreen/screen-saver auth) and bypass the normal
+        // collection-behavior path, so the overlay never composited into another
+        // app's fullscreen Space. `.popUpMenu` is the level Apple intends to
+        // coexist with fullscreen content (it's what menus and tooltips use)
+        // and it honours `.fullScreenAuxiliary`, so the overlay appears in
+        // place over a fullscreen app with no Space switch.
+        panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isOpaque = true
         panel.backgroundColor = .black
