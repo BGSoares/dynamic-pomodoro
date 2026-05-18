@@ -36,15 +36,6 @@
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "wall_sit",
-    "name": "Wall sit",
-    "instruction": "Slip into a hallway or stairwell. Back flat to the wall, thighs parallel to the floor. Hold 60s, rest 30s, repeat twice. Quads will thank you on the bike.",
-    "category": "stretch",
-    "band": "medium",
-    "energy": "active",
-    "suitable_times": ["midday"]
-  },
-  {
     "id": "calf_raises",
     "name": "Calf raises",
     "instruction": "Stand at your desk. Slow rise onto the balls of your feet, slow lower. 3 sets of 15. Wakes the calves up — they've been a footrest for hours.",
@@ -88,15 +79,6 @@
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "palming",
-    "name": "Palming",
-    "instruction": "Rub palms warm. Cup them over closed eyes without touching the lids. Breathe into the dark for the full break.",
-    "category": "eye_rest",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
   },
   {
     "id": "focus_shifting",
@@ -153,24 +135,6 @@
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "sound_listen",
-    "name": "Listen outward",
-    "instruction": "Close your eyes. For the full break, name each sound you hear in the order you hear it. That's the whole practice.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
-  },
-  {
-    "id": "desk_reset",
-    "name": "Desk reset",
-    "instruction": "Push the chair back. Stand up. Adjust monitor to eye level, chair to height, tidy one thing on the desk. Sit back down with intention.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday"]
-  },
-  {
     "id": "five_senses",
     "name": "5-4-3-2-1",
     "instruction": "Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.",
@@ -214,33 +178,6 @@
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "climb_galibier",
-    "name": "Climb the Galibier",
-    "instruction": "Close your eyes. You're on the lower slopes of the Galibier — switchbacks ahead, valley falling away. Feel the rhythm of the cadence. Stay there until the timer rings.",
-    "category": "inspiration",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon"]
-  },
-  {
-    "id": "climb_stelvio",
-    "name": "Climb the Stelvio",
-    "instruction": "Close your eyes. 48 hairpins above you, Italian Alps in every direction. Spin, don't grind. Feel the air thin out as you climb. Stay there for the break.",
-    "category": "inspiration",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon"]
-  },
-  {
-    "id": "climb_ventoux",
-    "name": "Climb the Ventoux",
-    "instruction": "Close your eyes. Provence behind, the bald white moonscape ahead. The wind is doing what it always does on the Ventoux. Just keep turning the pedals.",
-    "category": "inspiration",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon"]
   },
   {
     "id": "history_lemond_fignon_89",
