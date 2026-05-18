@@ -88,30 +88,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// when rebuilding mid-break for a display change (we're already running).
     private func showBreakOverlay(fadeIn: Bool = true) {
         let primaryScreen = currentBreakScreen()
-        for screen in NSScreen.screens {
-            let isPrimary = (screen == primaryScreen)
-            breakOverlayWindows.append(makeBreakOverlayPanel(for: screen, isPrimary: isPrimary))
+        breakOverlayWindows = NSScreen.screens.map {
+            makeBreakOverlayPanel(for: $0, isPrimary: $0 == primaryScreen)
         }
 
         NSApp.activate(ignoringOtherApps: true)
         for window in breakOverlayWindows {
             window.alphaValue = fadeIn ? 0 : 1
-            if window.contentViewController == nil {
-                window.orderFrontRegardless()
-            }
+            if window.contentViewController == nil { window.orderFrontRegardless() }
         }
-        if let primary = breakOverlayWindows.first(where: { $0.contentViewController != nil }) {
-            primary.makeKeyAndOrderFront(nil)
-        }
+        breakOverlayWindows.first(where: { $0.contentViewController != nil })?.makeKeyAndOrderFront(nil)
 
         guard fadeIn else { return }
         NSApp.requestUserAttention(.informationalRequest)
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 4.0
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            for window in breakOverlayWindows {
-                window.animator().alphaValue = 1.0
-            }
+            breakOverlayWindows.forEach { $0.animator().alphaValue = 1.0 }
         }
     }
 
@@ -166,9 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleScreenParametersChanged() {
         guard breakOverlayWindows.contains(where: { $0.isVisible }) else { return }
-        for window in breakOverlayWindows {
-            window.orderOut(nil)
-        }
+        breakOverlayWindows.forEach { $0.orderOut(nil) }
         breakOverlayWindows.removeAll()
         showBreakOverlay(fadeIn: false)
     }

@@ -112,26 +112,16 @@ struct FeedbackSheet: View {
 
     @ViewBuilder
     private var primaryButton: some View {
-        switch step {
-        case 0:
-            // Auto-advance on emoji tap — no Next button needed.
-            EmptyView()
-        case 1:
-            if resolvedQuestion.type == .multipleChoice {
-                EmptyView()   // auto-advances on option tap
-            } else {
-                Button("Next") { withAnimation { step = 2 } }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(q2Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        case 2:
+        if step == 1, resolvedQuestion.type == .openEnded {
+            Button("Next") { withAnimation { step = 2 } }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(q2Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } else if step == 2 {
             let trimmed = q3Text.trimmingCharacters(in: .whitespacesAndNewlines)
             Button(trimmed.isEmpty ? "Skip" : "Submit") { submit() }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-        default:
-            EmptyView()
         }
     }
 
