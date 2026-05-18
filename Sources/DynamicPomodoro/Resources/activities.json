@@ -54,24 +54,6 @@
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "seated_spinal_twist",
-    "name": "Seated spinal twist",
-    "instruction": "Sit tall, feet flat. Twist gently to the right, hand on the chair back. Hold 30s. Repeat left. Once more each side.",
-    "category": "stretch",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "glute_squeezes",
-    "name": "Glute squeezes",
-    "instruction": "Sit upright. Squeeze your glutes hard for 5 seconds, release. 20 reps. Completely invisible. Reactivates muscles that have switched off.",
-    "category": "stretch",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
     "id": "chest_doorway_stretch",
     "name": "Chest opener",
     "instruction": "Find a doorway. Forearm against the frame, step forward. Feel the chest open. 30s each side. Counters everything a keyboard does to your shoulders.",
@@ -171,24 +153,6 @@
     "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
   },
   {
-    "id": "body_scan",
-    "name": "Body scan",
-    "instruction": "Sit, eyes closed. Starting at your feet, move attention slowly up the body. Notice without fixing.",
-    "category": "mindfulness",
-    "band": "medium",
-    "energy": "gentle",
-    "suitable_times": ["afternoon", "end_of_day"]
-  },
-  {
-    "id": "breath_count",
-    "name": "Count to ten",
-    "instruction": "Sit. Count each exhale up to 10, then start again. When you lose count, restart without judgement.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
     "id": "sound_listen",
     "name": "Listen outward",
     "instruction": "Close your eyes. For the full break, name each sound you hear in the order you hear it. That's the whole practice.",
@@ -210,15 +174,6 @@
     "id": "five_senses",
     "name": "5-4-3-2-1",
     "instruction": "Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.",
-    "category": "mindfulness",
-    "band": "short",
-    "energy": "gentle",
-    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "curiosity_capture",
-    "name": "Curiosity capture",
-    "instruction": "Open a note. Write down one non-work question you're curious about — to explore later. Frees the brain to actually rest now.",
     "category": "mindfulness",
     "band": "short",
     "energy": "gentle",
@@ -250,15 +205,6 @@
     "band": "short",
     "energy": "gentle",
     "suitable_times": ["midday", "afternoon", "end_of_day"]
-  },
-  {
-    "id": "route_reverie",
-    "name": "Plan a new loop",
-    "instruction": "Open a maps app. Trace a loop you haven't ridden yet — coast road, the climb you've been eyeing, a café in the middle. Save it. Don't ride it now.",
-    "category": "inspiration",
-    "band": "medium",
-    "energy": "gentle",
-    "suitable_times": ["midday", "afternoon"]
   },
   {
     "id": "kit_appreciation",
