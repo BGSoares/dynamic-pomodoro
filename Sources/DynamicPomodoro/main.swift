@@ -161,9 +161,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.standardWindowButton(.closeButton)?.isHidden = true
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
+        [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
+            .forEach { window.standardWindowButton($0)?.isHidden = true }
         window.isMovable = false
         // Owning the fullscreen Space is the whole point — primary, not
         // auxiliary, so macOS gives us a dedicated Space we slide into.
