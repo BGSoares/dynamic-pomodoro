@@ -49,20 +49,14 @@ struct FeedbackSheet: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
-            // Left spacer balances the Skip button so the dots sit centered.
-            Color.clear.frame(width: 56, height: 1)
-            Spacer()
+        ZStack {
             ProgressDots(current: min(step, totalQuestions - 1), total: totalQuestions)
-            Spacer()
             if step < totalQuestions {
                 Button("Skip") { dismiss() }
                     .buttonStyle(.plain)
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .frame(width: 56, alignment: .trailing)
-            } else {
-                Color.clear.frame(width: 56, height: 1)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(.top, 22)
@@ -210,27 +204,20 @@ struct FeedbackSheet: View {
 
     private func submit() {
         let q = resolvedQuestion
-        let q2Answer: String
-        switch q.type {
-        case .multipleChoice:
-            q2Answer = q2Choice ?? ""
-        case .openEnded:
-            q2Answer = q2Text.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        let q3Trimmed = q3Text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let response = FeedbackResponse(
+        let q2Answer = q.type == .multipleChoice
+            ? (q2Choice ?? "")
+            : q2Text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let q3 = q3Text.trimmingCharacters(in: .whitespacesAndNewlines)
+        onSubmit(FeedbackResponse(
             submittedAt: Date(),
             satisfaction: satisfaction ?? 0,
             agentQuestionText: q.questionText,
             agentQuestionRevision: q.revision,
             agentAnswer: q2Answer,
-            openEndedAnswer: q3Trimmed.isEmpty ? nil : q3Trimmed
-        )
-        onSubmit(response)
-        withAnimation { step = totalQuestions }   // → thank-you
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-            dismiss()
-        }
+            openEndedAnswer: q3.isEmpty ? nil : q3
+        ))
+        withAnimation { step = totalQuestions }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { dismiss() }
     }
 }
 
