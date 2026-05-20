@@ -82,45 +82,51 @@ struct DailyStats: Equatable {
     }
 }
 
-/// Persists session log + recent-activity recency window.
-/// Reads are synchronous; the data volume is small (one user, one machine).
-final class SessionLogStore {
-    static let shared = SessionLogStore()
-
+/// Generic append-only JSON array persisted to a single file in Application Support.
+/// Shared by SessionLogStore and FeedbackStore to avoid duplicating load/save/queue boilerplate.
+final class JSONArrayStore<Element: Codable> {
+    private(set) var elements: [Element] = []
     private let fileURL: URL
-    private let queue = DispatchQueue(label: "pomodoro.sessionlog")
-    private(set) var entries: [SessionLogEntry] = []
+    private let queue: DispatchQueue
 
-    private convenience init() {
-        self.init(directory: AppSupport.directory)
-    }
-
-    /// Construct against an explicit directory. Used by tests to point at a
-    /// temp dir instead of the user's real Application Support folder.
-    internal init(directory: URL) {
-        let fm = FileManager.default
-        try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
-        self.fileURL = directory.appendingPathComponent("sessions.json")
+    init(directory: URL, filename: String, label: String) {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        fileURL = directory.appendingPathComponent(filename)
+        queue = DispatchQueue(label: label)
         load()
     }
 
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        self.entries = (try? AppSupport.decoder.decode([SessionLogEntry].self, from: data)) ?? []
+        elements = (try? AppSupport.decoder.decode([Element].self, from: data)) ?? []
     }
 
     private func save() {
-        if let data = try? AppSupport.encoder.encode(entries) {
-            try? data.write(to: fileURL, options: .atomic)
-        }
+        guard let data = try? AppSupport.encoder.encode(elements) else { return }
+        try? data.write(to: fileURL, options: .atomic)
     }
 
-    func append(_ entry: SessionLogEntry) {
-        queue.sync {
-            entries.append(entry)
-            save()
-        }
+    func append(_ element: Element) {
+        queue.sync { elements.append(element); save() }
     }
+}
+
+/// Persists session log + recent-activity recency window.
+/// Reads are synchronous; the data volume is small (one user, one machine).
+final class SessionLogStore {
+    static let shared = SessionLogStore()
+    private let store: JSONArrayStore<SessionLogEntry>
+    var entries: [SessionLogEntry] { store.elements }
+
+    private convenience init() { self.init(directory: AppSupport.directory) }
+
+    /// Construct against an explicit directory. Used by tests to point at a
+    /// temp dir instead of the user's real Application Support folder.
+    internal init(directory: URL) {
+        store = JSONArrayStore(directory: directory, filename: "sessions.json", label: "pomodoro.sessionlog")
+    }
+
+    func append(_ entry: SessionLogEntry) { store.append(entry) }
 
     /// Has any focus or break entry been recorded today (user-local day)?
     /// Used to decide whether the next focus session is the day's first
