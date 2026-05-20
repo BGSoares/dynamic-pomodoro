@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
+    private var primaryBreakWindow: NSWindow?
+    private let breakPresentation = BreakOverlayPresentation()
+    private let breakWindowDelegate = BreakWindowDelegate()
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -78,90 +81,139 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return NSScreen.main ?? NSScreen.screens.first
     }
 
-    /// Build one panel per connected display and bring them on screen.
-    /// Primary panel hosts the SwiftUI timer/controls; the rest are pure black
-    /// blockers so the user can't sneak work onto a secondary screen during a
-    /// break. Primary is picked by cursor location so the timer lands on the
-    /// screen the user is actually looking at — `NSScreen.main` returns the
-    /// screen with the key window, often a different display.
-    /// `fadeIn` is true at break start (the 4 s fade IS the prep) and false
-    /// when rebuilding mid-break for a display change (we're already running).
-    private func showBreakOverlay(fadeIn: Bool = true) {
+    /// Build one window per connected display and slide each into its own
+    /// native fullscreen Space. The primary window hosts the SwiftUI timer/UI;
+    /// the rest paint the same dark backdrop so secondary screens look like
+    /// the same break, not a separate event.
+    ///
+    /// Because each window owns its fullscreen Space, the overlay covers
+    /// other apps' fullscreen content too — `.canJoinAllSpaces` /
+    /// `.fullScreenAuxiliary` only work *within an app's own* fullscreen
+    /// Space, so they couldn't reach a code editor in fullscreen on the same
+    /// display. Toggling fullscreen on our own window sidesteps that
+    /// entirely.
+    ///
+    /// `presentation.contentOpacity` stays at 0 until each window finishes
+    /// its Space transition, so the swoosh slides in a flat dark panel — the
+    /// user perceives "the screen dimming", not "a window arriving" — and
+    /// only then does the timer fade up.
+    /// Primary is picked by cursor location so the timer lands on the screen
+    /// the user is actually looking at — `NSScreen.main` returns the screen
+    /// with the key window, often a different display.
+    private func showBreakOverlay() {
         let primaryScreen = currentBreakScreen()
-        breakOverlayWindows = NSScreen.screens.map {
-            makeBreakOverlayPanel(for: $0, isPrimary: $0 == primaryScreen)
+        breakPresentation.contentOpacity = 0
+        breakWindowDelegate.onPrimaryEnteredFullScreen = { [weak self] in
+            self?.fadeBreakContentIn()
         }
 
-        NSApp.activate(ignoringOtherApps: true)
+        breakOverlayWindows = NSScreen.screens.map { screen in
+            makeBreakWindow(for: screen, isPrimary: screen == primaryScreen)
+        }
+        primaryBreakWindow = breakOverlayWindows.first { $0.delegate === breakWindowDelegate }
+
+        // Order each window front *without* activating the app first.
+        // `NSApp.activate` from a background app would Space-switch the user
+        // out of any other-app fullscreen Space into our desktop Space, and
+        // then `toggleFullScreen` would Space-switch again — two swooshes
+        // back-to-back. Going straight to `toggleFullScreen` makes macOS
+        // animate directly from the user's current Space into our new
+        // fullscreen Space in a single transition.
         for window in breakOverlayWindows {
-            window.alphaValue = fadeIn ? 0 : 1
-            if window.contentViewController == nil { window.orderFrontRegardless() }
-        }
-        breakOverlayWindows.first(where: { $0.contentViewController != nil })?.makeKeyAndOrderFront(nil)
-
-        guard fadeIn else { return }
-        NSApp.requestUserAttention(.informationalRequest)
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 4.0
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            breakOverlayWindows.forEach { $0.animator().alphaValue = 1.0 }
+            window.orderFrontRegardless()
+            window.toggleFullScreen(nil)
         }
     }
 
-    private func makeBreakOverlayPanel(for screen: NSScreen, isPrimary: Bool) -> NSPanel {
-        let frame = screen.frame
-        let panel = KeyablePanel(
-            contentRect: frame,
-            styleMask: [.borderless],
+    private func fadeBreakContentIn() {
+        // Now that we own the visible Space, take focus so the skip button
+        // and any future keyboard handling route to us.
+        NSApp.activate(ignoringOtherApps: true)
+        primaryBreakWindow?.makeKey()
+        NSApp.requestUserAttention(.informationalRequest)
+        withAnimation(.easeInOut(duration: 4.0)) {
+            breakPresentation.contentOpacity = 1
+        }
+    }
+
+    private func makeBreakWindow(for screen: NSScreen, isPrimary: Bool) -> NSWindow {
+        // `.titled` + `.fullSizeContentView` is the minimum styleMask that
+        // supports `toggleFullScreen`. We then hide the titlebar visually so
+        // the result looks identical to a borderless window. Borderless
+        // windows don't get the fullscreen affordance, which is why the old
+        // panel-based approach couldn't take this path.
+        let window = BreakWindow(
+            contentRect: screen.frame,
+            styleMask: [.titled, .fullSizeContentView, .resizable, .closable],
             backing: .buffered,
-            defer: false
+            defer: false,
+            screen: screen
         )
         if isPrimary {
-            panel.contentViewController = NSHostingController(rootView: BreakOverlayView(timer: timer))
-            panel.ignoresMouseEvents = false
+            window.contentViewController = NSHostingController(
+                rootView: BreakOverlayView(timer: timer, presentation: breakPresentation)
+            )
+            window.delegate = breakWindowDelegate
+            window.ignoresMouseEvents = false
         } else {
-            panel.ignoresMouseEvents = true
+            window.contentViewController = NSHostingController(rootView: BreakBackgroundView())
+            window.ignoresMouseEvents = true
         }
-        // Shielding level (the one macOS uses for the lock-screen shield) sits above
-        // native fullscreen apps. `.screenSaver` is too low on modern macOS — apps
-        // in their own fullscreen Space punch through it.
-        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.isOpaque = true
-        panel.backgroundColor = .black
-        panel.hasShadow = false
-        panel.isReleasedWhenClosed = false
-        panel.hidesOnDeactivate = false
-        panel.alphaValue = 0
-        panel.setFrame(frame, display: false)
-        return panel
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
+            .forEach { window.standardWindowButton($0)?.isHidden = true }
+        window.isMovable = false
+        // Owning the fullscreen Space is the whole point — primary, not
+        // auxiliary, so macOS gives us a dedicated Space we slide into.
+        window.collectionBehavior = [.fullScreenPrimary, .stationary]
+        window.isOpaque = true
+        window.backgroundColor = .black
+        window.hasShadow = false
+        window.isReleasedWhenClosed = false
+        window.hidesOnDeactivate = false
+        return window
     }
 
     private func hideBreakOverlay() {
         let windows = breakOverlayWindows
-        guard windows.contains(where: { $0.isVisible }) else { return }
-        // Clear synchronously so a screen-change racing with this fade-out
+        guard !windows.isEmpty else { return }
+        // Clear synchronously so a screen-change racing with this teardown
         // doesn't see a stale array and rebuild on top of windows we're
-        // tearing down. The animation owns its captured `windows` snapshot.
+        // tearing down. The closures below own their captured `windows`
+        // snapshot.
         breakOverlayWindows.removeAll()
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 1.5
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        primaryBreakWindow = nil
+
+        // 1) Fade the content (timer/text) out while still fullscreen — the
+        //    dark backdrop stays put so the screen visibly "stays dimmed".
+        withAnimation(.easeInOut(duration: 1.5)) {
+            breakPresentation.contentOpacity = 0
+        }
+
+        // 2) Once the content is gone, swoosh each Space back out. The
+        //    delegate fires `windowDidExitFullScreen` per window, but we
+        //    don't need to wait — closing after a safe margin matches the
+        //    exit animation duration on every macOS we've tested.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             for window in windows {
-                window.animator().alphaValue = 0
+                window.toggleFullScreen(nil)
             }
-        }, completionHandler: {
-            for window in windows {
-                window.orderOut(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                for window in windows {
+                    window.orderOut(nil)
+                    window.contentViewController = nil
+                }
             }
-        })
+        }
     }
 
     private func handleScreenParametersChanged() {
-        guard breakOverlayWindows.contains(where: { $0.isVisible }) else { return }
-        breakOverlayWindows.forEach { $0.orderOut(nil) }
-        breakOverlayWindows.removeAll()
-        showBreakOverlay(fadeIn: false)
+        guard !breakOverlayWindows.isEmpty else { return }
+        // Rebuilding fullscreen windows mid-break would force two extra
+        // Space transitions, which is more disruptive than a stale frame on
+        // a freshly attached display. We accept the trade-off and only
+        // rebuild on the next break.
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -340,10 +392,27 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
     }
 }
 
-/// Borderless panels are non-key by default. Opt in so SwiftUI gestures and
-/// any future keyboard shortcuts route correctly through the responder chain.
-private final class KeyablePanel: NSPanel {
+/// Hosts a single break overlay (one per display). Owns its own native
+/// fullscreen Space so the overlay covers other apps' fullscreen windows on
+/// the same display.
+private final class BreakWindow: NSWindow {
     override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
+/// Reports the primary break window's fullscreen-transition completion so
+/// `AppDelegate` can fade the timer/text content in once the Space swoosh has
+/// finished. Attached only to the primary window — secondaries don't drive UI.
+/// AppKit calls these delegate methods on the main thread, so we can hop the
+/// callback straight into `@MainActor` work without a thread switch.
+private final class BreakWindowDelegate: NSObject, NSWindowDelegate {
+    var onPrimaryEnteredFullScreen: (@MainActor () -> Void)?
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        MainActor.assumeIsolated {
+            onPrimaryEnteredFullScreen?()
+        }
+    }
 }
 
 // MARK: - Bootstrap
