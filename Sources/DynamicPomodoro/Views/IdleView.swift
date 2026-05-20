@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Pre-session screen. Shows the suggested focus duration and a single action.
@@ -56,6 +57,13 @@ struct IdleView: View {
             checkReminderThumb()
         }
         .onReceive(refresh) { _ in
+            suggested = timer.suggestedFocusMinutes()
+            stats = timer.dailyStats()
+        }
+        // The 30s timer above can be throttled by App Nap while the app is
+        // backgrounded, so refresh as soon as the app regains focus —
+        // otherwise a session left open across hours shows a stale duration.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             suggested = timer.suggestedFocusMinutes()
             stats = timer.dailyStats()
         }
