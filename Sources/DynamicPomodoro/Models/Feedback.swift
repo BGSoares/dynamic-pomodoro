@@ -46,43 +46,19 @@ struct FeedbackResponse: Codable, Equatable {
     let openEndedAnswer: String?
 }
 
-/// Persists feedback responses. Same shape as SessionLogStore — one user,
-/// one machine, small volume, synchronous reads are fine.
+/// Persists feedback responses. Delegates storage to JSONArrayStore.
 final class FeedbackStore {
     static let shared = FeedbackStore()
+    private let store: JSONArrayStore<FeedbackResponse>
+    var responses: [FeedbackResponse] { store.elements }
 
-    private let fileURL: URL
-    private let queue = DispatchQueue(label: "pomodoro.feedback")
-    private(set) var responses: [FeedbackResponse] = []
-
-    private convenience init() {
-        self.init(directory: AppSupport.directory)
-    }
+    private convenience init() { self.init(directory: AppSupport.directory) }
 
     internal init(directory: URL) {
-        let fm = FileManager.default
-        try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
-        self.fileURL = directory.appendingPathComponent("feedback.json")
-        load()
+        store = JSONArrayStore(directory: directory, filename: "feedback.json", label: "pomodoro.feedback")
     }
 
-    private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
-        self.responses = (try? AppSupport.decoder.decode([FeedbackResponse].self, from: data)) ?? []
-    }
-
-    private func save() {
-        if let data = try? AppSupport.encoder.encode(responses) {
-            try? data.write(to: fileURL, options: .atomic)
-        }
-    }
-
-    func append(_ response: FeedbackResponse) {
-        queue.sync {
-            responses.append(response)
-            save()
-        }
-    }
+    func append(_ response: FeedbackResponse) { store.append(response) }
 }
 
 /// Once-per-user gate. The user is prompted exactly once — submit, skip, or
