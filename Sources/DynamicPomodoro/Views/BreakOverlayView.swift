@@ -1,19 +1,16 @@
 import SwiftUI
 
-/// Drives the cross-fade of break-overlay content on top of the dimming
-/// background. The background is always opaque; this opacity only governs the
-/// timer/text/skip-button layer, so the swoosh of the native fullscreen Space
-/// transition reads as the screen darkening, with the content fading in once
-/// we've arrived.
-@MainActor
-final class BreakOverlayPresentation: ObservableObject {
-    @Published var contentOpacity: Double = 0
-}
+/// Full-screen break view hosted in a shielding-level NSPanel.
+/// This is THE break UI — no separate prompt, no Start button; the overlay's
+/// fade-in is the prep, and the timer runs for its full duration.
+/// Skip requires a 15-second hold (intentional friction, not a lockout).
+struct BreakOverlayView: View {
+    @ObservedObject var timer: TimerEngine
 
-/// Calm dark-purple→navy backdrop with a soft radial vignette. Rendered as the
-/// content view of every break window (primary and secondary screens) so the
-/// fullscreen Space we slide into looks identical across displays.
-struct BreakBackgroundView: View {
+    /// Caption under the skip button. Switches to a one-line nudge from
+    /// `SkipNudgeMessages` while the user is mid-hold, then reverts on release.
+    @State private var skipNudge: String?
+
     var body: some View {
         ZStack {
             // Match the app-icon palette: calming dark purple→navy
@@ -34,82 +31,55 @@ struct BreakBackgroundView: View {
                 endRadius: 500
             )
             .allowsHitTesting(false)
-        }
-        .ignoresSafeArea()
-    }
-}
 
-/// Full-screen break view hosted in a window that owns its own fullscreen
-/// Space (via `NSWindow.toggleFullScreen`). The background is painted
-/// immediately so the native Space swoosh reads as "the room dimming"; the
-/// timer/text/skip-button layer fades in afterwards via
-/// `BreakOverlayPresentation.contentOpacity`.
-/// Skip requires a 15-second hold (intentional friction, not a lockout).
-struct BreakOverlayView: View {
-    @ObservedObject var timer: TimerEngine
-    @ObservedObject var presentation: BreakOverlayPresentation
+            VStack(spacing: 44) {
+                Spacer()
 
-    /// Caption under the skip button. Switches to a one-line nudge from
-    /// `SkipNudgeMessages` while the user is mid-hold, then reverts on release.
-    @State private var skipNudge: String?
+                if let msg = timer.currentReminderMessage {
+                    Text(msg)
+                        .font(.title3)
+                        .italic()
+                        .foregroundStyle(.white.opacity(0.55))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 80)
+                        .frame(maxWidth: 900)
+                }
 
-    var body: some View {
-        ZStack {
-            BreakBackgroundView()
+                if let activity = timer.currentActivity {
+                    VStack(spacing: 20) {
+                        Text(activity.name)
+                            .font(.system(size: 64, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 80)
+                            .frame(maxWidth: 1100)
+                        Text(activity.instruction)
+                            .font(.system(size: 22, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.72))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 120)
+                            .frame(maxWidth: 1000)
+                    }
+                } else {
+                    Text("Take a break")
+                        .font(.system(size: 64, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
 
-            content
-                .opacity(presentation.contentOpacity)
+                countdownRing
+                    .frame(width: 220, height: 220)
+
+                Spacer()
+
+                controls
+                    .padding(.bottom, 48)
+            }
         }
         // Ignore safe area at the root so the VStack centerline matches the
         // window centerline. Without this, an asymmetric dock (left side, or
         // any auto-hide config) inset the foreground content while the
         // background still filled the screen, drifting the timer to the right.
         .ignoresSafeArea()
-    }
-
-    private var content: some View {
-        VStack(spacing: 44) {
-            Spacer()
-
-            if let msg = timer.currentReminderMessage {
-                Text(msg)
-                    .font(.title3)
-                    .italic()
-                    .foregroundStyle(.white.opacity(0.55))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 80)
-                    .frame(maxWidth: 900)
-            }
-
-            if let activity = timer.currentActivity {
-                VStack(spacing: 20) {
-                    Text(activity.name)
-                        .font(.system(size: 64, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 80)
-                        .frame(maxWidth: 1100)
-                    Text(activity.instruction)
-                        .font(.system(size: 22, weight: .regular))
-                        .foregroundStyle(.white.opacity(0.72))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 120)
-                        .frame(maxWidth: 1000)
-                }
-            } else {
-                Text("Take a break")
-                    .font(.system(size: 64, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-
-            countdownRing
-                .frame(width: 220, height: 220)
-
-            Spacer()
-
-            controls
-                .padding(.bottom, 48)
-        }
     }
 
     private var countdownRing: some View {
