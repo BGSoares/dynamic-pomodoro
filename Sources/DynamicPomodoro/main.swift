@@ -262,14 +262,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func hideBreakOverlay() {
         let windows = breakOverlayWindows
-        guard !windows.isEmpty else { return }
+        let delegates = breakWindowDelegates
+        guard !windows.isEmpty, let primary = primaryBreakWindow else { return }
         stopBreakOverlayWatchdog()
         // Clear synchronously so a screen-change racing with this teardown
         // doesn't see a stale array and rebuild on top of windows we're
-        // tearing down. The closures below own their captured `windows`
-        // snapshot.
+        // tearing down. The closures below own local snapshots.
         breakOverlayWindows.removeAll()
         primaryBreakWindow = nil
+        breakWindowDelegates.removeAll()
+
+        let secondaries = windows.filter { $0 !== primary }
+        let primaryDelegate = primary.delegate as? BreakWindowDelegate
 
         // 1) Fade the content (timer/text) out while still fullscreen — the
         //    dark backdrop stays put so the screen visibly "stays dimmed".
@@ -277,20 +281,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             breakPresentation.contentOpacity = 0
         }
 
-        // 2) Once the content is gone, swoosh each Space back out. The
-        //    delegate fires `windowDidExitFullScreen` per window, but we
-        //    don't need to wait — closing after a safe margin matches the
-        //    exit animation duration on every macOS we've tested.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            for window in windows {
-                window.toggleFullScreen(nil)
+            // 2) Close secondary windows directly. Their fullscreen Spaces
+            //    collapse silently because we never let an exit-fullscreen
+            //    animation start — and that's what avoids the black
+            //    `screen.frame`-sized rectangle that flashed on those
+            //    displays before. The user is looking at the primary screen
+            //    during a break, so the absence of a swoosh on secondaries
+            //    isn't noticeable.
+            for window in secondaries {
+                window.orderOut(nil)
+                window.contentViewController = nil
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                for window in windows {
-                    window.orderOut(nil)
-                    window.contentViewController = nil
-                }
+
+            // 3) Swoosh the primary out and `orderOut` precisely on the
+            //    delegate's exit callback — no hardcoded settle-time, no
+            //    risk of seeing the titled window briefly painted at full
+            //    `screen.frame` size on the desktop after the animation
+            //    finishes. `delegates` is captured to anchor `primaryDelegate`
+            //    across the async boundary; the ivar was cleared above.
+            primaryDelegate?.onNextExitFullScreen = { [weak primary] in
+                primary?.orderOut(nil)
+                primary?.contentViewController = nil
+                _ = delegates  // keep delegates alive until callback fires
             }
+            primary.toggleFullScreen(nil)
         }
     }
 
