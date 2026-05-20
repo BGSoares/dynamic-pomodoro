@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var breakOverlayWindows: [NSWindow] = []
     private var primaryBreakWindow: NSWindow?
     private let breakPresentation = BreakOverlayPresentation()
-    private let breakWindowDelegate = BreakWindowDelegate()
+    private var breakWindowDelegates: [BreakWindowDelegate] = []
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -103,25 +103,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showBreakOverlay() {
         let primaryScreen = currentBreakScreen()
         breakPresentation.contentOpacity = 0
-        breakWindowDelegate.onPrimaryEnteredFullScreen = { [weak self] in
-            self?.fadeBreakContentIn()
+
+        // Order screens so primary (where the cursor is) goes first. Coverage
+        // lands on the user's active display before the rest follow, which
+        // matters because the swoosh on primary is the one they actually see.
+        var orderedScreens = NSScreen.screens
+        if let primary = primaryScreen,
+           let idx = orderedScreens.firstIndex(of: primary) {
+            orderedScreens.remove(at: idx)
+            orderedScreens.insert(primary, at: 0)
         }
 
-        breakOverlayWindows = NSScreen.screens.map { screen in
-            makeBreakWindow(for: screen, isPrimary: screen == primaryScreen)
+        // Per-window delegate so we can chain the entry sequence and so the
+        // watchdog can detect lost fullscreen state per window.
+        breakOverlayWindows = []
+        breakWindowDelegates = []
+        primaryBreakWindow = nil
+        for screen in orderedScreens {
+            let isPrimary = screen == primaryScreen
+            let delegate = BreakWindowDelegate()
+            let window = makeBreakWindow(for: screen, isPrimary: isPrimary, delegate: delegate)
+            breakOverlayWindows.append(window)
+            breakWindowDelegates.append(delegate)
+            if isPrimary { primaryBreakWindow = window }
         }
-        primaryBreakWindow = breakOverlayWindows.first { $0.delegate === breakWindowDelegate }
 
-        // Order each window front *without* activating the app first.
-        // `NSApp.activate` from a background app would Space-switch the user
-        // out of any other-app fullscreen Space into our desktop Space, and
-        // then `toggleFullScreen` would Space-switch again — two swooshes
-        // back-to-back. Going straight to `toggleFullScreen` makes macOS
-        // animate directly from the user's current Space into our new
-        // fullscreen Space in a single transition.
-        for window in breakOverlayWindows {
-            window.orderFrontRegardless()
-            window.toggleFullScreen(nil)
+        // Toggling all windows fullscreen in the same runloop tick produces
+        // races on extended displays — macOS handles each per-display Space
+        // transition fine in isolation but routes simultaneous requests to
+        // the wrong display, leaving secondary screens as bare desktop. Enter
+        // one window at a time, driven by each delegate's
+        // `windowDidEnterFullScreen` callback.
+        //
+        // No `NSApp.activate` before this loop: activating from a background
+        // app would Space-switch the user out of any other-app fullscreen
+        // Space into our desktop Space, then `toggleFullScreen` would
+        // Space-switch again — two swooshes back-to-back. Going straight to
+        // `toggleFullScreen` makes macOS animate from the user's current
+        // Space into our new fullscreen Space in a single transition.
+        enterFullScreenInSequence(at: 0)
+    }
+
+    private func enterFullScreenInSequence(at index: Int) {
+        guard index < breakOverlayWindows.count else {
+            // All displays now own their break Space.
+            fadeBreakContentIn()
+            return
+        }
+        let window = breakOverlayWindows[index]
+        let delegate = breakWindowDelegates[index]
+        delegate.onNextEnterFullScreen = { [weak self] in
+            self?.enterFullScreenInSequence(at: index + 1)
+        }
+        window.orderFrontRegardless()
+        window.toggleFullScreen(nil)
+
+        // Safety net: if `windowDidEnterFullScreen` never fires (some macOS
+        // multi-display edge cases swallow it), force-advance after 3 s. The
+        // delegate is one-shot, so if it already fired this branch sees
+        // `onNextEnterFullScreen == nil` and bails.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self, weak delegate] in
+            guard delegate?.onNextEnterFullScreen != nil else { return }
+            delegate?.onNextEnterFullScreen = nil
+            self?.enterFullScreenInSequence(at: index + 1)
         }
     }
 
@@ -136,7 +180,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func makeBreakWindow(for screen: NSScreen, isPrimary: Bool) -> NSWindow {
+    private func makeBreakWindow(for screen: NSScreen,
+                                 isPrimary: Bool,
+                                 delegate: BreakWindowDelegate) -> NSWindow {
         // `.titled` + `.fullSizeContentView` is the minimum styleMask that
         // supports `toggleFullScreen`. We then hide the titlebar visually so
         // the result looks identical to a borderless window. Borderless
@@ -153,12 +199,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.contentViewController = NSHostingController(
                 rootView: BreakOverlayView(timer: timer, presentation: breakPresentation)
             )
-            window.delegate = breakWindowDelegate
             window.ignoresMouseEvents = false
         } else {
             window.contentViewController = NSHostingController(rootView: BreakBackgroundView())
             window.ignoresMouseEvents = true
         }
+        // Every window gets a delegate now: primaries need it for content-
+        // fade-in chaining, secondaries need it so the entry sequence can
+        // wait for each display's Space transition before moving on.
+        window.delegate = delegate
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
@@ -400,18 +449,27 @@ private final class BreakWindow: NSWindow {
     override var canBecomeMain: Bool { true }
 }
 
-/// Reports the primary break window's fullscreen-transition completion so
-/// `AppDelegate` can fade the timer/text content in once the Space swoosh has
-/// finished. Attached only to the primary window — secondaries don't drive UI.
-/// AppKit calls these delegate methods on the main thread, so we can hop the
-/// callback straight into `@MainActor` work without a thread switch.
+/// Per-window delegate for break overlays. Each break window owns one so
+/// `AppDelegate` can chain fullscreen-entry across displays and react to
+/// exits per-window. Callbacks are *one-shot*: each fires on the next
+/// matching transition and then clears, which keeps the watchdog's
+/// recovery re-toggles from re-triggering setup logic that has already run.
+/// AppKit invokes these on the main thread, so we hop straight into
+/// `@MainActor` work without a thread switch.
 private final class BreakWindowDelegate: NSObject, NSWindowDelegate {
-    var onPrimaryEnteredFullScreen: (@MainActor () -> Void)?
+    var onNextEnterFullScreen: (@MainActor () -> Void)?
+    var onNextExitFullScreen: (@MainActor () -> Void)?
 
     func windowDidEnterFullScreen(_ notification: Notification) {
-        MainActor.assumeIsolated {
-            onPrimaryEnteredFullScreen?()
-        }
+        let callback = onNextEnterFullScreen
+        onNextEnterFullScreen = nil
+        MainActor.assumeIsolated { callback?() }
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        let callback = onNextExitFullScreen
+        onNextExitFullScreen = nil
+        MainActor.assumeIsolated { callback?() }
     }
 }
 
