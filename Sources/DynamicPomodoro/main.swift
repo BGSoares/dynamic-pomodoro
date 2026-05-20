@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var primaryBreakWindow: NSWindow?
     private let breakPresentation = BreakOverlayPresentation()
     private var breakWindowDelegates: [BreakWindowDelegate] = []
+    private var breakOverlayWatchdog: Timer?
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -148,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard index < breakOverlayWindows.count else {
             // All displays now own their break Space.
             fadeBreakContentIn()
+            startBreakOverlayWatchdog()
             return
         }
         let window = breakOverlayWindows[index]
@@ -177,6 +179,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.requestUserAttention(.informationalRequest)
         withAnimation(.easeInOut(duration: 4.0)) {
             breakPresentation.contentOpacity = 1
+        }
+    }
+
+    /// Heartbeat that re-asserts the front-most fullscreen state of every
+    /// break window. Defensive against three failure modes that have shown
+    /// up in similar overlay apps (e.g. wnr's recurring `setKiosk` re-call):
+    ///   1. User presses ⌃⌘F or uses Mission Control to escape fullscreen
+    ///   2. Another app's focus management pulls a window above ours
+    ///   3. macOS demotes a fullscreen window during an unrelated display
+    ///      reconfiguration
+    /// We only re-toggle when the window is clearly NOT in fullscreen —
+    /// toggling during the system's own transition produces undefined
+    /// behavior, and the watchdog starts only after every window has
+    /// finished entering, so the steady-state path is a cheap no-op.
+    private func startBreakOverlayWatchdog() {
+        breakOverlayWatchdog?.invalidate()
+        let timer = Timer(timeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.assertBreakOverlayActive() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        breakOverlayWatchdog = timer
+    }
+
+    private func stopBreakOverlayWatchdog() {
+        breakOverlayWatchdog?.invalidate()
+        breakOverlayWatchdog = nil
+    }
+
+    private func assertBreakOverlayActive() {
+        for window in breakOverlayWindows {
+            window.orderFrontRegardless()
+            if !window.styleMask.contains(.fullScreen) {
+                window.toggleFullScreen(nil)
+            }
         }
     }
 
@@ -227,6 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func hideBreakOverlay() {
         let windows = breakOverlayWindows
         guard !windows.isEmpty else { return }
+        stopBreakOverlayWatchdog()
         // Clear synchronously so a screen-change racing with this teardown
         // doesn't see a stale array and rebuild on top of windows we're
         // tearing down. The closures below own their captured `windows`
