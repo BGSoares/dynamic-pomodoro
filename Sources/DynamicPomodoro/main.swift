@@ -318,6 +318,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if window.styleMask.contains(.fullScreen) {
             delegate?.onNextExitFullScreen = advance
+            // Hide the window for the exit transition. AppKit returns the
+            // window to its non-fullscreen frame (which is `screen.frame`,
+            // i.e. screen-sized) and may paint a compositor frame of it on
+            // the desktop in the runloop tick between the exit animation
+            // ending and `orderOut` taking effect — that's the brief dark
+            // rectangle. Setting alpha to 0 keeps the Space-collapse
+            // animation (the user's "break is over" cue) but skips
+            // painting the window itself during the transition.
+            window.alphaValue = 0
             window.toggleFullScreen(nil)
             // Safety net: if `windowDidExitFullScreen` never fires (some
             // macOS multi-display edge cases swallow it), force-advance
