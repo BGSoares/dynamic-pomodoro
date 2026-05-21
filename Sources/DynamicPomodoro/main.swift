@@ -209,8 +209,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func assertBreakOverlayActive() {
         for window in breakOverlayWindows {
-            window.orderFrontRegardless()
+            // `orderFrontRegardless` on a window already in its own
+            // fullscreen Space demotes it out of fullscreen, which the next
+            // tick then re-enters — producing a ~2 s swoosh-in / swoosh-out
+            // cycle for the whole break. Only re-front when we're actually
+            // recovering a demoted window; inside our own Space there's no
+            // other-app window to be pulled above us.
             if !window.styleMask.contains(.fullScreen) {
+                window.orderFrontRegardless()
                 window.toggleFullScreen(nil)
             }
         }
