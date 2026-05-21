@@ -5,7 +5,7 @@
 #   build:   CFBundleVersion (default: 1)
 # Requirements: Xcode Command Line Tools (xcode-select --install)
 
-set -e
+set -euo pipefail
 
 APP_NAME="DynamicPomodoro"
 BUNDLE_ID="com.personal.dynamic-pomodoro"
@@ -42,8 +42,11 @@ if [ ! -f "$BINARY" ]; then
     BINARY=".build/x86_64-apple-macosx/release/${APP_NAME}"
 fi
 if [ ! -f "$BINARY" ]; then
-    # Generic fallback
-    BINARY=$(find .build -name "$APP_NAME" -type f | grep release | head -1)
+    # Generic fallback. -path '*release*' + -print -quit replaces the
+    # equivalent `| grep release | head -1` pipeline — under pipefail,
+    # head closing the pipe early would propagate SIGPIPE from find and
+    # abort the script even on a successful match.
+    BINARY=$(find .build -path '*release*' -name "$APP_NAME" -type f -print -quit)
 fi
 
 if [ ! -f "$BINARY" ]; then
@@ -126,9 +129,9 @@ RESOURCE_FILES=(
     DolphinTemplate.png
     DolphinTemplate@2x.png
 )
-RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle" -type d 2>/dev/null | grep release | head -1)
+RESOURCES_SRC=$(find .build -path '*release*/DynamicPomodoro_DynamicPomodoro.bundle' -type d -print -quit 2>/dev/null)
 if [ -z "$RESOURCES_SRC" ]; then
-    RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle" -type d 2>/dev/null | head -1)
+    RESOURCES_SRC=$(find .build -path "*/DynamicPomodoro_DynamicPomodoro.bundle" -type d -print -quit 2>/dev/null)
 fi
 for file in "${RESOURCE_FILES[@]}"; do
     if [ -n "$RESOURCES_SRC" ] && [ -f "${RESOURCES_SRC}/${file}" ]; then
@@ -144,10 +147,10 @@ done
 # fall back to the XCFramework slice in .build/artifacts.
 SPARKLE_FRAMEWORK=$(dirname "$BINARY")/Sparkle.framework
 if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
-    SPARKLE_FRAMEWORK=$(find .build/artifacts -path "*macos-arm64*/Sparkle.framework" -type d 2>/dev/null | head -1)
+    SPARKLE_FRAMEWORK=$(find .build/artifacts -path "*macos-arm64*/Sparkle.framework" -type d -print -quit 2>/dev/null)
 fi
 if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
-    SPARKLE_FRAMEWORK=$(find .build -name "Sparkle.framework" -type d 2>/dev/null | head -1)
+    SPARKLE_FRAMEWORK=$(find .build -name "Sparkle.framework" -type d -print -quit 2>/dev/null)
 fi
 if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
     echo "ERROR: Sparkle.framework not found in .build — auto-update will not work."

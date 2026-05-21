@@ -97,7 +97,17 @@ final class JSONArrayStore<Element: Codable> {
 
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        elements = (try? AppSupport.decoder.decode([Element].self, from: data)) ?? []
+        if let decoded = try? AppSupport.decoder.decode([Element].self, from: data) {
+            elements = decoded
+            return
+        }
+        // Decode failed but the file exists. Preserve it under a timestamped
+        // suffix so the next save() doesn't overwrite the user's history with
+        // a fresh single-entry array — the rename is the durable signal that
+        // something corrupted the log.
+        let backup = fileURL.appendingPathExtension("corrupt-\(Int(Date().timeIntervalSince1970))")
+        try? FileManager.default.moveItem(at: fileURL, to: backup)
+        elements = []
     }
 
     private func save() {

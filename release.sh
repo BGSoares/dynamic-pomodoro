@@ -17,9 +17,9 @@
 #      (SU_PUBLIC_ED_KEY). The private key stays in your Keychain.
 #   3. gh auth login                     # so this script can create releases
 
-set -e
+set -euo pipefail
 
-if [ -z "$1" ]; then
+if [ -z "${1:-}" ]; then
     echo "Usage: $0 <version> [build]"
     echo "Example: $0 1.0.1"
     exit 1
@@ -40,10 +40,10 @@ FEED_URL="https://github.com/${REPO}/releases/latest/download/appcast.xml"
 # works on a fresh checkout too.
 SIGN_UPDATE=$(command -v sign_update || true)
 if [ -z "$SIGN_UPDATE" ]; then
-    SIGN_UPDATE=$(find /Applications -name sign_update 2>/dev/null | head -1)
+    SIGN_UPDATE=$(find /Applications -name sign_update -print -quit 2>/dev/null)
 fi
 if [ -z "$SIGN_UPDATE" ]; then
-    SIGN_UPDATE=$(find "${SCRIPT_DIR}/.build" -name sign_update 2>/dev/null | head -1)
+    SIGN_UPDATE=$(find "${SCRIPT_DIR}/.build" -name sign_update -print -quit 2>/dev/null)
 fi
 if [ -z "$SIGN_UPDATE" ]; then
     echo "ERROR: sign_update not found. Install Sparkle: brew install --cask sparkle"
