@@ -59,8 +59,4 @@ enum SkipNudgeMessages {
         "Five minutes now buys you the rest of the afternoon.",
         "Your legs need this too."
     ]
-
-    static func random(rng: inout SystemRandomNumberGenerator) -> String {
-        pool.randomElement(using: &rng) ?? pool[0]
-    }
 }

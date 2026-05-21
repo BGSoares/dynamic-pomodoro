@@ -24,12 +24,4 @@ final class UpdaterService {
             userDriverDelegate: nil
         )
     }
-
-    /// Menu target. When wired via `target = UpdaterService.shared.controller`,
-    /// Sparkle's own `checkForUpdates(_:)` selector handles enablement and
-    /// disables the item while a check is in progress. This forwarder exists
-    /// only for the no-bundle path so the menu item still has a valid action.
-    @objc func checkForUpdates(_ sender: Any?) {
-        controller?.checkForUpdates(sender)
-    }
 }

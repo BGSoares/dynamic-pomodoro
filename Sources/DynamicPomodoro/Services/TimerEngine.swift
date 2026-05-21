@@ -78,14 +78,6 @@ final class TimerEngine: ObservableObject {
         log.dailyStats(now: now)
     }
 
-    // MARK: - Convenience accessors for views
-
-    var phase: PomodoroState.Phase { state.phase }
-    var remainingFormatted: String { state.remainingFormatted }
-    var progress: Double { state.progress }
-    var currentActivity: Activity? { state.currentActivity }
-    var currentReminderMessage: String? { state.currentReminderMessage }
-
     // MARK: - Dispatch + effect interpretation
 
     private func dispatch(_ action: PomodoroAction) {

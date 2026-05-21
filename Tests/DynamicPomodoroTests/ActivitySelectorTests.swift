@@ -5,16 +5,16 @@ final class ActivitySelectorTests: XCTestCase {
     private func makeLibrary() -> [Activity] {
         [
             Activity(id: "a", name: "A", instruction: "",
-                     category: .stretch, band: .short, energy: .gentle,
+                     category: .stretch, band: .short,
                      suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
             Activity(id: "b", name: "B", instruction: "",
-                     category: .breathwork, band: .short, energy: .gentle,
+                     category: .breathwork, band: .short,
                      suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
             Activity(id: "c", name: "C", instruction: "",
-                     category: .walk, band: .medium, energy: .active,
+                     category: .walk, band: .medium,
                      suitableTimes: [.midday]),
             Activity(id: "d", name: "D", instruction: "",
-                     category: .eyeRest, band: .short, energy: .gentle,
+                     category: .eyeRest, band: .short,
                      suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
         ]
     }

@@ -7,7 +7,7 @@ struct MainWindowView: View {
 
     var body: some View {
         Group {
-            switch timer.phase {
+            switch timer.state.phase {
             case .idle:
                 IdleView(timer: timer)
             case .focus:

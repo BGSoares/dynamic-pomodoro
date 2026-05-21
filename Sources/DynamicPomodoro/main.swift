@@ -17,7 +17,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
-    private var primaryBreakWindow: NSWindow?
     private let breakPresentation = BreakOverlayPresentation()
     private var breakWindowDelegates: [BreakWindowDelegate] = []
     private var breakOverlayWatchdog: Timer?
@@ -48,17 +47,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] newPhase in
                 Task { @MainActor in self?.handlePhaseChange(newPhase) }
             }
-
-        // If displays change mid-break, rebuild the overlay panels against the
-        // new screen set — otherwise stale frames make SwiftUI hit-testing
-        // drift off the visible content (clicks on the buttons "do nothing").
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.handleScreenParametersChanged() }
-        }
     }
 
     // MARK: - Break overlay
@@ -120,14 +108,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // watchdog can detect lost fullscreen state per window.
         breakOverlayWindows = []
         breakWindowDelegates = []
-        primaryBreakWindow = nil
         for screen in orderedScreens {
             let isPrimary = screen == primaryScreen
             let delegate = BreakWindowDelegate()
             let window = makeBreakWindow(for: screen, isPrimary: isPrimary, delegate: delegate)
             breakOverlayWindows.append(window)
             breakWindowDelegates.append(delegate)
-            if isPrimary { primaryBreakWindow = window }
         }
 
         // Kick off every window's `toggleFullScreen` in the same runloop
@@ -188,7 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Now that we own the visible Space, take focus so the skip button
         // and any future keyboard handling route to us.
         NSApp.activate(ignoringOtherApps: true)
-        primaryBreakWindow?.makeKey()
+        breakOverlayWindows.first?.makeKey()
         NSApp.requestUserAttention(.informationalRequest)
         withAnimation(.easeInOut(duration: 4.0)) {
             breakPresentation.contentOpacity = 1
@@ -288,7 +274,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // doesn't see a stale array and rebuild on top of windows we're
         // tearing down. The closures below own local snapshots.
         breakOverlayWindows.removeAll()
-        primaryBreakWindow = nil
         breakWindowDelegates.removeAll()
 
         // 1) Fade the content (timer/text) out while still fullscreen — the
@@ -354,14 +339,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func handleScreenParametersChanged() {
-        guard !breakOverlayWindows.isEmpty else { return }
-        // Rebuilding fullscreen windows mid-break would force two extra
-        // Space transitions, which is more disruptive than a stale frame on
-        // a freshly attached display. We accept the trade-off and only
-        // rebuild on the next break.
-    }
-
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
 
     private func setupMainMenu() {
@@ -423,8 +400,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusItemTitle() {
         guard let button = statusItem?.button else { return }
-        let formatted = timer.remainingFormatted
-        let text = switch timer.phase {
+        let formatted = timer.state.remainingFormatted
+        let text = switch timer.state.phase {
         case .idle: ""
         case .focus: " F \(formatted)"
         case .breakRunning: " B \(formatted)"
@@ -492,12 +469,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Menu actions
 
     @objc private func menuStartFocus() {
-        if case .idle = timer.phase { timer.startFocus() }
+        if case .idle = timer.state.phase { timer.startFocus() }
         openMainWindow()
     }
 
     @objc private func menuAbandon() {
-        if case .focus = timer.phase { timer.abandonFocus() }
+        if case .focus = timer.state.phase { timer.abandonFocus() }
     }
 
     @objc private func menuFastForward() {
@@ -506,20 +483,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Point the menu item at Sparkle's controller so its built-in
     /// `validateMenuItem:` greys the item out while a check is in flight.
-    /// When the controller is nil (no bundle, i.e. `swift run`), fall back to
-    /// the wrapper's no-op forwarder so the menu still validates.
+    /// Absent in `swift run` (no bundle, no controller).
     private func addCheckForUpdatesItem(to menu: NSMenu) {
+        guard let controller = updater.controller else { return }
         let item = NSMenuItem(
             title: "Check for Updates…",
             action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
             keyEquivalent: ""
         )
-        if let controller = updater.controller {
-            item.target = controller
-        } else {
-            item.target = updater
-            item.action = #selector(UpdaterService.checkForUpdates(_:))
-        }
+        item.target = controller
         menu.addItem(item)
     }
 }

@@ -48,12 +48,4 @@ final class MessagesTests: XCTestCase {
     func testSkipNudgePoolNonEmpty() {
         XCTAssertGreaterThanOrEqual(SkipNudgeMessages.pool.count, 3)
     }
-
-    func testSkipNudgeRandomReturnsFromPool() {
-        var rng = SystemRandomNumberGenerator()
-        for _ in 0..<50 {
-            let pick = SkipNudgeMessages.random(rng: &rng)
-            XCTAssertTrue(SkipNudgeMessages.pool.contains(pick))
-        }
-    }
 }

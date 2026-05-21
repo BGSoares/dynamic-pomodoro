@@ -13,7 +13,7 @@ struct BreakMirrorView: View {
                 .textCase(.uppercase)
                 .tracking(1.5)
 
-            if let activity = timer.currentActivity {
+            if let activity = timer.state.currentActivity {
                 Text(activity.name)
                     .font(.title2.weight(.semibold))
                 Text(activity.instruction)
@@ -23,7 +23,7 @@ struct BreakMirrorView: View {
                     .padding(.horizontal, 16)
             }
 
-            Text(timer.remainingFormatted)
+            Text(timer.state.remainingFormatted)
                 .font(.system(size: 56, weight: .light, design: .monospaced))
                 .monospacedDigit()
                 .padding(.top, 8)

@@ -11,10 +11,6 @@ struct Activity: Identifiable, Codable, Hashable {
         case short, medium
     }
 
-    enum Energy: String, Codable, CaseIterable {
-        case gentle, moderate, active
-    }
-
     enum TimeOfDay: String, Codable, CaseIterable {
         case morning, midday, afternoon
         case endOfDay = "end_of_day"
@@ -25,11 +21,10 @@ struct Activity: Identifiable, Codable, Hashable {
     let instruction: String
     let category: Category
     let band: DurationBand
-    let energy: Energy
     let suitableTimes: [TimeOfDay]
 
     enum CodingKeys: String, CodingKey {
-        case id, name, instruction, category, band, energy
+        case id, name, instruction, category, band
         case suitableTimes = "suitable_times"
     }
 }
