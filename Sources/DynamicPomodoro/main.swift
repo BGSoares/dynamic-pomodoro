@@ -286,38 +286,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             breakPresentation.contentOpacity = 0
         }
 
-        // 2) Once the fade has run, walk the windows one at a time and let
-        //    each leave fullscreen via its own delegate before moving on.
-        //    Toggling fullscreen on every window simultaneously across an
-        //    extended-display setup is exactly the race `enterFullScreenIn
-        //    Sequence` avoids on entry — and the exit path has the same
-        //    pattern: parallel toggles can leave a display's Space stuck
-        //    as an empty fullscreen Space after `orderOut`. Previously
-        //    secondaries skipped `toggleFullScreen` entirely and orderOut'd
-        //    directly, which produced that exact stuck-Space symptom on
-        //    the display the user wasn't looking at.
+        // 2) Once the fade has run, kick off every window's exit-fullscreen
+        //    in the same runloop tick so the Space-collapse swipes are
+        //    synchronized across displays — the entry-side race fixed in
+        //    `d645fd0` was about macOS routing simultaneous *enter*
+        //    requests to the wrong display, but on exit each window
+        //    already owns its Space so there's no routing ambiguity. Each
+        //    window orderOut's independently when its own
+        //    `windowDidExitFullScreen` fires.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            self?.exitFullScreenInSequence(windows: windows, at: 0, delegates: delegates)
+            for window in windows {
+                self?.exitBreakWindow(window, delegates: delegates)
+            }
         }
     }
 
-    private func exitFullScreenInSequence(windows: [NSWindow],
-                                          at index: Int,
-                                          delegates: [BreakWindowDelegate]) {
-        guard index < windows.count else {
-            _ = delegates  // hold the delegate refs until the chain finishes
-            return
-        }
-        let window = windows[index]
+    private func exitBreakWindow(_ window: NSWindow,
+                                 delegates: [BreakWindowDelegate]) {
         let delegate = window.delegate as? BreakWindowDelegate
-        let advance: @MainActor () -> Void = { [weak self] in
-            window.orderOut(nil)
-            window.contentViewController = nil
-            self?.exitFullScreenInSequence(windows: windows, at: index + 1, delegates: delegates)
+        let close: @MainActor () -> Void = { [weak window] in
+            window?.orderOut(nil)
+            window?.contentViewController = nil
+            _ = delegates  // keep delegate refs alive until callback fires
         }
 
         if window.styleMask.contains(.fullScreen) {
-            delegate?.onNextExitFullScreen = advance
+            delegate?.onNextExitFullScreen = close
             // Hide the window for the exit transition. AppKit returns the
             // window to its non-fullscreen frame (which is `screen.frame`,
             // i.e. screen-sized) and may paint a compositor frame of it on
@@ -329,21 +323,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.alphaValue = 0
             window.toggleFullScreen(nil)
             // Safety net: if `windowDidExitFullScreen` never fires (some
-            // macOS multi-display edge cases swallow it), force-advance
-            // after 2 s so the chain doesn't stall and leave a stuck
+            // macOS multi-display edge cases swallow it), force close
+            // after 2 s so the window doesn't stall and leave a stuck
             // fullscreen Space behind. Mirrors the 3 s timeout in
             // `enterFullScreenInSequence`.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak delegate] in
                 guard delegate?.onNextExitFullScreen != nil else { return }
                 delegate?.onNextExitFullScreen = nil
-                advance()
+                close()
             }
         } else {
             // Window already left fullscreen (user escaped via ⌃⌘F, or
             // some other path demoted it). `toggleFullScreen` here would
             // *enter* fullscreen and the exit delegate would never fire —
             // close directly instead.
-            advance()
+            close()
         }
     }
 
