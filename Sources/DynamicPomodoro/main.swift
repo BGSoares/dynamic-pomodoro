@@ -379,14 +379,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusItemTitle() {
         guard let button = statusItem?.button else { return }
         let formatted = timer.remainingFormatted
-        let text: String
-        switch timer.phase {
-        case .idle:
-            text = ""
-        case .focus:
-            text = " F \(formatted)"
-        case .breakRunning:
-            text = " B \(formatted)"
+        let text = switch timer.phase {
+        case .idle: ""
+        case .focus: " F \(formatted)"
+        case .breakRunning: " B \(formatted)"
         }
         // Tabular (monospaced) digits so each tick doesn't change the title's
         // width — otherwise the variable-length status item resizes and the
