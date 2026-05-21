@@ -22,10 +22,10 @@ final class PomodoroCoreTests: XCTestCase {
         settings.maxFocusMinutes = 40
         library = [
             Activity(id: "a", name: "Stretch A", instruction: "",
-                     category: .stretch, band: .short, energy: .gentle,
+                     category: .stretch, band: .short,
                      suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
             Activity(id: "b", name: "Breathwork B", instruction: "",
-                     category: .breathwork, band: .short, energy: .gentle,
+                     category: .breathwork, band: .short,
                      suitableTimes: [.morning, .midday, .afternoon, .endOfDay]),
         ]
     }

@@ -12,7 +12,7 @@ struct FocusView: View {
                 .textCase(.uppercase)
                 .tracking(1.5)
 
-            TimerRing(progress: timer.progress, label: timer.remainingFormatted)
+            TimerRing(progress: timer.state.progress, label: timer.state.remainingFormatted)
                 .frame(width: 240, height: 240)
 
             Button(role: .destructive) {

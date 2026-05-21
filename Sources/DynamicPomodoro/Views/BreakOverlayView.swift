@@ -71,7 +71,7 @@ struct BreakOverlayView: View {
         VStack(spacing: 44) {
             Spacer()
 
-            if let msg = timer.currentReminderMessage {
+            if let msg = timer.state.currentReminderMessage {
                 Text(msg)
                     .font(.title3)
                     .italic()
@@ -81,7 +81,7 @@ struct BreakOverlayView: View {
                     .frame(maxWidth: 900)
             }
 
-            if let activity = timer.currentActivity {
+            if let activity = timer.state.currentActivity {
                 VStack(spacing: 20) {
                     Text(activity.name)
                         .font(.system(size: 64, weight: .semibold))
@@ -118,7 +118,7 @@ struct BreakOverlayView: View {
                 .stroke(Color.white.opacity(0.08), lineWidth: 8)
 
             Circle()
-                .trim(from: 0, to: max(0.0001, 1 - timer.progress))
+                .trim(from: 0, to: max(0.0001, 1 - timer.state.progress))
                 .stroke(
                     LinearGradient(
                         colors: [
@@ -132,9 +132,9 @@ struct BreakOverlayView: View {
                     style: StrokeStyle(lineWidth: 8, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 0.4), value: timer.progress)
+                .animation(.linear(duration: 0.4), value: timer.state.progress)
 
-            Text(timer.remainingFormatted)
+            Text(timer.state.remainingFormatted)
                 .font(.system(size: 48, weight: .light, design: .monospaced))
                 .monospacedDigit()
                 .foregroundStyle(.white)
@@ -146,12 +146,7 @@ struct BreakOverlayView: View {
             HoldToSkipButton(
                 onComplete: { timer.skipBreak() },
                 onHoldStateChange: { holding in
-                    if holding {
-                        var rng = SystemRandomNumberGenerator()
-                        skipNudge = SkipNudgeMessages.random(rng: &rng)
-                    } else {
-                        skipNudge = nil
-                    }
+                    skipNudge = holding ? SkipNudgeMessages.pool.randomElement() : nil
                 }
             )
             Text(skipNudge ?? "Hold to skip")

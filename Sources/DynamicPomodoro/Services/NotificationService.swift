@@ -11,14 +11,11 @@ import AppKit
 final class NotificationService {
     static let shared = NotificationService()
 
-    /// true only when running inside a proper .app bundle
-    private let hasBundleID: Bool
     private var center: UNUserNotificationCenter?
     private var authorized = false
 
     private init() {
-        hasBundleID = Bundle.main.bundleIdentifier != nil
-        if hasBundleID {
+        if Bundle.main.bundleIdentifier != nil {
             center = UNUserNotificationCenter.current()
         }
     }

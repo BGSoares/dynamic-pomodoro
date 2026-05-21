@@ -272,7 +272,6 @@ enum PomodoroReducer {
         instruction: "Step away from the screen.",
         category: .mindfulness,
         band: .short,
-        energy: .gentle,
         suitableTimes: Activity.TimeOfDay.allCases
     )
 }
