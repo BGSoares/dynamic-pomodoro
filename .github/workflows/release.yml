@@ -22,7 +22,11 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pinned by SHA, not the mutable `v4` tag, so a compromise of the
+      # action repo (or a tag move) can't inject code into a build that
+      # has access to SPARKLE_ED_PRIVATE_KEY. Bump the SHA + tag comment
+      # together when updating.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           # release.sh / build-app.sh derive CFBundleVersion from the
           # full commit count, so we need the whole history.
