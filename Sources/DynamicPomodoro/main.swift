@@ -306,12 +306,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             //    `screen.frame` size on the desktop after the animation
             //    finishes. `delegates` is captured to anchor `primaryDelegate`
             //    across the async boundary; the ivar was cleared above.
-            primaryDelegate?.onNextExitFullScreen = { [weak primary] in
-                primary?.orderOut(nil)
-                primary?.contentViewController = nil
-                _ = delegates  // keep delegates alive until callback fires
+            //    If the primary has already left fullscreen (user escaped
+            //    via ⌃⌘F, or some other path demoted it), `toggleFullScreen`
+            //    would *enter* fullscreen instead of exiting and the exit
+            //    delegate would never fire — leaving a stuck screen-sized
+            //    window. Close directly in that case.
+            if primary.styleMask.contains(.fullScreen) {
+                primaryDelegate?.onNextExitFullScreen = { [weak primary] in
+                    primary?.orderOut(nil)
+                    primary?.contentViewController = nil
+                    _ = delegates  // keep delegates alive until callback fires
+                }
+                primary.toggleFullScreen(nil)
+            } else {
+                primary.orderOut(nil)
+                primary.contentViewController = nil
+                _ = delegates
             }
-            primary.toggleFullScreen(nil)
         }
     }
 
