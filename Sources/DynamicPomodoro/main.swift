@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem!
     private var mainWindow: NSWindow?
+    private var mainWindowWasVisibleBeforeBreak = false
     private var settingsWindow: NSWindow?
     private var breakOverlayWindows: [NSWindow] = []
     private var primaryBreakWindow: NSWindow?
@@ -66,9 +67,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func handlePhaseChange(_ phase: PomodoroState.Phase) {
         switch phase {
         case .breakRunning:
+            // Hide the main window for the duration of the break. Without
+            // this, a screen lock + unlock during a break can leave the
+            // main window's `BreakMirrorView` visible alongside the
+            // overlay — either because the overlay's fullscreen Space is
+            // demoted on unlock, or because the regular Space surfaces on
+            // a secondary display whose overlay Space lost focus.
+            mainWindowWasVisibleBeforeBreak = mainWindow?.isVisible ?? false
+            mainWindow?.orderOut(nil)
             showBreakOverlay()
         case .idle, .focus:
             hideBreakOverlay()
+            // Restore via `orderFront` rather than `makeKeyAndOrderFront` /
+            // `NSApp.activate` so the window goes to front of its own Space
+            // without forcing macOS to Space-switch out of the break overlay
+            // before its exit animation finishes.
+            if mainWindowWasVisibleBeforeBreak {
+                mainWindow?.orderFront(nil)
+                mainWindowWasVisibleBeforeBreak = false
+            }
         }
     }
 
