@@ -68,9 +68,8 @@ struct DailyStats: Equatable {
                 focusSeconds += e.plannedMinutes * 60
             case .focusAbandoned:
                 let elapsed = max(0, e.endedAt.timeIntervalSince(e.startedAt))
-                let plannedSeconds = Double(e.plannedMinutes * 60)
-                let proportion = plannedSeconds > 0 ? min(elapsed / plannedSeconds, 1.0) : 0
-                pomoCount += proportion
+                let planned = Double(e.plannedMinutes * 60)
+                pomoCount += planned > 0 ? min(elapsed / planned, 1.0) : 0
                 focusSeconds += Int(elapsed)
             case .breakCompleted:
                 breakSeconds += e.plannedMinutes * 60

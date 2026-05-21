@@ -51,27 +51,27 @@ struct IdleView: View {
             .padding(.bottom, 20)
         }
         .onAppear {
-            suggested = timer.suggestedFocusMinutes()
-            stats = timer.dailyStats()
+            refreshData()
             maybeShowFeedback()
             checkReminderThumb()
         }
-        .onReceive(refresh) { _ in
-            suggested = timer.suggestedFocusMinutes()
-            stats = timer.dailyStats()
-        }
+        .onReceive(refresh) { _ in refreshData() }
         // The 30s timer above can be throttled by App Nap while the app is
         // backgrounded, so refresh as soon as the app regains focus —
         // otherwise a session left open across hours shows a stale duration.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            suggested = timer.suggestedFocusMinutes()
-            stats = timer.dailyStats()
+            refreshData()
         }
         .sheet(isPresented: $showFeedback, onDismiss: { FeedbackGate.markPrompted() }) {
             FeedbackSheet(question: feedbackQuestion) { response in
                 FeedbackStore.shared.append(response)
             }
         }
+    }
+
+    private func refreshData() {
+        suggested = timer.suggestedFocusMinutes()
+        stats = timer.dailyStats()
     }
 
     /// Trigger the once-per-user feedback prompt on a "moment of success" —
