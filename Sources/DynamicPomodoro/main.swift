@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let breakPresentation = BreakOverlayPresentation()
     private var breakWindowDelegates: [BreakWindowDelegate] = []
     private var breakOverlayWatchdog: Timer?
+    private var pendingFullScreenEntries: Int = 0
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -129,12 +130,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if isPrimary { primaryBreakWindow = window }
         }
 
-        // Toggling all windows fullscreen in the same runloop tick produces
-        // races on extended displays — macOS handles each per-display Space
-        // transition fine in isolation but routes simultaneous requests to
-        // the wrong display, leaving secondary screens as bare desktop. Enter
-        // one window at a time, driven by each delegate's
-        // `windowDidEnterFullScreen` callback.
+        // Kick off every window's `toggleFullScreen` in the same runloop
+        // tick so the Space swooshes are synchronized across displays. An
+        // earlier version walked them sequentially to dodge a routing race
+        // where macOS would leave a secondary as bare desktop; the
+        // watchdog (`assertBreakOverlayActive`, every 2 s) catches that
+        // failure mode now and retoggles any window that didn't enter.
         //
         // No `NSApp.activate` before this loop: activating from a background
         // app would Space-switch the user out of any other-app fullscreen
@@ -142,33 +143,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Space-switch again — two swooshes back-to-back. Going straight to
         // `toggleFullScreen` makes macOS animate from the user's current
         // Space into our new fullscreen Space in a single transition.
-        enterFullScreenInSequence(at: 0)
+        enterAllFullScreen()
     }
 
-    private func enterFullScreenInSequence(at index: Int) {
-        guard index < breakOverlayWindows.count else {
-            // All displays now own their break Space.
+    private func enterAllFullScreen() {
+        pendingFullScreenEntries = breakOverlayWindows.count
+        guard pendingFullScreenEntries > 0 else {
             fadeBreakContentIn()
             startBreakOverlayWatchdog()
             return
         }
-        let window = breakOverlayWindows[index]
-        let delegate = breakWindowDelegates[index]
-        delegate.onNextEnterFullScreen = { [weak self] in
-            self?.enterFullScreenInSequence(at: index + 1)
-        }
-        window.orderFrontRegardless()
-        window.toggleFullScreen(nil)
 
-        // Safety net: if `windowDidEnterFullScreen` never fires (some macOS
-        // multi-display edge cases swallow it), force-advance after 3 s. The
-        // delegate is one-shot, so if it already fired this branch sees
-        // `onNextEnterFullScreen == nil` and bails.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self, weak delegate] in
-            guard delegate?.onNextEnterFullScreen != nil else { return }
-            delegate?.onNextEnterFullScreen = nil
-            self?.enterFullScreenInSequence(at: index + 1)
+        for index in breakOverlayWindows.indices {
+            let window = breakOverlayWindows[index]
+            let delegate = breakWindowDelegates[index]
+            delegate.onNextEnterFullScreen = { [weak self] in
+                self?.markFullScreenEntered()
+            }
+            window.orderFrontRegardless()
+            window.toggleFullScreen(nil)
+
+            // Safety net: if `windowDidEnterFullScreen` never fires (some
+            // macOS multi-display edge cases swallow it), force-advance
+            // after 3 s. The delegate callback is one-shot, so if it
+            // already fired this branch sees `onNextEnterFullScreen == nil`
+            // and bails.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self, weak delegate] in
+                guard delegate?.onNextEnterFullScreen != nil else { return }
+                delegate?.onNextEnterFullScreen = nil
+                self?.markFullScreenEntered()
+            }
         }
+    }
+
+    private func markFullScreenEntered() {
+        pendingFullScreenEntries -= 1
+        guard pendingFullScreenEntries == 0 else { return }
+        // All displays now own their break Space.
+        fadeBreakContentIn()
+        startBreakOverlayWatchdog()
     }
 
     private func fadeBreakContentIn() {
@@ -209,8 +222,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func assertBreakOverlayActive() {
         for window in breakOverlayWindows {
-            window.orderFrontRegardless()
+            // `orderFrontRegardless` on a window already in its own
+            // fullscreen Space demotes it out of fullscreen, which the next
+            // tick then re-enters — producing a ~2 s swoosh-in / swoosh-out
+            // cycle for the whole break. Only re-front when we're actually
+            // recovering a demoted window; inside our own Space there's no
+            // other-app window to be pulled above us.
             if !window.styleMask.contains(.fullScreen) {
+                window.orderFrontRegardless()
                 window.toggleFullScreen(nil)
             }
         }
@@ -263,7 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func hideBreakOverlay() {
         let windows = breakOverlayWindows
         let delegates = breakWindowDelegates
-        guard !windows.isEmpty, let primary = primaryBreakWindow else { return }
+        guard !windows.isEmpty else { return }
         stopBreakOverlayWatchdog()
         // Clear synchronously so a screen-change racing with this teardown
         // doesn't see a stale array and rebuild on top of windows we're
@@ -272,40 +291,66 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         primaryBreakWindow = nil
         breakWindowDelegates.removeAll()
 
-        let secondaries = windows.filter { $0 !== primary }
-        let primaryDelegate = primary.delegate as? BreakWindowDelegate
-
         // 1) Fade the content (timer/text) out while still fullscreen — the
         //    dark backdrop stays put so the screen visibly "stays dimmed".
+        //    Secondary windows render only the backdrop, so this animation
+        //    is visible only on the primary.
         withAnimation(.easeInOut(duration: 1.5)) {
             breakPresentation.contentOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            // 2) Close secondary windows directly. Their fullscreen Spaces
-            //    collapse silently because we never let an exit-fullscreen
-            //    animation start — and that's what avoids the black
-            //    `screen.frame`-sized rectangle that flashed on those
-            //    displays before. The user is looking at the primary screen
-            //    during a break, so the absence of a swoosh on secondaries
-            //    isn't noticeable.
-            for window in secondaries {
-                window.orderOut(nil)
-                window.contentViewController = nil
+        // 2) Once the fade has run, kick off every window's exit-fullscreen
+        //    in the same runloop tick so the Space-collapse swipes are
+        //    synchronized across displays — the entry-side race fixed in
+        //    `d645fd0` was about macOS routing simultaneous *enter*
+        //    requests to the wrong display, but on exit each window
+        //    already owns its Space so there's no routing ambiguity. Each
+        //    window orderOut's independently when its own
+        //    `windowDidExitFullScreen` fires.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            for window in windows {
+                self?.exitBreakWindow(window, delegates: delegates)
             }
+        }
+    }
 
-            // 3) Swoosh the primary out and `orderOut` precisely on the
-            //    delegate's exit callback — no hardcoded settle-time, no
-            //    risk of seeing the titled window briefly painted at full
-            //    `screen.frame` size on the desktop after the animation
-            //    finishes. `delegates` is captured to anchor `primaryDelegate`
-            //    across the async boundary; the ivar was cleared above.
-            primaryDelegate?.onNextExitFullScreen = { [weak primary] in
-                primary?.orderOut(nil)
-                primary?.contentViewController = nil
-                _ = delegates  // keep delegates alive until callback fires
+    private func exitBreakWindow(_ window: NSWindow,
+                                 delegates: [BreakWindowDelegate]) {
+        let delegate = window.delegate as? BreakWindowDelegate
+        let close: @MainActor () -> Void = { [weak window] in
+            window?.orderOut(nil)
+            window?.contentViewController = nil
+            _ = delegates  // keep delegate refs alive until callback fires
+        }
+
+        if window.styleMask.contains(.fullScreen) {
+            delegate?.onNextExitFullScreen = close
+            // Hide the window for the exit transition. AppKit returns the
+            // window to its non-fullscreen frame (which is `screen.frame`,
+            // i.e. screen-sized) and may paint a compositor frame of it on
+            // the desktop in the runloop tick between the exit animation
+            // ending and `orderOut` taking effect — that's the brief dark
+            // rectangle. Setting alpha to 0 keeps the Space-collapse
+            // animation (the user's "break is over" cue) but skips
+            // painting the window itself during the transition.
+            window.alphaValue = 0
+            window.toggleFullScreen(nil)
+            // Safety net: if `windowDidExitFullScreen` never fires (some
+            // macOS multi-display edge cases swallow it), force close
+            // after 2 s so the window doesn't stall and leave a stuck
+            // fullscreen Space behind. Mirrors the 3 s timeout in
+            // `enterAllFullScreen`.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak delegate] in
+                guard delegate?.onNextExitFullScreen != nil else { return }
+                delegate?.onNextExitFullScreen = nil
+                close()
             }
-            primary.toggleFullScreen(nil)
+        } else {
+            // Window already left fullscreen (user escaped via ⌃⌘F, or
+            // some other path demoted it). `toggleFullScreen` here would
+            // *enter* fullscreen and the exit delegate would never fire —
+            // close directly instead.
+            close()
         }
     }
 
