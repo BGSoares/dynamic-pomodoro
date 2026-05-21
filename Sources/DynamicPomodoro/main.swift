@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let breakPresentation = BreakOverlayPresentation()
     private var breakWindowDelegates: [BreakWindowDelegate] = []
     private var breakOverlayWatchdog: Timer?
+    private var pendingFullScreenEntries: Int = 0
     private var phaseCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -129,12 +130,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if isPrimary { primaryBreakWindow = window }
         }
 
-        // Toggling all windows fullscreen in the same runloop tick produces
-        // races on extended displays — macOS handles each per-display Space
-        // transition fine in isolation but routes simultaneous requests to
-        // the wrong display, leaving secondary screens as bare desktop. Enter
-        // one window at a time, driven by each delegate's
-        // `windowDidEnterFullScreen` callback.
+        // Kick off every window's `toggleFullScreen` in the same runloop
+        // tick so the Space swooshes are synchronized across displays. An
+        // earlier version walked them sequentially to dodge a routing race
+        // where macOS would leave a secondary as bare desktop; the
+        // watchdog (`assertBreakOverlayActive`, every 2 s) catches that
+        // failure mode now and retoggles any window that didn't enter.
         //
         // No `NSApp.activate` before this loop: activating from a background
         // app would Space-switch the user out of any other-app fullscreen
@@ -142,33 +143,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Space-switch again — two swooshes back-to-back. Going straight to
         // `toggleFullScreen` makes macOS animate from the user's current
         // Space into our new fullscreen Space in a single transition.
-        enterFullScreenInSequence(at: 0)
+        enterAllFullScreen()
     }
 
-    private func enterFullScreenInSequence(at index: Int) {
-        guard index < breakOverlayWindows.count else {
-            // All displays now own their break Space.
+    private func enterAllFullScreen() {
+        pendingFullScreenEntries = breakOverlayWindows.count
+        guard pendingFullScreenEntries > 0 else {
             fadeBreakContentIn()
             startBreakOverlayWatchdog()
             return
         }
-        let window = breakOverlayWindows[index]
-        let delegate = breakWindowDelegates[index]
-        delegate.onNextEnterFullScreen = { [weak self] in
-            self?.enterFullScreenInSequence(at: index + 1)
-        }
-        window.orderFrontRegardless()
-        window.toggleFullScreen(nil)
 
-        // Safety net: if `windowDidEnterFullScreen` never fires (some macOS
-        // multi-display edge cases swallow it), force-advance after 3 s. The
-        // delegate is one-shot, so if it already fired this branch sees
-        // `onNextEnterFullScreen == nil` and bails.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self, weak delegate] in
-            guard delegate?.onNextEnterFullScreen != nil else { return }
-            delegate?.onNextEnterFullScreen = nil
-            self?.enterFullScreenInSequence(at: index + 1)
+        for index in breakOverlayWindows.indices {
+            let window = breakOverlayWindows[index]
+            let delegate = breakWindowDelegates[index]
+            delegate.onNextEnterFullScreen = { [weak self] in
+                self?.markFullScreenEntered()
+            }
+            window.orderFrontRegardless()
+            window.toggleFullScreen(nil)
+
+            // Safety net: if `windowDidEnterFullScreen` never fires (some
+            // macOS multi-display edge cases swallow it), force-advance
+            // after 3 s. The delegate callback is one-shot, so if it
+            // already fired this branch sees `onNextEnterFullScreen == nil`
+            // and bails.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self, weak delegate] in
+                guard delegate?.onNextEnterFullScreen != nil else { return }
+                delegate?.onNextEnterFullScreen = nil
+                self?.markFullScreenEntered()
+            }
         }
+    }
+
+    private func markFullScreenEntered() {
+        pendingFullScreenEntries -= 1
+        guard pendingFullScreenEntries == 0 else { return }
+        // All displays now own their break Space.
+        fadeBreakContentIn()
+        startBreakOverlayWatchdog()
     }
 
     private func fadeBreakContentIn() {
@@ -326,7 +339,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // macOS multi-display edge cases swallow it), force close
             // after 2 s so the window doesn't stall and leave a stuck
             // fullscreen Space behind. Mirrors the 3 s timeout in
-            // `enterFullScreenInSequence`.
+            // `enterAllFullScreen`.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak delegate] in
                 guard delegate?.onNextExitFullScreen != nil else { return }
                 delegate?.onNextExitFullScreen = nil
