@@ -1,0 +1,236 @@
+[
+  {
+    "id": "neck_rolls",
+    "name": "Neck rolls",
+    "instruction": "Loosen the neck? Stand tall. Slow, deliberate circles of the head — 5 each way. Breathe through your nose.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "shoulder_openers",
+    "name": "Shoulder openers",
+    "instruction": "Open the shoulders? Clasp hands behind your back. Lift chest, drop shoulders back. Hold 20s, release, repeat 3x.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "forward_fold",
+    "name": "Standing forward fold",
+    "instruction": "Fancy a hang? Find a doorway or quiet corner. Feet hip-width, hinge at the hips, let arms hang. Soft knees. 90 seconds. Let gravity do the work.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wrist_flexor_stretch",
+    "name": "Wrist stretch",
+    "instruction": "Wrists feeling tight? Arm out, palm up. Gently pull the fingers down with the other hand. 30s each side, twice.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "calf_raises",
+    "name": "Calf raises",
+    "instruction": "Wake the calves up? Stand at your desk. Slow rise onto the balls of your feet, slow lower. 3 sets of 15. They've been a footrest for hours.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "chest_doorway_stretch",
+    "name": "Chest opener",
+    "instruction": "Open the chest? Find a doorway. Forearm against the frame, step forward. Feel the chest open. 30s each side. Counters everything a keyboard does to your shoulders.",
+    "category": "stretch",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "box_breathing",
+    "name": "Box breathing",
+    "instruction": "Settle the nervous system? Inhale 4, hold 4, exhale 4, hold 4. Repeat for the full break. Regulates the autonomic nervous system in minutes.",
+    "category": "breathwork",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "physiological_sigh",
+    "name": "Physiological sigh",
+    "instruction": "Downshift in under a minute? Double inhale through the nose, one long exhale through the mouth. Repeat for 3–5 minutes. Fastest reset there is.",
+    "category": "breathwork",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["afternoon", "end_of_day"]
+  },
+  {
+    "id": "twenty_twenty_twenty",
+    "name": "20-20-20",
+    "instruction": "Reset the eyes? Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "focus_shifting",
+    "name": "Near-far focus",
+    "instruction": "Stretch the eye muscles? Hold a finger at arm's length. Focus on it, then on a distant object. Switch slowly, 20 cycles.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon"]
+  },
+  {
+    "id": "plant_gaze",
+    "name": "Plant gaze",
+    "instruction": "Look at something green? Find the nearest plant or tree out the window. Soften your gaze and let it rest. Green at distance is what your eyes evolved for.",
+    "category": "eye_rest",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "short_walk",
+    "name": "Short walk",
+    "instruction": "Up for a walk? Out the door. Walk for the full duration. Leave the phone on your desk.",
+    "category": "walk",
+    "band": "medium",
+    "energy": "moderate",
+    "suitable_times": ["midday", "afternoon"]
+  },
+  {
+    "id": "stairs",
+    "name": "Stairs",
+    "instruction": "Find a staircase? Up and down at a pace that gets your heart moving. Stop when the timer does.",
+    "category": "walk",
+    "band": "medium",
+    "energy": "active",
+    "suitable_times": ["morning", "midday", "afternoon"]
+  },
+  {
+    "id": "window_stand",
+    "name": "Stand at the window",
+    "instruction": "Come to the window? Stand by it. Look outside. Let your eyes travel — near, far, sky. No agenda.",
+    "category": "walk",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "outdoor_air",
+    "name": "Step outside",
+    "instruction": "Step outside? Even 3 minutes. Real light, real air, weather on your skin. The brain registers this as a different room — that's the point.",
+    "category": "walk",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "five_senses",
+    "name": "5-4-3-2-1",
+    "instruction": "Land back in the room? Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.",
+    "category": "mindfulness",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "drink_water",
+    "name": "Drink water",
+    "instruction": "Top up? Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated, and so are your legs for tomorrow's ride.",
+    "category": "hydration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "mindful_drink",
+    "name": "Mindful tea or coffee",
+    "instruction": "Make a slow tea or coffee? Don't multitask. Notice the smell, the warmth of the cup, the first sip. The whole break is the ritual.",
+    "category": "hydration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "next_ride_daydream",
+    "name": "Next-ride daydream",
+    "instruction": "Plan the next ride in your head? Where do you start? What's the weather doing? Who's on your wheel? Not on Strava — just in your head.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "kit_appreciation",
+    "name": "Kit appreciation",
+    "instruction": "Notice your kit? Look at one piece you love — the bike, a jersey, the shoes. Notice the engineering. Beautiful objects deserve a moment of attention.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "history_lemond_fignon_89",
+    "name": "8 seconds, 1989",
+    "instruction": "1989 Tour de France, final time trial — LeMond starts 50 seconds down on Fignon. He wins the Tour by 8. Closest in history. Sit with that for the break.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "history_pantani_galibier",
+    "name": "Pantani's Galibier",
+    "instruction": "1998. Stage 15 of the Tour. Cold rain on the Galibier. Pantani attacks 8km from the summit, takes 9 minutes back from Ullrich, wins the Tour. One of the great rides.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "history_voigt_hour_record",
+    "name": "Voigt's hour, 2014",
+    "instruction": "September 2014, Grenchen. 43 years old, last race of his career. Jens Voigt rides 51.110 km in a single hour. The record stood for 7 weeks. Sometimes the point is just to try.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wisdom_merckx",
+    "name": "Eddy Merckx",
+    "instruction": "Eddy Merckx: 'Don't buy upgrades. Ride up grades.' Sit with it. The break is the recovery interval — you don't need to do anything to earn it.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wisdom_pantani",
+    "name": "Marco Pantani",
+    "instruction": "Marco Pantani, asked why he attacked uphill: 'To make the pain shorter.' Stopping is not the opposite of effort. It's part of it.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  },
+  {
+    "id": "wisdom_voigt",
+    "name": "Jens Voigt",
+    "instruction": "Jens Voigt, when his legs wanted to quit: 'Shut up legs.' But also: 'I get up, I work hard, I go to bed.' Discipline includes the rest.",
+    "category": "inspiration",
+    "band": "short",
+    "energy": "gentle",
+    "suitable_times": ["morning", "midday", "afternoon", "end_of_day"]
+  }
+]
