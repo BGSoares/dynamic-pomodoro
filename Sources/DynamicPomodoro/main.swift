@@ -117,18 +117,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Kick off every window's `toggleFullScreen` in the same runloop
-        // tick so the Space swooshes are synchronized across displays. An
-        // earlier version walked them sequentially to dodge a routing race
-        // where macOS would leave a secondary as bare desktop; the
-        // watchdog (`assertBreakOverlayActive`, every 2 s) catches that
-        // failure mode now and retoggles any window that didn't enter.
+        // tick so Space swooshes are synchronized across displays; the
+        // watchdog re-toggles any window that misses the entry.
         //
         // No `NSApp.activate` before this loop: activating from a background
         // app would Space-switch the user out of any other-app fullscreen
         // Space into our desktop Space, then `toggleFullScreen` would
         // Space-switch again — two swooshes back-to-back. Going straight to
-        // `toggleFullScreen` makes macOS animate from the user's current
-        // Space into our new fullscreen Space in a single transition.
+        // `toggleFullScreen` animates from the user's current Space into
+        // our new fullscreen Space in a single transition.
         enterAllFullScreen()
     }
 
@@ -284,14 +281,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             breakPresentation.contentOpacity = 0
         }
 
-        // 2) Once the fade has run, kick off every window's exit-fullscreen
-        //    in the same runloop tick so the Space-collapse swipes are
-        //    synchronized across displays — the entry-side race fixed in
-        //    `d645fd0` was about macOS routing simultaneous *enter*
-        //    requests to the wrong display, but on exit each window
-        //    already owns its Space so there's no routing ambiguity. Each
-        //    window orderOut's independently when its own
-        //    `windowDidExitFullScreen` fires.
+        // 2) After the fade, exit fullscreen on every window simultaneously
+        //    so Space-collapse swipes are synchronized. Each window
+        //    orderOut's independently when windowDidExitFullScreen fires.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             for window in windows {
                 self?.exitBreakWindow(window, delegates: delegates)
@@ -302,10 +294,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func exitBreakWindow(_ window: NSWindow,
                                  delegates: [BreakWindowDelegate]) {
         let delegate = window.delegate as? BreakWindowDelegate
-        let close: @MainActor () -> Void = { [weak window] in
+        let close: @MainActor () -> Void = { [weak window, delegates] in
             window?.orderOut(nil)
             window?.contentViewController = nil
-            _ = delegates  // keep delegate refs alive until callback fires
         }
 
         if window.styleMask.contains(.fullScreen) {
@@ -409,9 +400,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Tabular (monospaced) digits so each tick doesn't change the title's
         // width — otherwise the variable-length status item resizes and the
         // dolphin icon visibly shifts left/right in the menu bar.
-        let font = NSFont.menuBarFont(ofSize: 0)
         let monospacedDigitFont = NSFont.monospacedDigitSystemFont(
-            ofSize: font.pointSize,
+            ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
             weight: .regular
         )
         button.attributedTitle = NSAttributedString(
