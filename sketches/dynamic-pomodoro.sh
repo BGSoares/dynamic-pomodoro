@@ -21,6 +21,28 @@
 #   ~/Library/Application Support/DynamicPomodoroSketch/
 
 set -euo pipefail
+umask 077                        # new files in $SUPPORT_DIR default to 600
+
+# ---- harden PATH and resolve binaries to absolute paths ----
+# Reset PATH so a hijacked parent shell can't redirect us to a planted binary.
+# Then resolve each tool once via `command -v` and use the absolute path
+# everywhere — no more bare `jq` / `osascript` lookups at call time.
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin"
+
+require_bin() {
+  local var=$1 name=$2 path
+  path=$(command -v "$name" 2>/dev/null || true)
+  if [[ -z "$path" || ! -x "$path" ]]; then
+    echo "missing required binary on PATH: $name" >&2
+    exit 127
+  fi
+  printf -v "$var" '%s' "$path"
+}
+
+require_bin JQ        jq
+require_bin PYTHON3   python3
+require_bin OSASCRIPT osascript
+require_bin PMSET     pmset
 
 # ---- settings (mirror the Swift app's UserDefaults defaults) ----
 WORKDAY_START_MIN=$((9 * 60))    # 09:00
@@ -36,7 +58,26 @@ STATE_FILE="$SUPPORT_DIR/state"
 LOG_FILE="$SUPPORT_DIR/sessions.jsonl"
 ACTIVITIES_JSON="$(cd "$(dirname "$0")/.." && pwd)/Sources/DynamicPomodoro/Resources/activities.json"
 mkdir -p "$SUPPORT_DIR"
-touch "$LOG_FILE"
+chmod 700 "$SUPPORT_DIR"         # state/log are not for other accounts
+touch "$STATE_FILE" "$LOG_FILE"
+chmod 600 "$STATE_FILE" "$LOG_FILE"
+
+# ---- validate JSON inputs/outputs ----
+# Read-side: refuse to start on a malformed activities.json (would otherwise
+# silently fall back to the built-in line and hide the corruption).
+if [[ -f "$ACTIVITIES_JSON" ]]; then
+  "$JQ" empty "$ACTIVITIES_JSON" >/dev/null 2>&1 \
+    || { echo "activities.json is malformed; refusing to start" >&2; exit 1; }
+fi
+# Write-side: if the existing log is already corrupt, surface it now rather
+# than appending more lines on top of bad data.
+if [[ -s "$LOG_FILE" ]]; then
+  while IFS= read -r _line; do
+    [[ -z "$_line" ]] && continue
+    printf '%s\n' "$_line" | "$JQ" empty >/dev/null 2>&1 \
+      || { echo "sessions.jsonl contains invalid JSON; refusing to append" >&2; exit 1; }
+  done < "$LOG_FILE"
+fi
 
 DRY_RUN=0
 ONCE=0
@@ -54,7 +95,7 @@ done
 focus_duration_minutes() {
   local now_min=$1
   local is_first=$2
-  python3 - "$now_min" "$is_first" \
+  "$PYTHON3" - "$now_min" "$is_first" \
     "$WORKDAY_START_MIN" "$WORKDAY_END_MIN" \
     "$MIN_FOCUS_MIN" "$MAX_FOCUS_MIN" <<'PY'
 import math, sys
@@ -88,19 +129,19 @@ mark_session_today() {
 
 # ---- activity selection ----
 pick_activity() {
-  if [[ ! -f "$ACTIVITIES_JSON" ]] || ! command -v jq >/dev/null 2>&1; then
-    # fallback if running outside the repo or without jq
+  if [[ ! -f "$ACTIVITIES_JSON" ]]; then
+    # Running outside the repo — use a single built-in line.
     echo "Stand up. Walk to the furthest window. Look at something 20+ metres away for 60 seconds."
     return
   fi
-  local hour band time_band
+  local hour time_band
   hour=$(date +%H); hour=$((10#$hour))
   if   (( hour < 11 )); then time_band="morning"
   elif (( hour < 14 )); then time_band="midday"
   elif (( hour < 17 )); then time_band="afternoon"
   else                       time_band="end_of_day"
   fi
-  jq -r --arg t "$time_band" '
+  "$JQ" -r --arg t "$time_band" '
     [.[] | select(.suitable_times | index($t))] as $candidates
     | if ($candidates | length) == 0 then .[0] else $candidates[(now | floor) % ($candidates | length)] end
     | .instruction
@@ -111,7 +152,7 @@ pick_activity() {
 notify() {
   local title=$1 body=$2
   if (( DRY_RUN )); then echo "[notify] $title — $body"; return; fi
-  osascript -e "display notification \"${body//\"/\\\"}\" with title \"${title//\"/\\\"}\""
+  "$OSASCRIPT" -e "display notification \"${body//\"/\\\"}\" with title \"${title//\"/\\\"}\""
 }
 
 show_break_dialog() {
@@ -119,7 +160,7 @@ show_break_dialog() {
   if (( DRY_RUN )); then echo "[dialog] $body"; return; fi
   # Non-blocking-ish: give the user a chance to dismiss, but auto-dismiss after 20s
   # so the break itself isn't held up by the modal.
-  osascript <<APPLESCRIPT >/dev/null 2>&1 || true
+  "$OSASCRIPT" <<APPLESCRIPT >/dev/null 2>&1 || true
     tell application "System Events"
       activate
       display dialog "$body" with title "Break — recovery" buttons {"OK"} default button "OK" giving up after 20
@@ -129,7 +170,7 @@ APPLESCRIPT
 
 lock_screen() {
   if (( DRY_RUN )); then echo "[lock-screen]"; return; fi
-  pmset displaysleepnow
+  "$PMSET" displaysleepnow
 }
 
 sleep_minutes() {
@@ -139,9 +180,18 @@ sleep_minutes() {
 }
 
 log_session() {
-  local kind=$1 minutes=$2
-  printf '{"ts":"%s","kind":"%s","minutes":%d}\n' \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$kind" "$minutes" >> "$LOG_FILE"
+  local kind=$1 minutes=$2 line
+  # Build with jq so the output is guaranteed to be valid JSON regardless of
+  # what's in the inputs (quotes, backslashes, etc.).
+  line=$("$JQ" -nc \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg kind "$kind" \
+    --argjson minutes "$minutes" \
+    '{ts:$ts, kind:$kind, minutes:$minutes}')
+  # Defence in depth: validate before append so a partial write never lands.
+  printf '%s\n' "$line" | "$JQ" empty >/dev/null 2>&1 \
+    || { echo "refusing to append invalid JSON to sessions.jsonl" >&2; return 1; }
+  printf '%s\n' "$line" >> "$LOG_FILE"
 }
 
 # ---- main loop ----
