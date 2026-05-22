@@ -4,7 +4,7 @@ _Single user. Personal tool. Mac only._
 
 ## Usage data
 
-No session or feedback data available (dev machine, no `~/Library/Application Support/DynamicPomodoro/`). The feedback survey gate is 5 completed focus sessions — not yet reached.
+No session or feedback data available (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Feedback gate requires 5 completed focus sessions — not yet triggered.
 
 ## Active feedback question (Q2, rev 2)
 
@@ -29,5 +29,6 @@ No session or feedback data available (dev machine, no `~/Library/Application Su
 
 ## Next
 
-- Read `reminderMsgThumb` from UserDefaults once available; remove probe widget if rated.
-- Read `feedback.json` and `sessions.json` once available to validate feature utility.
+- Read `reminderMsgThumb` from UserDefaults once available; remove probe if rated.
+- Read `feedback.json` once available; rotate Q2 if break-effectiveness responses are in.
+- Read `sessions.json` to validate feature utility against actual usage patterns.
