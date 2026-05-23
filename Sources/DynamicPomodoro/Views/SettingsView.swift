@@ -55,13 +55,8 @@ private struct TimePicker: View {
         HStack {
             Text(label)
             Spacer()
-            Stepper(
-                value: $minutes, in: 0...(23 * 60 + 45), step: 15
-            ) {
-                Text(TimeFormat.hhmm(minutes))
-                    .monospacedDigit()
-            }
-            .labelsHidden()
+            Stepper("", value: $minutes, in: 0...(23 * 60 + 45), step: 15)
+                .labelsHidden()
             Text(TimeFormat.hhmm(minutes))
                 .monospacedDigit()
                 .frame(width: 52, alignment: .trailing)

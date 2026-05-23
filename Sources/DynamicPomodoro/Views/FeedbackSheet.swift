@@ -84,24 +84,27 @@ struct FeedbackSheet: View {
 
     // MARK: - Footer
 
+    @ViewBuilder
     private var footer: some View {
-        HStack {
-            if step > 0 && step < totalQuestions {
-                Button(action: { withAnimation { step -= 1 } }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
+        if step < totalQuestions {
+            HStack {
+                if step > 0 {
+                    Button(action: { withAnimation { step -= 1 } }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                Spacer()
+                primaryButton
             }
-            Spacer()
-            primaryButton
+            .padding(.horizontal, 36)
+            .padding(.bottom, 22)
+            .frame(height: 56)
         }
-        .padding(.horizontal, 36)
-        .padding(.bottom, 22)
-        .frame(height: 56)
     }
 
     @ViewBuilder

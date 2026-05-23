@@ -4,7 +4,7 @@ _Single user. Personal tool. Mac only._
 
 ## Usage data
 
-No session or feedback data available (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Feedback gate requires 5 completed focus sessions — not yet triggered.
+No session or feedback data available (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — sessions.json and feedback.json will be available once the app runs on the user's machine. Feedback gate requires 5 completed focus sessions — not yet triggered.
 
 ## Active feedback question (Q2, rev 2)
 

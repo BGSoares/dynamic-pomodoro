@@ -151,7 +151,7 @@ final class SessionLogStore {
 
     /// Category of the most recent break activity, if any.
     func lastBreakCategory(library: [Activity]) -> Activity.Category? {
-        guard let lastID = entries.compactMap(\.activityID).last else { return nil }
+        guard let lastID = entries.last(where: { $0.activityID != nil })?.activityID else { return nil }
         return library.first(where: { $0.id == lastID })?.category
     }
 
