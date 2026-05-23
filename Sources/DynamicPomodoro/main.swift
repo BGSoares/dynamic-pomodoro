@@ -48,12 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Break overlay
 
     private func handlePhaseChange(_ phase: PomodoroState.Phase) {
-        switch phase {
-        case .breakRunning:
-            showBreakOverlay()
-        case .idle, .focus:
-            hideBreakOverlay()
-        }
+        if case .breakRunning = phase { showBreakOverlay() } else { hideBreakOverlay() }
     }
 
     /// The break interrupts whatever the user is doing right now, so anchor the

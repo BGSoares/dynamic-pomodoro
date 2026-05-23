@@ -93,8 +93,7 @@ struct IdleView: View {
     /// but only once (UserDefaults gate).
     private func checkReminderThumb() {
         guard UserDefaults.standard.string(forKey: Self.reminderThumbKey) == nil else { return }
-        let hasHadBreak = SessionLogStore.shared.entries.contains { $0.kind == .breakCompleted }
-        showReminderThumb = hasHadBreak
+        showReminderThumb = SessionLogStore.shared.entries.contains { $0.kind == .breakCompleted }
     }
 }
 
