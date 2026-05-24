@@ -1,14 +1,6 @@
 import SwiftUI
 
-/// Three-question feedback prompt shown once per user, after they've
-/// completed enough focus sessions to have formed an opinion.
-///
-/// Card flow:
-///   0 → Q1 satisfaction emoji scale (fixed — longitudinal anchor)
-///   1 → Q2 dynamic question authored by the routine review agent
-///        (Resources/feedback_question.json — see AGENT_README.md)
-///   2 → Q3 optional "anything else" free-text (fixed)
-///   3 → Thank-you state, auto-dismisses
+/// One-shot survey: Q1 emoji (fixed), Q2 dynamic (see AGENT_README.md), Q3 open-ended (fixed).
 struct FeedbackSheet: View {
     @Environment(\.dismiss) private var dismiss
     let question: FeedbackQuestion?
@@ -227,8 +219,6 @@ struct FeedbackSheet: View {
 // MARK: - Subviews
 
 private extension AnyTransition {
-    /// Cards slide in from the right, out to the left — matches the
-    /// left-to-right progression of the step counter.
     static var cardTransition: AnyTransition {
         .asymmetric(
             insertion: .move(edge: .trailing).combined(with: .opacity),

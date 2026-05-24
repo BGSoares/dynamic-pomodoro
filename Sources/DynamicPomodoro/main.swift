@@ -128,26 +128,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // doesn't see a stale array and rebuild on top of windows we're
         // tearing down. The animation owns its captured `windows` snapshot.
         breakOverlayWindows.removeAll()
-        NSAnimationContext.runAnimationGroup({ ctx in
+        NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 1.5
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            for window in windows {
-                window.animator().alphaValue = 0
-            }
-        }, completionHandler: {
-            for window in windows {
-                window.orderOut(nil)
-            }
-        })
+            windows.forEach { $0.animator().alphaValue = 0 }
+        } completionHandler: {
+            windows.forEach { $0.orderOut(nil) }
+        }
     }
-
-    private func handleScreenParametersChanged() {
-        guard breakOverlayWindows.contains(where: { $0.isVisible }) else { return }
-        breakOverlayWindows.forEach { $0.orderOut(nil) }
-        breakOverlayWindows.removeAll()
-        showBreakOverlay(fadeIn: false)
-    }
-
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
 

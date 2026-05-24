@@ -1,14 +1,8 @@
 import Foundation
 
-/// Pure-Swift core of the pomodoro state machine.
-///
-/// `reduce(state, action)` is the only function that mutates state. It returns
-/// a list of `Effect` values describing what side effects to run — notifications
-/// to fire, log entries to persist, timers to start/stop, the screen to lock.
-/// The `TimerEngine` shell interprets those effects.
-///
-/// No AppKit, no Combine, no singletons. Every state transition can be exercised
-/// by passing a synthetic `Date`, so tests don't need real timers.
+/// Pure-Swift state machine. No AppKit, no Combine — every transition is exercised
+/// with a synthetic Date, so tests need no real timers. Effects are returned as values
+/// for `TimerEngine` to interpret.
 
 // MARK: - State
 
