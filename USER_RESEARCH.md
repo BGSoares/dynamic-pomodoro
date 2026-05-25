@@ -32,3 +32,4 @@ No session or feedback data available (remote container, no `~/Library/Applicati
 - Read `reminderMsgThumb` from UserDefaults once available; remove probe if rated.
 - Read `feedback.json` once available; rotate Q2 if break-effectiveness responses are in.
 - Read `sessions.json` to validate feature utility against actual usage patterns.
+- Quick-skip detection (breakSkipped with elapsed < 15s) is inferrable from existing log without new instrumentation.

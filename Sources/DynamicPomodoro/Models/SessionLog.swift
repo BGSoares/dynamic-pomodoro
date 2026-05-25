@@ -81,6 +81,17 @@ struct DailyStats: Equatable {
     }
 }
 
+extension SessionLogEntry {
+    /// Shorter call-site form used by the reducer.
+    init(kind: Kind, from startedAt: Date, to endedAt: Date, minutes: Int, activity activityID: String? = nil) {
+        self.kind = kind
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.plannedMinutes = minutes
+        self.activityID = activityID
+    }
+}
+
 /// Generic append-only JSON array persisted to a single file in Application Support.
 /// Shared by SessionLogStore and FeedbackStore to avoid duplicating load/save/queue boilerplate.
 final class JSONArrayStore<Element: Codable> {

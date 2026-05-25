@@ -123,13 +123,7 @@ enum PomodoroReducer {
             resetToIdle(&state)
             return [
                 .stopTicker,
-                .logSession(SessionLogEntry(
-                    kind: .focusAbandoned,
-                    startedAt: startedAt,
-                    endedAt: now,
-                    plannedMinutes: planned,
-                    activityID: nil
-                )),
+                .logSession(SessionLogEntry(kind: .focusAbandoned, from: startedAt, to: now, minutes: planned)),
             ]
 
         case .skipBreak(let now):
@@ -137,13 +131,7 @@ enum PomodoroReducer {
             resetToIdle(&state)
             return [
                 .stopTicker,
-                .logSession(SessionLogEntry(
-                    kind: .breakSkipped,
-                    startedAt: startedAt,
-                    endedAt: now,
-                    plannedMinutes: planned,
-                    activityID: activity.id
-                )),
+                .logSession(SessionLogEntry(kind: .breakSkipped, from: startedAt, to: now, minutes: planned, activity: activity.id)),
             ]
 
         case .tick(let now):
@@ -222,13 +210,7 @@ enum PomodoroReducer {
         state.breakLockFired = false
 
         return [
-            .logSession(SessionLogEntry(
-                kind: .focusCompleted,
-                startedAt: startedAt,
-                endedAt: now,
-                plannedMinutes: planned,
-                activityID: nil
-            )),
+            .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)),
             .playFocusCompleteChime,
             .notify(title: "Focus complete", body: "Step away. The next session needs you fresh."),
         ]
@@ -239,13 +221,7 @@ enum PomodoroReducer {
         resetToIdle(&state)
         return [
             .stopTicker,
-            .logSession(SessionLogEntry(
-                kind: .breakCompleted,
-                startedAt: startedAt,
-                endedAt: now,
-                plannedMinutes: planned,
-                activityID: activity.id
-            )),
+            .logSession(SessionLogEntry(kind: .breakCompleted, from: startedAt, to: now, minutes: planned, activity: activity.id)),
             .playBreakCompleteChime,
             .notify(title: "Break complete", body: "Ready when you are."),
         ]
