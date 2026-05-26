@@ -247,9 +247,9 @@ private struct ProgressDots: View {
                 Circle()
                     .fill(i <= current ? Color.accentColor : Color.secondary.opacity(0.28))
                     .frame(width: 7, height: 7)
-                    .animation(.easeInOut(duration: 0.25), value: current)
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: current)
     }
 }
 
