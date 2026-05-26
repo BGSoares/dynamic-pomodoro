@@ -143,7 +143,6 @@ private struct HoldToSkipButton: View {
 
     @State private var progress: Double = 0
     @State private var tickTimer: Timer?
-    @State private var holdStart: Date?
     @State private var completed = false
 
     private var isHolding: Bool { progress > 0 }
@@ -169,13 +168,12 @@ private struct HoldToSkipButton: View {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    guard !completed, holdStart == nil else { return }
-                    holdStart = Date()
+                    guard !completed, tickTimer == nil else { return }
                     startTicker()
                     onHoldStateChange?(true)
                 }
                 .onEnded { _ in
-                    let wasHoldingEarly = holdStart != nil && !completed
+                    let wasHoldingEarly = tickTimer != nil
                     cancelIfNotComplete()
                     if wasHoldingEarly { onHoldStateChange?(false) }
                 }
@@ -185,15 +183,15 @@ private struct HoldToSkipButton: View {
 
     private func startTicker() {
         tickTimer?.invalidate()
+        let start = Date()
         let t = Timer(timeInterval: 0.03, repeats: true) { t in
-            guard let start = holdStart else { t.invalidate(); return }
             let elapsed = Date().timeIntervalSince(start)
             let p = min(elapsed / holdDuration, 1.0)
             DispatchQueue.main.async { progress = p }
             if p >= 1.0 {
                 t.invalidate()
                 completed = true
-                holdStart = nil
+                tickTimer = nil
                 DispatchQueue.main.async { onComplete() }
             }
         }
@@ -204,7 +202,6 @@ private struct HoldToSkipButton: View {
     private func cancelIfNotComplete() {
         guard !completed else { return }
         stopTicker()
-        holdStart = nil
         withAnimation(.easeOut(duration: 0.25)) { progress = 0 }
     }
 
