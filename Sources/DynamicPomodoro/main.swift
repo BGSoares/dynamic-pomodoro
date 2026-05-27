@@ -141,27 +141,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupMainMenu() {
         let main = NSMenu()
-
         let appMenuItem = NSMenuItem()
         main.addItem(appMenuItem)
         let appMenu = NSMenu()
         appMenuItem.submenu = appMenu
-        appMenu.addItem(withTitle: "Settings…",
-                        action: #selector(openSettings),
-                        keyEquivalent: ",").target = self
-        appMenu.addItem(NSMenuItem.separator())
+
+        addItem("Settings…", to: appMenu, action: #selector(openSettings), key: ",")
+        appMenu.addItem(.separator())
         addCheckForUpdatesItem(to: appMenu)
-        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(.separator())
         // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
         // end-of-phase UI can be exercised without waiting. Deliberately awkward
         // (all four modifiers) so it isn't hit accidentally.
-        let fastForwardItem = NSMenuItem(title: "Fast-forward timer (test)",
-                                         action: #selector(menuFastForward),
-                                         keyEquivalent: "t")
-        fastForwardItem.keyEquivalentModifierMask = [.command, .control, .option, .shift]
-        fastForwardItem.target = self
-        appMenu.addItem(fastForwardItem)
-        appMenu.addItem(NSMenuItem.separator())
+        addItem("Fast-forward timer (test)", to: appMenu, action: #selector(menuFastForward),
+                key: "t", modifiers: [.command, .control, .option, .shift])
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Dynamic Pomodoro",
                         action: #selector(NSApplication.terminate(_:)),
                         keyEquivalent: "q")
@@ -181,19 +175,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
-        menu.addItem(withTitle: "Open", action: #selector(openMainWindow), keyEquivalent: "o").target = self
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Start focus", action: #selector(menuStartFocus), keyEquivalent: "s").target = self
-        menu.addItem(withTitle: "Abandon session", action: #selector(menuAbandon), keyEquivalent: "").target = self
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
-        menu.addItem(NSMenuItem.separator())
+        addItem("Open", to: menu, action: #selector(openMainWindow), key: "o")
+        menu.addItem(.separator())
+        addItem("Start focus", to: menu, action: #selector(menuStartFocus), key: "s")
+        addItem("Abandon session", to: menu, action: #selector(menuAbandon))
+        menu.addItem(.separator())
+        addItem("Settings…", to: menu, action: #selector(openSettings), key: ",")
+        menu.addItem(.separator())
         addCheckForUpdatesItem(to: menu)
-        menu.addItem(NSMenuItem.separator())
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
 
         updateStatusItemTitle()
+    }
+
+    /// App-specific menu items only — Quit-style responder-chain items use addItem(withTitle:) directly.
+    @discardableResult
+    private func addItem(
+        _ title: String,
+        to menu: NSMenu,
+        action: Selector,
+        key: String = "",
+        modifiers: NSEvent.ModifierFlags = .command
+    ) -> NSMenuItem {
+        let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
+        item.keyEquivalentModifierMask = modifiers
+        item.target = self
+        return item
     }
 
     private func updateStatusItemTitle() {
@@ -246,9 +255,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         delegate: NSWindowDelegate? = nil,
         makeController: () -> NSViewController
     ) {
+        defer { NSApp.activate(ignoringOtherApps: true) }
         if let w = windowRef {
             w.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
             return
         }
         let window = NSWindow(contentViewController: makeController())
@@ -260,7 +269,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.delegate = delegate
         windowRef = window
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: - Menu actions
