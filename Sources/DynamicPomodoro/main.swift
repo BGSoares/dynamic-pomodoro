@@ -116,7 +116,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.hasShadow = false
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
-        panel.alphaValue = 0
         panel.setFrame(frame, display: false)
         return panel
     }

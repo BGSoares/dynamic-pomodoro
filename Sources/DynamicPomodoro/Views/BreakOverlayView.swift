@@ -187,12 +187,12 @@ private struct HoldToSkipButton: View {
         let t = Timer(timeInterval: 0.03, repeats: true) { t in
             let elapsed = Date().timeIntervalSince(start)
             let p = min(elapsed / holdDuration, 1.0)
-            DispatchQueue.main.async { progress = p }
+            progress = p
             if p >= 1.0 {
                 t.invalidate()
                 completed = true
                 tickTimer = nil
-                DispatchQueue.main.async { onComplete() }
+                onComplete()
             }
         }
         RunLoop.main.add(t, forMode: .common)

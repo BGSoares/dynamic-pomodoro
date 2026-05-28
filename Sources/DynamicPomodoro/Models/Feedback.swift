@@ -66,9 +66,7 @@ final class FeedbackStore {
 enum FeedbackGate {
     private static let promptedKey = "feedbackPromptedAt"
 
-    /// Trigger threshold: completed focus sessions before we ask.
-    /// Five gives the user enough exposure to have an opinion without
-    /// missing the early-impression window.
+    /// Five sessions: enough exposure for an opinion while first impressions are still fresh.
     static let completedSessionsThreshold = 5
 
     static var hasBeenPrompted: Bool {

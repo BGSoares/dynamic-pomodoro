@@ -97,15 +97,7 @@ struct IdleView: View {
     }
 }
 
-/// One-shot thumbs up/down probe for the reminder-message feature
-/// (the short italic line shown at the top of the full-screen break overlay,
-/// rotating once per day — see `ReminderMessages` and `BreakOverlayView`).
-/// Shown once after the first completed break. Remove this view permanently
-/// once the rating is collected and read in USER_RESEARCH.md.
-///
-/// Wording note: users have no internal name for this feature, so the prompt
-/// has to spell out *where* it appears (break screen) and *what* it looks like
-/// (short italic line at the top) — otherwise the rating is meaningless.
+/// One-shot probe. Remove permanently once rating is read and logged in USER_RESEARCH.md.
 private struct ReminderThumbProbe: View {
     let onRate: (Bool) -> Void
 
