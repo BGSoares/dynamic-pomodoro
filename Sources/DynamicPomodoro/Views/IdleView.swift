@@ -152,8 +152,8 @@ private struct DailyStatsFooter: View {
     }
 
     private func formatPomos(_ count: Double) -> String {
-        let tenths = Int((count * 10).rounded())
-        let n = tenths % 10 == 0 ? "\(tenths / 10)" : String(format: "%.1f", Double(tenths) / 10)
-        return "\(n) \(tenths == 10 ? "pomo" : "pomos")"
+        let rounded = (count * 10).rounded() / 10
+        let n = rounded == rounded.rounded() ? "\(Int(rounded))" : String(format: "%.1f", rounded)
+        return "\(n) \(rounded == 1 ? "pomo" : "pomos")"
     }
 }
