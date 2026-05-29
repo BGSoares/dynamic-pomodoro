@@ -5,40 +5,34 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: Settings
 
+    private var workdayStartBinding: Binding<Int> {
+        .init(get: { settings.workdayStartMinutes },
+              set: { settings.workdayStartMinutes = min($0, settings.workdayEndMinutes - 60) })
+    }
+    private var workdayEndBinding: Binding<Int> {
+        .init(get: { settings.workdayEndMinutes },
+              set: { settings.workdayEndMinutes = max($0, settings.workdayStartMinutes + 60) })
+    }
+    private var minFocusBinding: Binding<Int> {
+        .init(get: { settings.minFocusMinutes },
+              set: { settings.minFocusMinutes = min($0, settings.maxFocusMinutes - 5) })
+    }
+    private var maxFocusBinding: Binding<Int> {
+        .init(get: { settings.maxFocusMinutes },
+              set: { settings.maxFocusMinutes = max($0, settings.minFocusMinutes + 5) })
+    }
+
     var body: some View {
         Form {
             Section("Workday") {
-                TimePicker(label: "Start",
-                           minutes: Binding(
-                            get: { settings.workdayStartMinutes },
-                            set: { settings.workdayStartMinutes = min($0, settings.workdayEndMinutes - 60) }
-                           ))
-                TimePicker(label: "End",
-                           minutes: Binding(
-                            get: { settings.workdayEndMinutes },
-                            set: { settings.workdayEndMinutes = max($0, settings.workdayStartMinutes + 60) }
-                           ))
+                TimePicker(label: "Start", minutes: workdayStartBinding)
+                TimePicker(label: "End", minutes: workdayEndBinding)
             }
-
             Section("Focus duration") {
-                Stepper(
-                    "Minimum: \(settings.minFocusMinutes) min",
-                    value: Binding(
-                        get: { settings.minFocusMinutes },
-                        set: { settings.minFocusMinutes = min($0, settings.maxFocusMinutes - 5) }
-                    ),
-                    in: 5...60,
-                    step: 5
-                )
-                Stepper(
-                    "Maximum: \(settings.maxFocusMinutes) min",
-                    value: Binding(
-                        get: { settings.maxFocusMinutes },
-                        set: { settings.maxFocusMinutes = max($0, settings.minFocusMinutes + 5) }
-                    ),
-                    in: 10...90,
-                    step: 5
-                )
+                Stepper("Minimum: \(settings.minFocusMinutes) min",
+                        value: minFocusBinding, in: 5...60, step: 5)
+                Stepper("Maximum: \(settings.maxFocusMinutes) min",
+                        value: maxFocusBinding, in: 10...90, step: 5)
             }
         }
         .formStyle(.grouped)

@@ -132,7 +132,6 @@ struct FeedbackSheet: View {
         .padding(.top, 28)
     }
 
-    @ViewBuilder
     private var card2: some View {
         let q = resolvedQuestion
         VStack(spacing: 22) {
