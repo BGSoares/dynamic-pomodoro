@@ -4,7 +4,7 @@ _Single user. Personal tool. Mac only._
 
 ## Usage data
 
-No session or feedback data available (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. Feedback gate requires 5 completed focus sessions; not yet triggered. _(Weekly review 2026-05-29: no new data.)_
+No session or feedback data available (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. Feedback gate requires 5 completed focus sessions; not yet triggered. _(Weekly review 2026-05-30: no new data. Skip-time is inferrable from existing log fields once data is readable: `endedAt − startedAt` vs `plannedMinutes`.)_
 
 ## Active feedback question (Q2, rev 2)
 
@@ -31,4 +31,4 @@ No session or feedback data available (remote container, no `~/Library/Applicati
 
 - Read `reminderMsgThumb` from UserDefaults once available; remove probe if rated.
 - Rotate Q2 once break-effectiveness responses are in.
-- Validate feature utility against `sessions.json` when available.
+- Validate feature utility against `sessions.json` when available (skip rate, session frequency).
