@@ -19,6 +19,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var breakOverlayWindows: [NSWindow] = []
     private var phaseCancellable: AnyCancellable?
 
+    private lazy var menuBarFont = NSFont.monospacedDigitSystemFont(
+        ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
+        weight: .regular
+    )
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         setupMainMenu()
@@ -77,11 +82,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSApp.activate(ignoringOtherApps: true)
-        for window in breakOverlayWindows {
-            window.alphaValue = fadeIn ? 0 : 1
-            if window.contentViewController == nil { window.orderFrontRegardless() }
+        let initialAlpha: CGFloat = fadeIn ? 0 : 1
+        for w in breakOverlayWindows {
+            w.alphaValue = initialAlpha
+            w.orderFrontRegardless()
         }
-        breakOverlayWindows.first(where: { $0.contentViewController != nil })?.makeKeyAndOrderFront(nil)
+        breakOverlayWindows.first { $0.contentViewController != nil }?.makeKeyAndOrderFront(nil)
 
         guard fadeIn else { return }
         NSApp.requestUserAttention(.informationalRequest)
@@ -116,7 +122,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.hasShadow = false
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
-        panel.setFrame(frame, display: false)
         return panel
     }
 
@@ -215,14 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Tabular (monospaced) digits so each tick doesn't change the title's
         // width — otherwise the variable-length status item resizes and the
         // dolphin icon visibly shifts left/right in the menu bar.
-        let monospacedDigitFont = NSFont.monospacedDigitSystemFont(
-            ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
-            weight: .regular
-        )
-        button.attributedTitle = NSAttributedString(
-            string: text,
-            attributes: [.font: monospacedDigitFont]
-        )
+        button.attributedTitle = NSAttributedString(string: text, attributes: [.font: menuBarFont])
     }
 
     // MARK: - Windows
