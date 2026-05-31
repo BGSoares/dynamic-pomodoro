@@ -40,15 +40,12 @@ enum ActivitySelector {
         if pool.isEmpty { pool = library }
         if pool.isEmpty { return nil }
 
-        // Soft filter: exclude recent 3 if possible
-        let withoutRecent = pool.filter { !recencyWindow.contains($0.id) }
-        if !withoutRecent.isEmpty { pool = withoutRecent }
-
-        // Soft filter: avoid category repeat back-to-back if possible
-        if let lastCat = lastCategory {
-            let withoutLastCat = pool.filter { $0.category != lastCat }
-            if !withoutLastCat.isEmpty { pool = withoutLastCat }
+        func soft(_ predicate: (Activity) -> Bool) {
+            let f = pool.filter(predicate); if !f.isEmpty { pool = f }
         }
+
+        soft { !recencyWindow.contains($0.id) }
+        if let lastCat = lastCategory { soft { $0.category != lastCat } }
 
         return pool.randomElement(using: &rng)
     }

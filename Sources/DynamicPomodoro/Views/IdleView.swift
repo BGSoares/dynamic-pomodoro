@@ -143,12 +143,9 @@ private struct DailyStatsFooter: View {
     }
 
     private func formatDuration(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        let h = minutes / 60
-        let m = minutes % 60
+        let h = seconds / 3600, m = (seconds % 3600) / 60
         if h == 0 { return "\(m)m" }
-        if m == 0 { return "\(h)h" }
-        return "\(h)h \(m)m"
+        return m == 0 ? "\(h)h" : "\(h)h \(m)m"
     }
 
     private func formatPomos(_ count: Double) -> String {

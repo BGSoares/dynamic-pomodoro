@@ -43,9 +43,7 @@ enum ReminderMessages {
     /// The line rotates at midnight (user-local).
     static func lineFor(date: Date, calendar: Calendar = .current) -> String {
         guard !pool.isEmpty else { return "" }
-        let day = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
-        let idx = day % pool.count
-        return pool[idx]
+        return pool[(calendar.ordinality(of: .day, in: .era, for: date) ?? 0) % pool.count]
     }
 }
 
