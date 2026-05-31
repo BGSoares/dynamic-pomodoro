@@ -107,8 +107,7 @@ struct FeedbackSheet: View {
                 .controlSize(.large)
                 .disabled(q2Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } else if step == 2 {
-            let trimmed = q3Text.trimmingCharacters(in: .whitespacesAndNewlines)
-            Button(trimmed.isEmpty ? "Skip" : "Submit") { submit() }
+            Button(q3Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Skip" : "Submit") { submit() }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
         }

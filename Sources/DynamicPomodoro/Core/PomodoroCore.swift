@@ -55,9 +55,7 @@ extension PomodoroState {
     }
 
     var remainingFormatted: String {
-        let m = remainingSeconds / 60
-        let s = remainingSeconds % 60
-        return String(format: "%02d:%02d", m, s)
+        String(format: "%02d:%02d", remainingSeconds / 60, remainingSeconds % 60)
     }
 }
 
