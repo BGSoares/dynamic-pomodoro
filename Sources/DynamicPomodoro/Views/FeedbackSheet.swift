@@ -103,13 +103,11 @@ struct FeedbackSheet: View {
     private var primaryButton: some View {
         if step == 1, resolvedQuestion.type == .openEnded {
             Button("Next") { withAnimation { step = 2 } }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .prominentLarge()
                 .disabled(q2Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } else if step == 2 {
             Button(q3Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Skip" : "Submit") { submit() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .prominentLarge()
         }
     }
 
@@ -132,10 +130,9 @@ struct FeedbackSheet: View {
     }
 
     private var card2: some View {
-        let q = resolvedQuestion
         VStack(spacing: 22) {
-            QuestionTitle(q.questionText)
-            if q.type == .multipleChoice, let opts = q.options, !opts.isEmpty {
+            QuestionTitle(resolvedQuestion.questionText)
+            if resolvedQuestion.type == .multipleChoice, let opts = resolvedQuestion.options, !opts.isEmpty {
                 VStack(spacing: 8) {
                     ForEach(opts, id: \.self) { opt in
                         OptionButton(
@@ -215,6 +212,12 @@ struct FeedbackSheet: View {
 }
 
 // MARK: - Subviews
+
+private extension View {
+    func prominentLarge() -> some View {
+        buttonStyle(.borderedProminent).controlSize(.large)
+    }
+}
 
 private extension AnyTransition {
     static var cardTransition: AnyTransition {

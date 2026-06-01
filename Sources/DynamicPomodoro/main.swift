@@ -99,16 +99,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func makeBreakOverlayPanel(for screen: NSScreen, isPrimary: Bool) -> NSPanel {
-        let frame = screen.frame
         let panel = KeyablePanel(
-            contentRect: frame,
+            contentRect: screen.frame,
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
         if isPrimary {
             panel.contentViewController = NSHostingController(rootView: BreakOverlayView(timer: timer))
-            panel.ignoresMouseEvents = false
         } else {
             panel.ignoresMouseEvents = true
         }

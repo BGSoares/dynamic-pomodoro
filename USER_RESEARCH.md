@@ -4,7 +4,7 @@ _Single user. Personal tool. Mac only._
 
 ## Usage data
 
-No session or feedback data readable in this environment (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. _(Weekly review 2026-05-31: no new data. Feedback gate requires 5 completed focus sessions; not yet triggered. Skip timing is inferrable once logs are readable: `endedAt − startedAt` vs `plannedMinutes`.)_
+No session or feedback data readable in this environment (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. _(Weekly review 2026-06-01: no new data. Feedback gate requires 5 completed focus sessions; not yet triggered. Skip timing is inferrable once logs are readable: `endedAt − startedAt` vs `plannedMinutes`.)_
 
 ## Active feedback question (Q2, rev 2)
 
