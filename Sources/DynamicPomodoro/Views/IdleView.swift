@@ -78,22 +78,18 @@ struct IdleView: View {
     /// the user has just landed back on Idle after enough completed sessions
     /// to have an opinion worth collecting.
     private func maybeShowFeedback() {
-        guard !showFeedback else { return }
-        let completed = SessionLogStore.shared.completedFocusCount()
-        guard FeedbackGate.shouldShow(completedFocusCount: completed) else { return }
+        guard !showFeedback, FeedbackGate.shouldShow(completedFocusCount: SessionLogStore.shared.completedFocusCount()) else { return }
         feedbackQuestion = FeedbackQuestionLoader.load()
         // Small delay so the Idle view has time to render under the sheet —
         // otherwise the sheet appears against a blank window for a frame.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            showFeedback = true
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showFeedback = true }
     }
 
     /// Show the reminder-quote thumbs probe after the first completed break,
     /// but only once (UserDefaults gate).
     private func checkReminderThumb() {
-        guard UserDefaults.standard.string(forKey: Self.reminderThumbKey) == nil else { return }
-        showReminderThumb = SessionLogStore.shared.entries.contains { $0.kind == .breakCompleted }
+        showReminderThumb = UserDefaults.standard.string(forKey: Self.reminderThumbKey) == nil
+            && SessionLogStore.shared.entries.contains { $0.kind == .breakCompleted }
     }
 }
 
