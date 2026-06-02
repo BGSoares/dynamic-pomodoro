@@ -145,8 +145,6 @@ private struct HoldToSkipButton: View {
     @State private var tickTimer: Timer?
     @State private var completed = false
 
-    private var isHolding: Bool { progress > 0 }
-
     var body: some View {
         ZStack {
             Circle()
@@ -162,8 +160,8 @@ private struct HoldToSkipButton: View {
                 .font(.system(size: 22, weight: .medium))
         }
         .frame(width: 64, height: 64)
-        .scaleEffect(isHolding ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: isHolding)
+        .scaleEffect(progress > 0 ? 1.08 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: progress > 0)
         .contentShape(Circle())
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -174,7 +172,7 @@ private struct HoldToSkipButton: View {
                 }
                 .onEnded { _ in
                     let wasHoldingEarly = tickTimer != nil
-                    cancelIfNotComplete()
+                    if !completed { stopTicker(); withAnimation(.easeOut(duration: 0.25)) { progress = 0 } }
                     if wasHoldingEarly { onHoldStateChange?(false) }
                 }
         )
@@ -197,12 +195,6 @@ private struct HoldToSkipButton: View {
         }
         RunLoop.main.add(t, forMode: .common)
         tickTimer = t
-    }
-
-    private func cancelIfNotComplete() {
-        guard !completed else { return }
-        stopTicker()
-        withAnimation(.easeOut(duration: 0.25)) { progress = 0 }
     }
 
     private func stopTicker() {
