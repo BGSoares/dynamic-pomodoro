@@ -36,9 +36,8 @@ enum ActivitySelector {
             pool = library.filter { $0.suitableTimes.contains(tod) }
         }
 
-        // Last-resort: anything.
+        // Last-resort: anything in the library (guaranteed non-empty by the guard above).
         if pool.isEmpty { pool = library }
-        if pool.isEmpty { return nil }
 
         func soft(_ predicate: (Activity) -> Bool) {
             let f = pool.filter(predicate); if !f.isEmpty { pool = f }

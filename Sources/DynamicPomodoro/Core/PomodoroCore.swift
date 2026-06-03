@@ -104,10 +104,11 @@ enum PomodoroReducer {
                 isFirstSessionOfDay: !log.hasEntryToday(now: now),
                 settings: settings
             )
-            let deadline = now.addingTimeInterval(TimeInterval(minutes * 60))
+            let sessionSeconds = minutes * 60
+            let deadline = now.addingTimeInterval(TimeInterval(sessionSeconds))
             state.phase = .focus(deadline: deadline, startedAt: now, planned: minutes)
-            state.totalSeconds = minutes * 60
-            state.remainingSeconds = state.totalSeconds
+            state.totalSeconds = sessionSeconds
+            state.remainingSeconds = sessionSeconds
             state.breakLockFired = false
             return [
                 .startTicker,
@@ -182,6 +183,7 @@ enum PomodoroReducer {
         guard case .focus(_, let startedAt, let planned) = state.phase else { return [] }
 
         let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: planned)
+        let breakSeconds = breakMinutes * 60
         let activity = ActivitySelector.select(
             from: library,
             breakMinutes: breakMinutes,
@@ -192,7 +194,7 @@ enum PomodoroReducer {
             rng: &rng
         ) ?? Self.fallbackActivity
 
-        let deadline = now.addingTimeInterval(TimeInterval(breakMinutes * 60))
+        let deadline = now.addingTimeInterval(TimeInterval(breakSeconds))
         let reminderLine = ReminderMessages.lineFor(date: now)
         state.phase = .breakRunning(
             deadline: deadline,
@@ -201,8 +203,8 @@ enum PomodoroReducer {
             activity: activity,
             reminder: reminderLine.isEmpty ? nil : reminderLine
         )
-        state.totalSeconds = breakMinutes * 60
-        state.remainingSeconds = state.totalSeconds
+        state.totalSeconds = breakSeconds
+        state.remainingSeconds = breakSeconds
         state.breakLockFired = false
 
         return [
