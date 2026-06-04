@@ -5,8 +5,7 @@ enum BreakLogic {
     static let floorMinutes: Int = 5
 
     static func breakDuration(forFocusMinutes focus: Int) -> Int {
-        let twentyPct = Int((Double(focus) * 0.20).rounded())
-        return max(twentyPct, floorMinutes)
+        max(Int((Double(focus) * 0.2).rounded()), floorMinutes)
     }
 
     /// Returns "short" or "medium" to match the activity library's duration bands.

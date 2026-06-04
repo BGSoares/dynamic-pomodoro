@@ -148,10 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appMenu = NSMenu()
         appMenuItem.submenu = appMenu
 
-        addItem("Settings…", to: appMenu, action: #selector(openSettings), key: ",")
-        appMenu.addItem(.separator())
-        addCheckForUpdatesItem(to: appMenu)
-        appMenu.addItem(.separator())
+        addSharedMenuTail(to: appMenu)
         // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
         // end-of-phase UI can be exercised without waiting. Deliberately awkward
         // (all four modifiers) so it isn't hit accidentally.
@@ -182,14 +179,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addItem("Start focus", to: menu, action: #selector(menuStartFocus), key: "s")
         addItem("Abandon session", to: menu, action: #selector(menuAbandon))
         menu.addItem(.separator())
-        addItem("Settings…", to: menu, action: #selector(openSettings), key: ",")
-        menu.addItem(.separator())
-        addCheckForUpdatesItem(to: menu)
-        menu.addItem(.separator())
+        addSharedMenuTail(to: menu)
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
 
         updateStatusItemTitle()
+    }
+
+    /// Settings + separator + Check for Updates + separator — appears in both the app menu and the status menu.
+    private func addSharedMenuTail(to menu: NSMenu) {
+        addItem("Settings…", to: menu, action: #selector(openSettings), key: ",")
+        menu.addItem(.separator())
+        addCheckForUpdatesItem(to: menu)
+        menu.addItem(.separator())
     }
 
     /// App-specific menu items only — Quit-style responder-chain items use addItem(withTitle:) directly.

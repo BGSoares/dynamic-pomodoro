@@ -38,13 +38,14 @@ extension PomodoroState.Phase {
 }
 
 extension PomodoroState {
-    private var breakInfo: (activity: Activity, reminder: String?)? {
-        if case .breakRunning(_, _, _, let a, let r) = phase { return (a, r) }
+    var currentActivity: Activity? {
+        if case .breakRunning(_, _, _, let a, _) = phase { return a }
         return nil
     }
-
-    var currentActivity: Activity? { breakInfo?.activity }
-    var currentReminderMessage: String? { breakInfo?.reminder }
+    var currentReminderMessage: String? {
+        if case .breakRunning(_, _, _, _, let r) = phase { return r }
+        return nil
+    }
 
     /// 0...1 elapsed. Returns 0 when no phase is active.
     var progress: Double {
