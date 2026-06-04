@@ -36,19 +36,12 @@ enum BundleResource {
     private static let spmBundleName = "DynamicPomodoro_DynamicPomodoro.bundle"
 
     private static let candidates: [Bundle] = {
-        var seen = Set<String>()
-        var result: [Bundle] = []
-        func add(_ bundle: Bundle?) {
-            guard let bundle, seen.insert(bundle.bundlePath).inserted else { return }
-            result.append(bundle)
-        }
-        add(.main)
         let anchor = Bundle(for: Anchor.self)
-        add(anchor)
-        for base in [Bundle.main.bundleURL, anchor.bundleURL] {
-            add(Bundle(url: base.appendingPathComponent(spmBundleName)))
-            add(Bundle(url: base.deletingLastPathComponent().appendingPathComponent(spmBundleName)))
-        }
-        return result
+        let spmBundles = [Bundle.main.bundleURL, anchor.bundleURL].flatMap { base in
+            [Bundle(url: base.appendingPathComponent(spmBundleName)),
+             Bundle(url: base.deletingLastPathComponent().appendingPathComponent(spmBundleName))]
+        }.compactMap { $0 }
+        var seen = Set<String>()
+        return ([Bundle.main, anchor] + spmBundles).filter { seen.insert($0.bundlePath).inserted }
     }()
 }
