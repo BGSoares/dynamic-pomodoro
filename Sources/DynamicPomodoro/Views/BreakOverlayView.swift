@@ -143,7 +143,6 @@ private struct HoldToSkipButton: View {
 
     @State private var progress: Double = 0
     @State private var tickTimer: Timer?
-    @State private var completed = false
 
     var body: some View {
         ZStack {
@@ -166,13 +165,13 @@ private struct HoldToSkipButton: View {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    guard !completed, tickTimer == nil else { return }
+                    guard progress < 1.0, tickTimer == nil else { return }
                     startTicker()
                     onHoldStateChange?(true)
                 }
                 .onEnded { _ in
                     let wasHoldingEarly = tickTimer != nil
-                    if !completed { stopTicker(); withAnimation(.easeOut(duration: 0.25)) { progress = 0 } }
+                    if progress < 1.0 { stopTicker(); withAnimation(.easeOut(duration: 0.25)) { progress = 0 } }
                     if wasHoldingEarly { onHoldStateChange?(false) }
                 }
         )
@@ -188,7 +187,6 @@ private struct HoldToSkipButton: View {
             progress = p
             if p >= 1.0 {
                 t.invalidate()
-                completed = true
                 tickTimer = nil
                 onComplete()
             }
