@@ -32,8 +32,7 @@ enum DurationCurve {
         let half = Double(settings.halfDayMinutes)
         guard half > 0 else { return minD }
 
-        let t = Double(nowMin)
-        let distance = abs(t - midpoint)
+        let distance = abs(Double(nowMin) - midpoint)
         let ratio = min(distance / half, 1.0)
         // cosine: 1 at midpoint, 0 at workday edges
         let weight = 0.5 * (1.0 + cos(.pi * ratio))

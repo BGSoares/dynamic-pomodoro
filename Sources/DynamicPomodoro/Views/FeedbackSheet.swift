@@ -3,7 +3,7 @@ import SwiftUI
 /// One-shot survey: Q1 emoji (fixed), Q2 dynamic (see AGENT_README.md), Q3 open-ended (fixed).
 struct FeedbackSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let question: FeedbackQuestion?
+    private let resolvedQuestion: FeedbackQuestion
     let onSubmit: (FeedbackResponse) -> Void
 
     @State private var step: Int = 0
@@ -15,15 +15,14 @@ struct FeedbackSheet: View {
     private let totalQuestions = 3
     private let emojis = ["😖", "😕", "😐", "🙂", "😍"]
 
-    /// Falls back to a generic open-ended Q2 if the JSON failed to load —
-    /// the user still gets a coherent flow rather than a broken card.
-    private var resolvedQuestion: FeedbackQuestion {
-        question ?? FeedbackQuestion(
+    init(question: FeedbackQuestion?, onSubmit: @escaping (FeedbackResponse) -> Void) {
+        self.resolvedQuestion = question ?? FeedbackQuestion(
             questionText: "What's one thing about Dynamic Pomodoro you'd improve?",
             type: .openEnded,
             options: nil,
             revision: nil
         )
+        self.onSubmit = onSubmit
     }
 
     var body: some View {
