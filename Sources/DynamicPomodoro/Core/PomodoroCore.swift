@@ -196,13 +196,12 @@ enum PomodoroReducer {
         ) ?? Self.fallbackActivity
 
         let deadline = now.addingTimeInterval(TimeInterval(breakSeconds))
-        let reminderLine = ReminderMessages.lineFor(date: now)
         state.phase = .breakRunning(
             deadline: deadline,
             startedAt: now,
             planned: breakMinutes,
             activity: activity,
-            reminder: reminderLine.isEmpty ? nil : reminderLine
+            reminder: ReminderMessages.lineFor(date: now)
         )
         state.totalSeconds = breakSeconds
         state.remainingSeconds = breakSeconds

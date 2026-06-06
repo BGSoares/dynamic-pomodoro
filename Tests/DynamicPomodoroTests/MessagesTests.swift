@@ -37,10 +37,10 @@ final class MessagesTests: XCTestCase {
         )
     }
 
-    func testLineForAlwaysReturnsFromPool() {
+    func testLineForAlwaysReturnsFromPool() throws {
         for offset in 0..<60 {
             let d = Calendar.current.date(byAdding: .day, value: offset, to: date(2025, 1, 1))!
-            let line = ReminderMessages.lineFor(date: d)
+            let line = try XCTUnwrap(ReminderMessages.lineFor(date: d))
             XCTAssertTrue(ReminderMessages.pool.contains(line))
         }
     }

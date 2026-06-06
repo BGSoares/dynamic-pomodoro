@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
-    private var breakOverlayWindows: [NSWindow] = []
+    private lazy var overlayManager = BreakOverlayManager(timer: timer)
     private var phaseCancellable: AnyCancellable?
 
     private lazy var menuBarFont = NSFont.monospacedDigitSystemFont(
@@ -46,97 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .map(\.phase)
             .removeDuplicates(by: { $0.tag == $1.tag })
             .sink { [weak self] newPhase in
-                Task { @MainActor in self?.handlePhaseChange(newPhase) }
+                Task { @MainActor in
+                    guard let self else { return }
+                    if case .breakRunning = newPhase { self.overlayManager.show() } else { self.overlayManager.hide() }
+                }
             }
-    }
-
-    // MARK: - Break overlay
-
-    private func handlePhaseChange(_ phase: PomodoroState.Phase) {
-        if case .breakRunning = phase { showBreakOverlay() } else { hideBreakOverlay() }
-    }
-
-    /// The break interrupts whatever the user is doing right now, so anchor the
-    /// overlay to the screen with the cursor — not whichever screen happens to
-    /// hold the key window (which is what `NSScreen.main` returns).
-    private func currentBreakScreen() -> NSScreen? {
-        let mouse = NSEvent.mouseLocation
-        if let s = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) {
-            return s
-        }
-        return NSScreen.main ?? NSScreen.screens.first
-    }
-
-    /// Build one panel per connected display and bring them on screen.
-    /// Primary panel hosts the SwiftUI timer/controls; the rest are pure black
-    /// blockers so the user can't sneak work onto a secondary screen during a
-    /// break. Primary is picked by cursor location so the timer lands on the
-    /// screen the user is actually looking at — `NSScreen.main` returns the
-    /// screen with the key window, often a different display.
-    /// `fadeIn` is true at break start (the 4 s fade IS the prep) and false
-    /// when rebuilding mid-break for a display change (we're already running).
-    private func showBreakOverlay(fadeIn: Bool = true) {
-        let primaryScreen = currentBreakScreen()
-        breakOverlayWindows = NSScreen.screens.map {
-            makeBreakOverlayPanel(for: $0, isPrimary: $0 == primaryScreen)
-        }
-
-        NSApp.activate(ignoringOtherApps: true)
-        let initialAlpha: CGFloat = fadeIn ? 0 : 1
-        for w in breakOverlayWindows {
-            w.alphaValue = initialAlpha
-            w.orderFrontRegardless()
-        }
-        breakOverlayWindows.first { $0.contentViewController != nil }?.makeKeyAndOrderFront(nil)
-
-        guard fadeIn else { return }
-        NSApp.requestUserAttention(.informationalRequest)
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 4.0
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            breakOverlayWindows.forEach { $0.animator().alphaValue = 1.0 }
-        }
-    }
-
-    private func makeBreakOverlayPanel(for screen: NSScreen, isPrimary: Bool) -> NSPanel {
-        let panel = KeyablePanel(
-            contentRect: screen.frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        if isPrimary {
-            panel.contentViewController = NSHostingController(rootView: BreakOverlayView(timer: timer))
-        } else {
-            panel.ignoresMouseEvents = true
-        }
-        // Shielding level (the one macOS uses for the lock-screen shield) sits above
-        // native fullscreen apps. `.screenSaver` is too low on modern macOS — apps
-        // in their own fullscreen Space punch through it.
-        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.isOpaque = true
-        panel.backgroundColor = .black
-        panel.hasShadow = false
-        panel.isReleasedWhenClosed = false
-        panel.hidesOnDeactivate = false
-        return panel
-    }
-
-    private func hideBreakOverlay() {
-        let windows = breakOverlayWindows
-        guard windows.contains(where: { $0.isVisible }) else { return }
-        // Clear synchronously so a screen-change racing with this fade-out
-        // doesn't see a stale array and rebuild on top of windows we're
-        // tearing down. The animation owns its captured `windows` snapshot.
-        breakOverlayWindows.removeAll()
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 1.5
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            windows.forEach { $0.animator().alphaValue = 0 }
-        } completionHandler: {
-            windows.forEach { $0.orderOut(nil) }
-        }
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -306,12 +220,6 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
         sender.orderOut(nil)
         return false
     }
-}
-
-/// Borderless panels are non-key by default. Opt in so SwiftUI gestures and
-/// any future keyboard shortcuts route correctly through the responder chain.
-private final class KeyablePanel: NSPanel {
-    override var canBecomeKey: Bool { true }
 }
 
 // MARK: - Bootstrap
