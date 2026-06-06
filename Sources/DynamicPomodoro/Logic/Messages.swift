@@ -41,8 +41,8 @@ enum ReminderMessages {
 
     /// Pick today's line, deterministically. Same day → same line, no persistence.
     /// The line rotates at midnight (user-local).
-    static func lineFor(date: Date, calendar: Calendar = .current) -> String {
-        guard !pool.isEmpty else { return "" }
+    static func lineFor(date: Date, calendar: Calendar = .current) -> String? {
+        guard !pool.isEmpty else { return nil }
         return pool[(calendar.ordinality(of: .day, in: .era, for: date) ?? 0) % pool.count]
     }
 }
