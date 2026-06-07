@@ -170,9 +170,10 @@ private struct HoldToSkipButton: View {
                     onHoldStateChange?(true)
                 }
                 .onEnded { _ in
-                    let wasHoldingEarly = tickTimer != nil
-                    if progress < 1.0 { stopTicker(); withAnimation(.easeOut(duration: 0.25)) { progress = 0 } }
-                    if wasHoldingEarly { onHoldStateChange?(false) }
+                    guard tickTimer != nil else { return }
+                    stopTicker()
+                    if progress < 1.0 { withAnimation(.easeOut(duration: 0.25)) { progress = 0 } }
+                    onHoldStateChange?(false)
                 }
         )
         .onDisappear { stopTicker() }

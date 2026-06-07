@@ -146,7 +146,7 @@ private struct DailyStatsFooter: View {
 
     private func formatPomos(_ count: Double) -> String {
         let r = (count * 10).rounded() / 10
-        let n = r == r.rounded() ? String(Int(r)) : String(format: "%.1f", r)
+        let n = r.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(r)) : String(format: "%.1f", r)
         return "\(n) \(r == 1 ? "pomo" : "pomos")"
     }
 }

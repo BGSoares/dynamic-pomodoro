@@ -40,7 +40,8 @@ enum ActivitySelector {
         if pool.isEmpty { pool = library }
 
         func soft(_ predicate: (Activity) -> Bool) {
-            let f = pool.filter(predicate); if !f.isEmpty { pool = f }
+            let filtered = pool.filter(predicate)
+            if !filtered.isEmpty { pool = filtered }
         }
 
         soft { !recencyWindow.contains($0.id) }
