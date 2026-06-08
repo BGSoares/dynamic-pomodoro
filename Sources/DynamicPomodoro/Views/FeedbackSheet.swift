@@ -15,13 +15,11 @@ struct FeedbackSheet: View {
     private let totalQuestions = 3
     private let emojis = ["😖", "😕", "😐", "🙂", "😍"]
 
+    private var q2Trimmed: String { q2Text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var q3Trimmed: String { q3Text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
     init(question: FeedbackQuestion?, onSubmit: @escaping (FeedbackResponse) -> Void) {
-        self.resolvedQuestion = question ?? FeedbackQuestion(
-            questionText: "What's one thing about Dynamic Pomodoro you'd improve?",
-            type: .openEnded,
-            options: nil,
-            revision: nil
-        )
+        self.resolvedQuestion = question ?? .fallback
         self.onSubmit = onSubmit
     }
 
@@ -81,10 +79,7 @@ struct FeedbackSheet: View {
             HStack {
                 if step > 0 {
                     Button(action: { withAnimation { step -= 1 } }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
+                        Label("Back", systemImage: "chevron.left")
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
@@ -103,9 +98,9 @@ struct FeedbackSheet: View {
         if step == 1, resolvedQuestion.type == .openEnded {
             Button("Next") { withAnimation { step = 2 } }
                 .prominentLarge()
-                .disabled(q2Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(q2Trimmed.isEmpty)
         } else if step == 2 {
-            Button(q3Text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Skip" : "Submit") { submit() }
+            Button(q3Trimmed.isEmpty ? "Skip" : "Submit") { submit() }
                 .prominentLarge()
         }
     }
@@ -193,17 +188,14 @@ struct FeedbackSheet: View {
 
     private func submit() {
         let q = resolvedQuestion
-        let q2Answer = q.type == .multipleChoice
-            ? (q2Choice ?? "")
-            : q2Text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let q3 = q3Text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let q2Answer = q.type == .multipleChoice ? (q2Choice ?? "") : q2Trimmed
         onSubmit(FeedbackResponse(
             submittedAt: Date(),
             satisfaction: satisfaction ?? 0,
             agentQuestionText: q.questionText,
             agentQuestionRevision: q.revision,
             agentAnswer: q2Answer,
-            openEndedAnswer: q3.isEmpty ? nil : q3
+            openEndedAnswer: q3Trimmed.isEmpty ? nil : q3Trimmed
         ))
         withAnimation { step = totalQuestions }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { dismiss() }

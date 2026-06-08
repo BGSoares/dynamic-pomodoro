@@ -58,10 +58,9 @@ final class BreakOverlayManager {
     /// so the timer lands where the user is actually looking.
     private func currentScreen() -> NSScreen? {
         let mouse = NSEvent.mouseLocation
-        if let s = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) {
-            return s
-        }
-        return NSScreen.main ?? NSScreen.screens.first
+        return NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
     }
 
     private func makePanel(for screen: NSScreen, isPrimary: Bool) -> NSPanel {

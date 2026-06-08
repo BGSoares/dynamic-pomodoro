@@ -21,6 +21,15 @@ struct FeedbackQuestion: Codable, Equatable {
     }
 }
 
+extension FeedbackQuestion {
+    static let fallback = FeedbackQuestion(
+        questionText: "What's one thing about Dynamic Pomodoro you'd improve?",
+        type: .openEnded,
+        options: nil,
+        revision: nil
+    )
+}
+
 enum FeedbackQuestionLoader {
     /// Reads the bundled JSON. Returns nil if missing or malformed —
     /// callers fall back to a generic open-ended prompt rather than crash.
