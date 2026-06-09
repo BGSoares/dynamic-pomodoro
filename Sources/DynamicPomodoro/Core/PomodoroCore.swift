@@ -111,10 +111,7 @@ enum PomodoroReducer {
             )
             let sessionSeconds = minutes * 60
             let deadline = now.addingTimeInterval(TimeInterval(sessionSeconds))
-            state.phase = .focus(deadline: deadline, startedAt: now, planned: minutes)
-            state.totalSeconds = sessionSeconds
-            state.remainingSeconds = sessionSeconds
-            state.breakLockFired = false
+            beginPhase(&state, .focus(deadline: deadline, startedAt: now, planned: minutes), seconds: sessionSeconds)
             return [
                 .startTicker,
                 .notify(title: "Focus started", body: "\(minutes) min."),
@@ -200,16 +197,13 @@ enum PomodoroReducer {
         ) ?? Self.fallbackActivity
 
         let deadline = now.addingTimeInterval(TimeInterval(breakSeconds))
-        state.phase = .breakRunning(
+        beginPhase(&state, .breakRunning(
             deadline: deadline,
             startedAt: now,
             planned: breakMinutes,
             activity: activity,
             reminder: ReminderMessages.lineFor(date: now)
-        )
-        state.totalSeconds = breakSeconds
-        state.remainingSeconds = breakSeconds
-        state.breakLockFired = false
+        ), seconds: breakSeconds)
 
         return [
             .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)),
@@ -230,9 +224,13 @@ enum PomodoroReducer {
     }
 
     private static func resetToIdle(_ state: inout PomodoroState) {
-        state.phase = .idle
-        state.remainingSeconds = 0
-        state.totalSeconds = 0
+        beginPhase(&state, .idle, seconds: 0)
+    }
+
+    private static func beginPhase(_ state: inout PomodoroState, _ phase: PomodoroState.Phase, seconds: Int) {
+        state.phase = phase
+        state.totalSeconds = seconds
+        state.remainingSeconds = seconds
         state.breakLockFired = false
     }
 
