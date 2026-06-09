@@ -254,10 +254,7 @@ private struct EmojiButton: View {
             Text(emoji)
                 .font(.system(size: 42))
                 .frame(width: 64, height: 64)
-                .background(
-                    Circle()
-                        .fill(isSelected ? Color.accentColor.opacity(0.18) : Color.clear)
-                )
+                .background(Circle().fill(isSelected ? Color.accentColor.opacity(0.18) : .clear))
                 .scaleEffect(isSelected ? 1.08 : 1.0)
                 .animation(.spring(response: 0.28, dampingFraction: 0.6), value: isSelected)
         }
@@ -282,12 +279,8 @@ private struct OptionButton: View {
             }
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected
-                          ? Color.accentColor.opacity(0.10)
-                          : Color.secondary.opacity(0.06))
-            )
+            .background(RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? Color.accentColor.opacity(0.10) : Color.secondary.opacity(0.06)))
         }
         .buttonStyle(.plain)
     }
@@ -312,13 +305,7 @@ private struct FeedbackTextEditor: View {
                 .padding(6)
                 .scrollContentBackground(.hidden)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.06))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.secondary.opacity(0.22), lineWidth: 1)
-        )
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.22), lineWidth: 1))
     }
 }

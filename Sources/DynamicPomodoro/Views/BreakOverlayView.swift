@@ -180,7 +180,7 @@ private struct HoldToSkipButton: View {
     }
 
     private func startTicker() {
-        tickTimer?.invalidate()
+        stopTicker()
         let start = Date()
         let t = Timer(timeInterval: 0.03, repeats: true) { t in
             let elapsed = Date().timeIntervalSince(start)
