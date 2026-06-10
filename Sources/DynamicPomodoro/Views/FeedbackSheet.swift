@@ -18,6 +18,12 @@ struct FeedbackSheet: View {
     private var q2Trimmed: String { q2Text.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var q3Trimmed: String { q3Text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    private var q2Options: [String]? {
+        guard resolvedQuestion.type == .multipleChoice,
+              let opts = resolvedQuestion.options, !opts.isEmpty else { return nil }
+        return opts
+    }
+
     init(question: FeedbackQuestion?, onSubmit: @escaping (FeedbackResponse) -> Void) {
         self.resolvedQuestion = question ?? .fallback
         self.onSubmit = onSubmit
@@ -95,7 +101,7 @@ struct FeedbackSheet: View {
 
     @ViewBuilder
     private var primaryButton: some View {
-        if step == 1, resolvedQuestion.type == .openEnded {
+        if step == 1, q2Options == nil {
             Button("Next") { withAnimation { step = 2 } }
                 .prominentLarge()
                 .disabled(q2Trimmed.isEmpty)
@@ -126,14 +132,10 @@ struct FeedbackSheet: View {
     private var card2: some View {
         VStack(spacing: 22) {
             QuestionTitle(resolvedQuestion.questionText)
-            if resolvedQuestion.type == .multipleChoice, let opts = resolvedQuestion.options, !opts.isEmpty {
+            if let opts = q2Options {
                 VStack(spacing: 8) {
                     ForEach(opts, id: \.self) { opt in
-                        OptionButton(
-                            label: opt,
-                            isSelected: q2Choice == opt,
-                            action: { selectQ2Choice(opt) }
-                        )
+                        OptionButton(label: opt, isSelected: q2Choice == opt, action: { selectQ2Choice(opt) })
                     }
                 }
             } else {
@@ -187,13 +189,12 @@ struct FeedbackSheet: View {
     }
 
     private func submit() {
-        let q = resolvedQuestion
-        let q2Answer = q.type == .multipleChoice ? (q2Choice ?? "") : q2Trimmed
+        let q2Answer = q2Options != nil ? (q2Choice ?? "") : q2Trimmed
         onSubmit(FeedbackResponse(
             submittedAt: Date(),
             satisfaction: satisfaction ?? 0,
-            agentQuestionText: q.questionText,
-            agentQuestionRevision: q.revision,
+            agentQuestionText: resolvedQuestion.questionText,
+            agentQuestionRevision: resolvedQuestion.revision,
             agentAnswer: q2Answer,
             openEndedAnswer: q3Trimmed.isEmpty ? nil : q3Trimmed
         ))
