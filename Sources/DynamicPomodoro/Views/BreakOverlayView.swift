@@ -134,7 +134,7 @@ struct BreakOverlayView: View {
 /// Circular button that fills a progress ring as the user holds it.
 /// Triggers onComplete after the full hold duration; cancels smoothly on early release.
 private struct HoldToSkipButton: View {
-    let holdDuration: TimeInterval = 15.0
+    private static let holdDuration: TimeInterval = 15.0
     var onComplete: () -> Void
     /// Called with `true` the moment the hold begins, and `false` when an
     /// in-progress hold is released early. Not called when the hold completes
@@ -183,8 +183,7 @@ private struct HoldToSkipButton: View {
         stopTicker()
         let start = Date()
         let t = Timer(timeInterval: 0.03, repeats: true) { t in
-            let elapsed = Date().timeIntervalSince(start)
-            let p = min(elapsed / holdDuration, 1.0)
+            let p = min(Date().timeIntervalSince(start) / Self.holdDuration, 1.0)
             progress = p
             if p >= 1.0 {
                 t.invalidate()

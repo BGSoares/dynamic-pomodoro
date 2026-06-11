@@ -140,8 +140,7 @@ private struct DailyStatsFooter: View {
 
     private func formatDuration(_ seconds: Int) -> String {
         let h = seconds / 3600, m = (seconds % 3600) / 60
-        if h == 0 { return "\(m)m" }
-        return m == 0 ? "\(h)h" : "\(h)h \(m)m"
+        return h == 0 ? "\(m)m" : m == 0 ? "\(h)h" : "\(h)h \(m)m"
     }
 
     private func formatPomos(_ count: Double) -> String {
