@@ -109,18 +109,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// App-specific menu items only — Quit-style responder-chain items use addItem(withTitle:) directly.
-    @discardableResult
     private func addItem(
         _ title: String,
         to menu: NSMenu,
         action: Selector,
         key: String = "",
         modifiers: NSEvent.ModifierFlags = .command
-    ) -> NSMenuItem {
+    ) {
         let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
         item.keyEquivalentModifierMask = modifiers
         item.target = self
-        return item
     }
 
     private func updateStatusItemTitle() {

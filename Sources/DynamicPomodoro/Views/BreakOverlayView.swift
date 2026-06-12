@@ -115,9 +115,7 @@ struct BreakOverlayView: View {
         VStack(spacing: 10) {
             HoldToSkipButton(
                 onComplete: { timer.skipBreak() },
-                onHoldStateChange: { holding in
-                    skipNudge = holding ? SkipNudgeMessages.pool.randomElement() : nil
-                }
+                onHoldStateChange: { skipNudge = $0 ? SkipNudgeMessages.pool.randomElement() : nil }
             )
             Text(skipNudge ?? "Hold to skip")
                 .font(.caption)
