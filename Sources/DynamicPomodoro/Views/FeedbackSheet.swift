@@ -189,7 +189,7 @@ struct FeedbackSheet: View {
     }
 
     private func submit() {
-        let q2Answer = q2Options != nil ? (q2Choice ?? "") : q2Trimmed
+        let q2Answer = q2Options != nil ? q2Choice ?? "" : q2Trimmed
         onSubmit(FeedbackResponse(
             submittedAt: Date(),
             satisfaction: satisfaction ?? 0,
