@@ -4,15 +4,15 @@ _Single user. Personal tool. Mac only._
 
 ## Usage data
 
-No session or feedback data readable in this environment (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. _(Weekly review 2026-06-12: no new data. Feedback gate requires 5 completed focus sessions; not yet triggered. Thumbs probe requires 1 completed break; no rating yet.)_
+No session or feedback data readable in this environment (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. _(Weekly review 2026-06-13: no new data. Feedback gate requires 5 completed focus sessions; not yet triggered. Thumbs probe requires 1 completed break; no rating yet.)_
 
 ## Active feedback question (Q2, rev 2)
 
-"Do the breaks actually help you refocus?" — multiple choice: Yes, consistently / Usually / Sometimes / Rarely. Measures core value proposition. No responses yet; keeping this question live until first response.
+"Do the breaks actually help you refocus?" — multiple choice: Yes, consistently / Usually / Sometimes / Rarely. Measures core value proposition. No responses yet; keeping live.
 
 ## Active thumbs probe
 
-**Reminder quotes** — 👍/👎 widget on `IdleView` after first completed break (once, gated by `reminderMsgThumb` in UserDefaults). Asks whether the short italic lines on the break screen feel useful. Remove `ReminderThumbProbe` from `IdleView.swift` once a rating is read here.
+**Reminder quotes** — 👍/👎 widget on `IdleView` after first completed break (once, gated by `reminderMsgThumb` in UserDefaults). Remove `ReminderThumbProbe` from `IdleView.swift` once a rating is read here.
 
 ## Feature status
 
@@ -29,6 +29,6 @@ No session or feedback data readable in this environment (remote container, no `
 
 ## Next
 
-- Read `reminderMsgThumb` from UserDefaults once available; remove probe if rated.
-- Rotate Q2 once break-effectiveness responses are in.
-- Validate feature utility against `sessions.json` when available (skip rate, session frequency).
+- Read `reminderMsgThumb` once available; remove probe if rated.
+- Rotate Q2 once break-effectiveness responses arrive.
+- Validate skip rate and session frequency via `sessions.json` when available.

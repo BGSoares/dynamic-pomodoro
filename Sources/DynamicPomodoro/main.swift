@@ -46,9 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .map(\.phase)
             .removeDuplicates(by: { $0.tag == $1.tag })
             .sink { [weak self] newPhase in
+                guard let self else { return }
                 Task { @MainActor in
-                    guard let self else { return }
-                    if case .breakRunning = newPhase { self.overlayManager.show() } else { self.overlayManager.hide() }
+                    if case .breakRunning = newPhase { overlayManager.show() } else { overlayManager.hide() }
                 }
             }
     }
