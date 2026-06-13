@@ -28,10 +28,10 @@ final class Settings: ObservableObject {
 
     private init() {
         let d = UserDefaults.standard
-        self.workdayStartMinutes = d.object(forKey: Key.workdayStartMinutes) as? Int ?? (9 * 60)
-        self.workdayEndMinutes = d.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
-        self.minFocusMinutes = d.object(forKey: Key.minFocusMinutes) as? Int ?? 20
-        self.maxFocusMinutes = d.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
+        workdayStartMinutes = d.object(forKey: Key.workdayStartMinutes) as? Int ?? (9 * 60)
+        workdayEndMinutes = d.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
+        minFocusMinutes = d.object(forKey: Key.minFocusMinutes) as? Int ?? 20
+        maxFocusMinutes = d.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
     }
 
     var midpointMinutes: Int { (workdayStartMinutes + workdayEndMinutes) / 2 }

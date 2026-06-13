@@ -121,7 +121,7 @@ struct FeedbackSheet: View {
                     EmojiButton(
                         emoji: emojis[i],
                         isSelected: satisfaction == i + 1,
-                        action: { selectSatisfaction(i + 1) }
+                        action: { satisfaction = i + 1; advance(to: 1) }
                     )
                 }
             }
@@ -135,7 +135,7 @@ struct FeedbackSheet: View {
             if let opts = q2Options {
                 VStack(spacing: 8) {
                     ForEach(opts, id: \.self) { opt in
-                        OptionButton(label: opt, isSelected: q2Choice == opt, action: { selectQ2Choice(opt) })
+                        OptionButton(label: opt, isSelected: q2Choice == opt, action: { q2Choice = opt; advance(to: 2) })
                     }
                 }
             } else {
@@ -170,19 +170,8 @@ struct FeedbackSheet: View {
 
     // MARK: - Behavior
 
-    private func selectSatisfaction(_ value: Int) {
-        satisfaction = value
-        // Hold the selection visible for a beat so the user sees confirmation
-        // before the card slides away — feels less abrupt than instant-advance.
-        advance(to: 1)
-    }
-
-    private func selectQ2Choice(_ option: String) {
-        q2Choice = option
-        advance(to: 2)
-    }
-
     private func advance(to nextStep: Int) {
+        // Hold the selection visible for a beat before the card slides away.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
             withAnimation { self.step = nextStep }
         }
