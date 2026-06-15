@@ -13,12 +13,8 @@ struct BreakOverlayView: View {
 
     var body: some View {
         ZStack {
-            // Match the app-icon palette: calming dark purple→navy
             LinearGradient(
-                colors: [
-                    Color(red: 0.05, green: 0.03, blue: 0.13),
-                    Color(red: 0.07, green: 0.10, blue: 0.26),
-                ],
+                colors: [.overlayPurple, .overlayNavy],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -91,11 +87,7 @@ struct BreakOverlayView: View {
                 .trim(from: 0, to: max(0.0001, 1 - timer.state.progress))
                 .stroke(
                     LinearGradient(
-                        colors: [
-                            Color(red: 1.00, green: 0.00, blue: 0.43), // hot pink
-                            Color(red: 0.00, green: 0.85, blue: 1.00), // cyan
-                            Color(red: 1.00, green: 0.84, blue: 0.04), // gold
-                        ],
+                        colors: [.ringPink, .ringCyan, .ringGold],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
@@ -125,4 +117,16 @@ struct BreakOverlayView: View {
                 .animation(.easeInOut(duration: 0.2), value: skipNudge)
         }
     }
+}
+
+// MARK: - Palette
+
+private extension Color {
+    // Background: app-icon palette (dark purple → navy)
+    static let overlayPurple = Color(red: 0.05, green: 0.03, blue: 0.13)
+    static let overlayNavy   = Color(red: 0.07, green: 0.10, blue: 0.26)
+    // Countdown ring
+    static let ringPink      = Color(red: 1.00, green: 0.00, blue: 0.43)
+    static let ringCyan      = Color(red: 0.00, green: 0.85, blue: 1.00)
+    static let ringGold      = Color(red: 1.00, green: 0.84, blue: 0.04)
 }
