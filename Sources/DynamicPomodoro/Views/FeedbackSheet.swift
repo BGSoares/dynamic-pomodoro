@@ -8,21 +8,14 @@ struct FeedbackSheet: View {
 
     @State private var step: Int = 0
     @State private var satisfaction: Int? = nil
-    @State private var q2Choice: String? = nil
-    @State private var q2Text: String = ""
+    @State private var q2Answer: String = ""
     @State private var q3Text: String = ""
 
     private let totalQuestions = 3
     private let emojis = ["😖", "😕", "😐", "🙂", "😍"]
 
-    private var q2Trimmed: String { q2Text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var q2Trimmed: String { q2Answer.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var q3Trimmed: String { q3Text.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    private var q2Options: [String]? {
-        guard resolvedQuestion.type == .multipleChoice,
-              let opts = resolvedQuestion.options, !opts.isEmpty else { return nil }
-        return opts
-    }
 
     init(question: FeedbackQuestion?, onSubmit: @escaping (FeedbackResponse) -> Void) {
         self.resolvedQuestion = question ?? .fallback
@@ -101,7 +94,7 @@ struct FeedbackSheet: View {
 
     @ViewBuilder
     private var primaryButton: some View {
-        if step == 1, q2Options == nil {
+        if step == 1, resolvedQuestion.type == .openEnded {
             Button("Next") { withAnimation { step = 2 } }
                 .prominentLarge()
                 .disabled(q2Trimmed.isEmpty)
@@ -132,14 +125,14 @@ struct FeedbackSheet: View {
     private var card2: some View {
         VStack(spacing: 22) {
             QuestionTitle(resolvedQuestion.questionText)
-            if let opts = q2Options {
+            if let opts = resolvedQuestion.options, !opts.isEmpty, resolvedQuestion.type == .multipleChoice {
                 VStack(spacing: 8) {
                     ForEach(opts, id: \.self) { opt in
-                        OptionButton(label: opt, isSelected: q2Choice == opt, action: { q2Choice = opt; advance(to: 2) })
+                        OptionButton(label: opt, isSelected: q2Answer == opt, action: { q2Answer = opt; advance(to: 2) })
                     }
                 }
             } else {
-                FeedbackTextEditor(text: $q2Text, placeholder: "Type your answer…")
+                FeedbackTextEditor(text: $q2Answer, placeholder: "Type your answer…")
                     .frame(height: 96)
             }
         }
@@ -178,13 +171,12 @@ struct FeedbackSheet: View {
     }
 
     private func submit() {
-        let q2Answer = q2Options != nil ? q2Choice ?? "" : q2Trimmed
         onSubmit(FeedbackResponse(
             submittedAt: Date(),
             satisfaction: satisfaction ?? 0,
             agentQuestionText: resolvedQuestion.questionText,
             agentQuestionRevision: resolvedQuestion.revision,
-            agentAnswer: q2Answer,
+            agentAnswer: q2Trimmed,
             openEndedAnswer: q3Trimmed.isEmpty ? nil : q3Trimmed
         ))
         withAnimation { step = totalQuestions }

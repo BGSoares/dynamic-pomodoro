@@ -64,7 +64,7 @@ struct DailyStats: Equatable {
         for e in entries where calendar.isDate(e.startedAt, inSameDayAs: now) {
             switch e.kind {
             case .focusCompleted:
-                pomoCount += 1.0
+                pomoCount += 1
                 focusSeconds += e.plannedMinutes * 60
             case .focusAbandoned:
                 let elapsed = max(0, e.endedAt.timeIntervalSince(e.startedAt))
