@@ -12,7 +12,7 @@ Built to the v0.2 spec in `spec.md` (your spec document). Native Swift / SwiftUI
 swift run
 ```
 
-The app launches into the menu bar (no Dock icon). Look for the timer icon in the upper-right of the screen. First run shows onboarding.
+The app launches into the menu bar (no Dock icon). Look for the timer icon in the upper-right of the screen. No onboarding — first launch lands on Idle with sensible defaults.
 
 ## Auto-update
 
@@ -51,18 +51,24 @@ The build number (`CFBundleVersion`, used by Sparkle to decide whether an update
 ```
 Sources/DynamicPomodoro/
 ├── main.swift                         # NSApplication bootstrap, menu bar, windows
+├── BreakOverlayManager.swift          # Full-screen break panels, one per display
+├── Core/
+│   └── PomodoroCore.swift             # Pure state machine (idle → focus → break)
 ├── Models/
 │   ├── Settings.swift                 # UserDefaults-backed config
 │   ├── Activity.swift                 # Activity model + library loader
-│   └── SessionLog.swift               # JSON log in ~/Library/Application Support
+│   ├── SessionLog.swift               # JSON log in ~/Library/Application Support
+│   └── Feedback.swift                 # In-app feedback survey model + storage
 ├── Logic/                             # Pure, unit-testable
 │   ├── DurationCurve.swift            # §3 — cosine curve + first-session rule
 │   ├── BreakLogic.swift               # §4.1 — 20% with 5-min floor
 │   ├── ActivitySelector.swift         # §4.3 — filter + soft rules
-│   └── Messages.swift                 # §4.5 — reminder pool
+│   └── Messages.swift                 # §4.5 — reminder + skip-nudge pools
 ├── Services/
-│   ├── TimerController.swift          # State machine (idle → focus → break)
+│   ├── TimerEngine.swift              # Drives PomodoroCore, owns the ticker
 │   ├── NotificationService.swift      # UNUserNotificationCenter
+│   ├── ScreenLockService.swift        # Locks the screen 30s into a break
+│   ├── SoundService.swift             # System sound chimes
 │   └── UpdaterService.swift           # Sparkle wrapper (auto-update)
 ├── Views/                             # SwiftUI
 │   ├── MainWindowView.swift
@@ -70,28 +76,30 @@ Sources/DynamicPomodoro/
 │   ├── FocusView.swift
 │   ├── BreakOverlayView.swift         # Full-screen break overlay (fade-in prep)
 │   ├── BreakMirrorView.swift          # Placeholder in main window during break
-│   ├── OnboardingView.swift
+│   ├── HoldToSkipButton.swift
 │   ├── SettingsView.swift
-│   └── CurvePreviewView.swift
+│   └── FeedbackSheet.swift            # One-shot post-session survey
 └── Resources/
-    └── activities.json                # 20 built-in activities
+    ├── activities.json                # 26 built-in activities
+    └── feedback_question.json         # Routine-agent-owned Q2 of the survey
 ```
 
 Data persisted locally:
 
 - **Settings** → `UserDefaults` (domain: your user account)
 - **Session log** → `~/Library/Application Support/DynamicPomodoro/sessions.json`
+- **Feedback responses** → `~/Library/Application Support/DynamicPomodoro/feedback.json`
 
 ## Spec implementation notes
 
 - **§3.2 curve vs. table.** The spec gives an explicit cosine formula, then an illustrative table below it. The two don't agree (e.g. formula gives 25 min at 10:30; table says "~30"). I followed the formula, since it's the authoritative code block. If you want a flatter peak matching the table, swap the cosine for e.g. a widened plateau function — one place to change: `Logic/DurationCurve.swift`.
 - **§3.5 interruption handling.** Abandon discards the session entirely — no pause state, per spec. A confirmation dialog guards the abandon button.
 - **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day + enabled) produces an empty pool (e.g. user disables too many categories), the selector relaxes the duration-band constraint first, then disabled-only, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
-- **§4.5 message frequency.** Reminder messages are shown only on first break of the calendar day OR immediately after a skipped break. Logic lives in `TimerController.showBreakPrompt`.
+- **§4.5 message frequency.** Reminder line rotates once per calendar day (deterministic by date) and is shown on every break that day. Logic lives in `Logic/Messages.swift`.
 - **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasEntryToday`.
 - **Open Q #1** decided in favor of **native Swift/SwiftUI** over Electron — better battery, cleaner menu bar integration, and the scope is small enough that Electron's build-speed advantage doesn't matter.
-- **Open Q #2**: starter library is 20 activities across 5 categories, 2 duration bands, 4 time-of-day slots. Enough variety that recency + category rotation keep back-to-back breaks distinct.
-- **Open Q #3**: no daily session cap. Can be added to `TimerController.startFocus` if needed.
+- **Open Q #2**: starter library is 26 activities across 7 categories, 2 duration bands, 4 time-of-day slots. Enough variety that recency + category rotation keep back-to-back breaks distinct.
+- **Open Q #3**: no daily session cap. Can be added to `PomodoroReducer.reduce`'s `.startFocus` case if needed.
 
 ## Tests
 

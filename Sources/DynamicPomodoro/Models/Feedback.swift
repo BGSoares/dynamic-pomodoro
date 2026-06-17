@@ -59,7 +59,6 @@ struct FeedbackResponse: Codable, Equatable {
 final class FeedbackStore {
     static let shared = FeedbackStore()
     private let store: JSONArrayStore<FeedbackResponse>
-    var responses: [FeedbackResponse] { store.elements }
 
     private convenience init() { self.init(directory: AppSupport.directory) }
 
