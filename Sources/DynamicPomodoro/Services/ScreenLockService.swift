@@ -6,8 +6,7 @@ import Foundation
 /// the login window without sleeping the display, so the user's session
 /// stays put and the unlock flow is the normal password / Touch ID prompt.
 ///
-/// No entitlements required; same private-framework pattern as
-/// `MediaControlService`.
+/// No entitlements required.
 enum ScreenLockService {
     static func lockScreen() {
         let url = URL(fileURLWithPath: "/System/Library/PrivateFrameworks/login.framework")

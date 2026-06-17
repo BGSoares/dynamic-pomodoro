@@ -4,15 +4,15 @@ _Single user. Personal tool. Mac only._
 
 ## Usage data
 
-No session or feedback data readable in this environment (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Logging is well-instrumented — `sessions.json` and `feedback.json` accumulate on the user's machine. _(Weekly review 2026-06-16: no new data. Feedback gate requires 5 completed focus sessions; not yet triggered. Thumbs probe requires 1 completed break; no rating yet.)_
+No session or feedback data readable in this environment (remote container, no `~/Library/Application Support/DynamicPomodoro/`). Data accumulates on the user's machine. _(Reviewed 2026-06-17: still none. Feedback gate needs 5 completed focus sessions; thumbs probe needs 1 completed break — neither triggered yet.)_
 
 ## Active feedback question (Q2, rev 2)
 
-"Do the breaks actually help you refocus?" — multiple choice: Yes, consistently / Usually / Sometimes / Rarely. Measures core value proposition. No responses yet; keeping live.
+"Do the breaks actually help you refocus?" — multiple choice: Yes, consistently / Usually / Sometimes / Rarely. No responses yet.
 
 ## Active thumbs probe
 
-**Reminder quotes** — 👍/👎 widget on `IdleView` after first completed break (once, gated by `reminderMsgThumb` in UserDefaults). Remove `ReminderThumbProbe` from `IdleView.swift` once a rating is read here.
+**Reminder quotes** — 👍/👎 widget on `IdleView` after first completed break (once, gated by `reminderMsgThumb`). Remove `ReminderThumbProbe` from `IdleView.swift` once a rating is read here.
 
 ## Feature status
 
@@ -22,13 +22,12 @@ No session or feedback data readable in this environment (remote container, no `
 | Break activity library | Load-bearing |
 | Full-screen overlay + screen lock | Load-bearing |
 | Hold-to-skip friction | Load-bearing |
-| Skip nudge messages | Presumed load-bearing; no data |
-| Reminder messages | Thumbs probe active; awaiting first rating |
+| Skip nudge messages | Presumed load-bearing |
+| Reminder messages | Thumbs probe active |
 | Daily stats footer | Load-bearing |
-| One-shot feedback survey | Active; awaiting first response |
+| One-shot feedback survey | Active |
 
 ## Next
 
-- Read `reminderMsgThumb` once available; remove probe if rated.
-- Rotate Q2 once break-effectiveness responses arrive.
-- Validate skip rate and session frequency via `sessions.json` when available.
+- Read `reminderMsgThumb` and Q2 responses once available; act on whichever lands first.
+- Validate skip rate and session frequency via `sessions.json`.
