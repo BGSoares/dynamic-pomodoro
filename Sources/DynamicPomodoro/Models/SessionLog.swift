@@ -138,7 +138,7 @@ final class SessionLogStore {
 
     /// Construct against an explicit directory. Used by tests to point at a
     /// temp dir instead of the user's real Application Support folder.
-    internal init(directory: URL) {
+    init(directory: URL) {
         store = JSONArrayStore(directory: directory, filename: "sessions.json", label: "pomodoro.sessionlog")
     }
 

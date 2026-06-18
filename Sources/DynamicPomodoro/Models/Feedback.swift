@@ -62,7 +62,7 @@ final class FeedbackStore {
 
     private convenience init() { self.init(directory: AppSupport.directory) }
 
-    internal init(directory: URL) {
+    init(directory: URL) {
         store = JSONArrayStore(directory: directory, filename: "feedback.json", label: "pomodoro.feedback")
     }
 

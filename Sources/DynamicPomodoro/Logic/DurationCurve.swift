@@ -39,5 +39,4 @@ enum DurationCurve {
         let duration = Double(minD) + Double(maxD - minD) * weight
         return Int(duration.rounded())
     }
-
 }
