@@ -11,6 +11,6 @@ enum BreakLogic {
     /// Returns "short" or "medium" to match the activity library's duration bands.
     static func durationBand(forBreakMinutes m: Int) -> Activity.DurationBand {
         // short: 5–6 min, medium: 7–8 min (and up)
-        return m <= 6 ? .short : .medium
+        m <= 6 ? .short : .medium
     }
 }
