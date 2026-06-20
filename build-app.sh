@@ -89,10 +89,6 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
     <true/>
     <key>NSUserNotificationAlertStyle</key>
     <string>alert</string>
-    <key>NSCalendarsUsageDescription</key>
-    <string>Dynamic Pomodoro mirrors your break timer to a calendar of your choice so the end time syncs to your iPhone and Apple Watch.</string>
-    <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Dynamic Pomodoro mirrors your break timer to a calendar of your choice so the end time syncs to your iPhone and Apple Watch.</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>NSPrincipalClass</key>
