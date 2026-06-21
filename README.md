@@ -94,7 +94,7 @@ Data persisted locally:
 
 - **§3.2 curve vs. table.** The spec gives an explicit cosine formula, then an illustrative table below it. The two don't agree (e.g. formula gives 25 min at 10:30; table says "~30"). I followed the formula, since it's the authoritative code block. If you want a flatter peak matching the table, swap the cosine for e.g. a widened plateau function — one place to change: `Logic/DurationCurve.swift`.
 - **§3.5 interruption handling.** Abandon discards the session entirely — no pause state, per spec. A confirmation dialog guards the abandon button.
-- **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day + enabled) produces an empty pool (e.g. user disables too many categories), the selector relaxes the duration-band constraint first, then disabled-only, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
+- **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day) produces an empty pool, the selector relaxes the duration-band constraint first (keeping time-of-day), then falls back to the full library, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
 - **§4.5 message frequency.** Reminder line rotates once per calendar day (deterministic by date) and is shown on every break that day. Logic lives in `Logic/Messages.swift`.
 - **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasEntryToday`.
 - **Open Q #1** decided in favor of **native Swift/SwiftUI** over Electron — better battery, cleaner menu bar integration, and the scope is small enough that Electron's build-speed advantage doesn't matter.
