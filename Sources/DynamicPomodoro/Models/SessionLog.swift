@@ -21,6 +21,35 @@ enum AppSupport {
         e.outputFormatting = [.prettyPrinted, .sortedKeys]
         return e
     }()
+
+    /// One-time copy of pre-sandbox data into the sandbox container.
+    ///
+    /// Before App Sandbox, files lived at the real `~/Library/Application
+    /// Support/DynamicPomodoro/`. Once sandboxed, `directory` resolves to the
+    /// app container, so that history would appear lost. If the container file
+    /// is absent but a legacy one exists, copy it in. Non-destructive: never
+    /// overwrites the target, never deletes the source. No-op in non-sandboxed
+    /// builds (the two paths coincide) and in tests (callers pass
+    /// migrateLegacy = false). Reading the legacy path requires the
+    /// `temporary-exception.files.home-relative-path.read-only` entitlement.
+    static func migrateLegacyFileIfNeeded(filename: String, into target: URL) {
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: target.path),
+              let legacy = legacyDirectory?.appendingPathComponent(filename),
+              legacy.path != target.path,
+              fm.fileExists(atPath: legacy.path)
+        else { return }
+        try? fm.copyItem(at: legacy, to: target)
+    }
+
+    /// Pre-sandbox Application Support location, built from the *real* home
+    /// directory via getpwuid — `NSHomeDirectory()` returns the container path
+    /// under sandbox, so it can't be used to find the original data.
+    private static var legacyDirectory: URL? {
+        guard let pw = getpwuid(getuid()), let home = pw.pointee.pw_dir else { return nil }
+        return URL(fileURLWithPath: String(cString: home), isDirectory: true)
+            .appendingPathComponent("Library/Application Support/DynamicPomodoro", isDirectory: true)
+    }
 }
 
 /// One entry per focus session or break, for the success-metrics review (§10).
@@ -99,10 +128,11 @@ final class JSONArrayStore<Element: Codable> {
     private let fileURL: URL
     private let queue: DispatchQueue
 
-    init(directory: URL, filename: String, label: String) {
+    init(directory: URL, filename: String, label: String, migrateLegacy: Bool = false) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         fileURL = directory.appendingPathComponent(filename)
         queue = DispatchQueue(label: label)
+        if migrateLegacy { AppSupport.migrateLegacyFileIfNeeded(filename: filename, into: fileURL) }
         load()
     }
 
@@ -134,12 +164,12 @@ final class SessionLogStore {
     private let store: JSONArrayStore<SessionLogEntry>
     var entries: [SessionLogEntry] { store.elements }
 
-    private convenience init() { self.init(directory: AppSupport.directory) }
+    private convenience init() { self.init(directory: AppSupport.directory, migrateLegacy: true) }
 
     /// Construct against an explicit directory. Used by tests to point at a
     /// temp dir instead of the user's real Application Support folder.
-    init(directory: URL) {
-        store = JSONArrayStore(directory: directory, filename: "sessions.json", label: "pomodoro.sessionlog")
+    init(directory: URL, migrateLegacy: Bool = false) {
+        store = JSONArrayStore(directory: directory, filename: "sessions.json", label: "pomodoro.sessionlog", migrateLegacy: migrateLegacy)
     }
 
     func append(_ entry: SessionLogEntry) { store.append(entry) }

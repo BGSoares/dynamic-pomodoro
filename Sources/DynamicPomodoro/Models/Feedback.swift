@@ -60,10 +60,10 @@ final class FeedbackStore {
     static let shared = FeedbackStore()
     private let store: JSONArrayStore<FeedbackResponse>
 
-    private convenience init() { self.init(directory: AppSupport.directory) }
+    private convenience init() { self.init(directory: AppSupport.directory, migrateLegacy: true) }
 
-    init(directory: URL) {
-        store = JSONArrayStore(directory: directory, filename: "feedback.json", label: "pomodoro.feedback")
+    init(directory: URL, migrateLegacy: Bool = false) {
+        store = JSONArrayStore(directory: directory, filename: "feedback.json", label: "pomodoro.feedback", migrateLegacy: migrateLegacy)
     }
 
     func append(_ response: FeedbackResponse) { store.append(response) }
