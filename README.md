@@ -109,16 +109,9 @@ Unit tests for the pure logic live in `Tests/DynamicPomodoroTests/`. They use `X
 swift test          # requires Xcode installed
 ```
 
-The core math (curve, break duration, selector rules) is also covered by an ad-hoc smoke script used during development.
-
 ## Packaging as a real .app
 
-For daily use you probably want a proper `.app` bundle so notifications include your app name and macOS treats it as a real application. Two paths:
-
-1. **Wrap in an Xcode project** — `File > New > Project… > macOS App`, then drag `Sources/DynamicPomodoro/*` in and set `LSUIElement = YES` in Info.plist to keep it menu-bar-only.
-2. **Stay with SPM** and build a bundle post-hoc with a small script that wraps the SPM binary in an `.app` directory with Info.plist + entitlements.
-
-For personal daily use, option 1 is less effort.
+`./build-app.sh` builds the SPM binary, wraps it in a proper `.app` bundle (Info.plist, entitlements, icon, Sparkle.framework, ad-hoc code signing), and installs it to `/Applications` — see [Cutting a release](#cutting-a-release) above for the tag-and-push flow that runs this in CI.
 
 ## Not built (per spec §8)
 
