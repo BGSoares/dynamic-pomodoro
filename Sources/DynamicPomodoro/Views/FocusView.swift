@@ -39,7 +39,7 @@ struct FocusView: View {
     }
 }
 
-/// Minimal ring progress indicator used by both focus and break timers.
+/// Minimal ring progress indicator for the focus timer.
 struct TimerRing: View {
     let progress: Double
     let label: String

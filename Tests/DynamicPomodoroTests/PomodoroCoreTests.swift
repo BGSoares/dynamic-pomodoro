@@ -50,6 +50,14 @@ final class PomodoroCoreTests: XCTestCase {
                                rng: &rng)
     }
 
+    private func contains(_ effects: [PomodoroEffect], notificationTitled title: String) -> Bool {
+        effects.contains { if case .notify(let t, _) = $0 { return t == title }; return false }
+    }
+
+    private func contains(_ effects: [PomodoroEffect], logOfKind kind: SessionLogEntry.Kind) -> Bool {
+        effects.contains { if case .logSession(let entry) = $0 { return entry.kind == kind }; return false }
+    }
+
     // MARK: - startFocus
 
     func testStartFocusFromIdleTransitionsToFocus() {
@@ -68,10 +76,7 @@ final class PomodoroCoreTests: XCTestCase {
 
         // First effect is startTicker; second is a focus-started notification.
         XCTAssertEqual(effects.first, .startTicker)
-        XCTAssertTrue(effects.contains(where: {
-            if case .notify(let title, _) = $0 { return title == "Focus started" }
-            return false
-        }))
+        XCTAssertTrue(contains(effects, notificationTitled: "Focus started"))
     }
 
     func testStartFocusFromFocusIsIgnored() {
@@ -94,10 +99,7 @@ final class PomodoroCoreTests: XCTestCase {
         XCTAssertEqual(state.remainingSeconds, 0)
         XCTAssertEqual(state.totalSeconds, 0)
         XCTAssertTrue(effects.contains(.stopTicker))
-        XCTAssertTrue(effects.contains(where: {
-            if case .logSession(let entry) = $0 { return entry.kind == .focusAbandoned }
-            return false
-        }))
+        XCTAssertTrue(contains(effects, logOfKind: .focusAbandoned))
     }
 
     // MARK: - tick (focus → break)
@@ -118,14 +120,8 @@ final class PomodoroCoreTests: XCTestCase {
         XCTAssertEqual(breakPlanned, BreakLogic.breakDuration(forFocusMinutes: planned))
 
         XCTAssertTrue(effects.contains(.playFocusCompleteChime))
-        XCTAssertTrue(effects.contains(where: {
-            if case .logSession(let entry) = $0 { return entry.kind == .focusCompleted }
-            return false
-        }))
-        XCTAssertTrue(effects.contains(where: {
-            if case .notify(let title, _) = $0 { return title == "Focus complete" }
-            return false
-        }))
+        XCTAssertTrue(contains(effects, logOfKind: .focusCompleted))
+        XCTAssertTrue(contains(effects, notificationTitled: "Focus complete"))
         XCTAssertFalse(state.breakLockFired)
     }
 
@@ -185,10 +181,7 @@ final class PomodoroCoreTests: XCTestCase {
         let effects = reduce(&state, .skipBreak(now: focusDeadline.addingTimeInterval(60)))
         XCTAssertEqual(state.phase, .idle)
         XCTAssertTrue(effects.contains(.stopTicker))
-        XCTAssertTrue(effects.contains(where: {
-            if case .logSession(let entry) = $0 { return entry.kind == .breakSkipped }
-            return false
-        }))
+        XCTAssertTrue(contains(effects, logOfKind: .breakSkipped))
     }
 
     func testTickAtBreakDeadlineCompletesBreak() {
@@ -206,9 +199,6 @@ final class PomodoroCoreTests: XCTestCase {
         XCTAssertEqual(state.phase, .idle)
         XCTAssertTrue(effects.contains(.stopTicker))
         XCTAssertTrue(effects.contains(.playBreakCompleteChime))
-        XCTAssertTrue(effects.contains(where: {
-            if case .logSession(let entry) = $0 { return entry.kind == .breakCompleted }
-            return false
-        }))
+        XCTAssertTrue(contains(effects, logOfKind: .breakCompleted))
     }
 }
