@@ -4,7 +4,7 @@
 
 macOS menu-bar pomodoro timer with session durations that follow a bell curve across the workday, plus active break prompts drawn from a curated activity library.
 
-Built to the v0.2 spec in `spec.md` (your spec document). Native Swift / SwiftUI + AppKit, no dependencies.
+Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit, no dependencies.
 
 ## Build & run
 
