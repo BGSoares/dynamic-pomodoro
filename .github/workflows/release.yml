@@ -59,7 +59,7 @@ jobs:
           # need to put the key on the command line (where it would show
           # up in `ps`). Trap ensures the keyfile is shredded even if
           # signing fails.
-          KEYFILE="$(mktemp -u)"
+          KEYFILE="$(mktemp)"
           printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEYFILE"
           trap 'rm -P "$KEYFILE" 2>/dev/null; rm -f "$KEYFILE"' EXIT
 

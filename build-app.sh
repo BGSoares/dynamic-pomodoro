@@ -169,16 +169,22 @@ install_name_tool -add_rpath @executable_path/../Frameworks \
 # on Apple Silicon (the kernel rejects unsigned ARM64 mach-o on relaunch).
 # Sign helpers and framework first, then the outer bundle (top-down would
 # invalidate inner signatures).
+#
+# Sparkle's helpers/XPC services are re-signed with --preserve-metadata=entitlements
+# so the sandbox entitlements Sparkle ships with them survive the ad-hoc re-sign;
+# stripping those breaks auto-update once the main app is sandboxed. VERIFY ON A
+# MAC against the Sparkle sandboxing guide (sparkle-project.org/documentation/
+# sandboxing/) — the exact per-XPC entitlement requirements are version-specific.
 echo "Ad-hoc code-signing bundle..."
-codesign --force --options runtime --sign - \
+codesign --force --options runtime --preserve-metadata=entitlements --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" 2>/dev/null || true
-codesign --force --options runtime --sign - \
+codesign --force --options runtime --preserve-metadata=entitlements --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" 2>/dev/null || true
-codesign --force --options runtime --sign - \
+codesign --force --options runtime --preserve-metadata=entitlements --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" 2>/dev/null || true
-codesign --force --options runtime --sign - \
+codesign --force --options runtime --preserve-metadata=entitlements --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" 2>/dev/null || true
-codesign --force --options runtime --sign - \
+codesign --force --options runtime --preserve-metadata=entitlements --sign - \
     "${APP_DIR}/Contents/Frameworks/Sparkle.framework"
 codesign --force --options runtime \
     --entitlements "${SCRIPT_DIR}/Entitlements.plist" \

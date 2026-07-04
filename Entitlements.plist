@@ -9,5 +9,26 @@
          the embedded framework load. -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
+
+    <!-- App Sandbox (developer-directed hardening, see security plan Scope B).
+         KNOWN RISKS to verify on a Mac before release: the private-API screen
+         lock (Services/ScreenLockService.swift) and Sparkle auto-update may
+         break under the sandbox. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- Outbound network so Sparkle can fetch the appcast and download updates. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- One-time read of the pre-sandbox data location so existing
+         sessions.json / feedback.json migrate into the container instead of
+         appearing lost (see AppSupport.migrateLegacyFileIfNeeded). The path is
+         relative to the real home directory. Safe to remove in a later release
+         once the migration window has passed. -->
+    <key>com.apple.security.temporary-exception.files.home-relative-path.read-only</key>
+    <array>
+        <string>/Library/Application Support/DynamicPomodoro/</string>
+    </array>
 </dict>
 </plist>
