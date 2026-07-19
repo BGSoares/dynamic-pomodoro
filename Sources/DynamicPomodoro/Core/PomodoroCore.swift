@@ -251,8 +251,9 @@ enum PomodoroReducer {
         state.breakLockFired = false
     }
 
-    /// Last-resort activity when no library entry matches the current band/time-of-day.
-    /// The break must still run — the user still needs to step away.
+    /// Last-resort activity if the bundled library failed to load — the
+    /// selector only returns nil for an empty library (its filters relax
+    /// before running dry). The break must still run either way.
     private static let fallbackActivity = Activity(
         id: "rest",
         name: "Take a break",

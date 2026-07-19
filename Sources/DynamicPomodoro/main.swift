@@ -25,7 +25,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
+        // Menu-bar app: no Dock icon, no app switcher entry. Matches the
+        // installed bundle's LSUIElement and the README's promise; windows
+        // are focused explicitly via activate(ignoringOtherApps:).
+        NSApp.setActivationPolicy(.accessory)
         setupMainMenu()
         notifications.requestAuthorizationIfNeeded()
         setupStatusItem()

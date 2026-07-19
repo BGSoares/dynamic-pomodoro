@@ -2,7 +2,8 @@
 
 macOS menu-bar pomodoro timer with session durations that follow a bell curve across the workday, plus active break prompts drawn from a curated activity library.
 
-Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit, no dependencies.
+Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit.
+Only runtime dependency is [Sparkle](https://sparkle-project.org) (auto-update).
 
 ## Build & run
 
@@ -50,6 +51,7 @@ The build number (`CFBundleVersion`, used by Sparkle to decide whether an update
 Sources/DynamicPomodoro/
 ├── main.swift                         # NSApplication bootstrap, menu bar, windows
 ├── BreakOverlayManager.swift          # Full-screen break panels, one per display
+├── ResourceBundle.swift               # Bundle.module-safe resource lookup
 ├── Core/
 │   └── PomodoroCore.swift             # Pure state machine (idle → focus → break)
 ├── Models/
@@ -90,7 +92,7 @@ Data persisted locally:
 - **§3.5 interruption handling.** Abandon discards the session entirely — no pause state, per spec. A confirmation dialog guards the abandon button.
 - **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day) produces an empty pool, the selector relaxes the duration-band constraint first (keeping time-of-day), then falls back to the full library, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
 - **§4.5 message frequency.** Reminder line rotates once per calendar day (deterministic by date) and is shown on every break that day. Logic lives in `Logic/Messages.swift`.
-- **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasEntryToday`.
+- **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasCompletedFocusToday`.
 - **Open Q #1** decided in favor of **native Swift/SwiftUI** over Electron — better battery, cleaner menu bar integration, and the scope is small enough that Electron's build-speed advantage doesn't matter.
 - **Open Q #2**: starter library is 26 activities across 7 categories, 2 duration bands, 4 time-of-day slots. Enough variety that recency + category rotation keep back-to-back breaks distinct.
 - **Open Q #3**: no daily session cap. Can be added to `PomodoroReducer.reduce`'s `.startFocus` case if needed.

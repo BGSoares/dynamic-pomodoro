@@ -26,7 +26,7 @@ FEED_URL="https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/
 
 # Sparkle EdDSA public key. Generated once via `generate_keys`; the
 # private half lives in the release maintainer's macOS Keychain (for
-# local release.sh) and in the SPARKLE_PRIVATE_KEY GitHub Actions
+# local release.sh) and in the SPARKLE_ED_PRIVATE_KEY GitHub Actions
 # secret (for the CI workflow). The public key is deliberately
 # checked in — it's how installed clients verify the signature on
 # downloaded updates.
