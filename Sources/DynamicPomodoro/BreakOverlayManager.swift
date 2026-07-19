@@ -9,6 +9,7 @@ import SwiftUI
 @MainActor
 final class BreakOverlayManager {
     private var windows: [NSWindow] = []
+    private var screenObserver: NSObjectProtocol?
     private let timer: TimerEngine
 
     init(timer: TimerEngine) {
@@ -16,18 +17,9 @@ final class BreakOverlayManager {
     }
 
     func show() {
-        let primaryScreen = currentScreen()
-        windows = NSScreen.screens.map {
-            makePanel(for: $0, isPrimary: $0 == primaryScreen)
-        }
+        buildPanels(alpha: 0)
 
         NSApp.activate(ignoringOtherApps: true)
-        for w in windows {
-            w.alphaValue = 0
-            w.orderFrontRegardless()
-        }
-        windows.first { $0.contentViewController != nil }?.makeKeyAndOrderFront(nil)
-
         // The 4s fade-in IS the prep — slow enough for the user to finish a thought.
         NSApp.requestUserAttention(.informationalRequest)
         NSAnimationContext.runAnimationGroup { ctx in
@@ -35,13 +27,28 @@ final class BreakOverlayManager {
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             windows.forEach { $0.animator().alphaValue = 1.0 }
         }
+
+        // Displays can come and go mid-break (cable, display sleep, Sidecar).
+        // Rebuild the panel set so every connected display stays covered —
+        // a screen plugged in mid-break must not become an uncovered workspace.
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.rebuildForScreenChange() }
+        }
     }
 
     func hide() {
+        if let screenObserver {
+            NotificationCenter.default.removeObserver(screenObserver)
+            self.screenObserver = nil
+        }
         let current = windows
         guard current.contains(where: { $0.isVisible }) else { return }
-        // Clear synchronously so a screen-change racing with this fade-out
-        // doesn't rebuild on top of windows we're tearing down.
+        // Clear synchronously so a show() racing with this fade-out
+        // doesn't operate on windows we're tearing down.
         windows.removeAll()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 1.5
@@ -53,6 +60,28 @@ final class BreakOverlayManager {
     }
 
     // MARK: - Private
+
+    private func buildPanels(alpha: CGFloat) {
+        let primaryScreen = currentScreen()
+        windows = NSScreen.screens.map {
+            makePanel(for: $0, isPrimary: $0 == primaryScreen)
+        }
+        for w in windows {
+            w.alphaValue = alpha
+            w.orderFrontRegardless()
+        }
+        windows.first { $0.contentViewController != nil }?.makeKeyAndOrderFront(nil)
+    }
+
+    /// Swap in a fresh panel set at full opacity — the break is already
+    /// underway, so no fade. Old panels are ordered out only after the new
+    /// ones are frontmost, leaving no uncovered frame in between.
+    private func rebuildForScreenChange() {
+        guard !windows.isEmpty else { return }
+        let old = windows
+        buildPanels(alpha: 1)
+        old.forEach { $0.orderOut(nil) }
+    }
 
     /// Anchor to the screen with the cursor — not the key-window screen —
     /// so the timer lands where the user is actually looking.
@@ -71,7 +100,14 @@ final class BreakOverlayManager {
             defer: false
         )
         if isPrimary {
-            panel.contentViewController = NSHostingController(rootView: BreakOverlayView(timer: timer))
+            let host = NSHostingController(rootView: BreakOverlayView(timer: timer))
+            // SwiftUI must never drive the panel's size: on macOS 26,
+            // assigning a hosting controller resizes a borderless panel to
+            // the view's fitting size, collapsing the full-screen cover to a
+            // small floating card. Pin the frame back to the screen.
+            host.sizingOptions = []
+            panel.contentViewController = host
+            panel.setFrame(screen.frame, display: false)
         } else {
             panel.ignoresMouseEvents = true
         }
