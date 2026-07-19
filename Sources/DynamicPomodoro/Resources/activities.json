@@ -110,7 +110,7 @@
   {
     "id": "stairs",
     "name": "Stairs",
-    "instruction": "Find a staircase? Up and down at a pace that gets your heart moving. Stop when the timer does.",
+    "instruction": "Find a staircase? Up and down at a pace that gets your heart moving, until the break feels spent. The screen locks itself — no need to watch the clock.",
     "category": "walk",
     "band": "medium",
     "energy": "active",

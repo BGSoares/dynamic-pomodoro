@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private lazy var overlayManager = BreakOverlayManager(timer: timer)
     private var phaseCancellable: AnyCancellable?
+    private var titleCancellable: AnyCancellable?
 
     private lazy var menuBarFont = NSFont.monospacedDigitSystemFont(
         ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
@@ -35,14 +36,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         openMainWindow()
 
-        // Drive title refresh once per second — cheap, and independent of the
-        // engine's internal ticker. Scheduled in `.common` modes so it keeps
-        // firing during event tracking (e.g. while the user holds the skip
-        // button).
-        let titleTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateStatusItemTitle() }
+        // Drive the menu-bar title straight from engine state — no second
+        // timer, no idle wakeups, no beat drift against the engine tick.
+        // @Published emits on willSet, so use the emitted value rather than
+        // re-reading timer.state inside the sink.
+        titleCancellable = timer.$state.sink { [weak self] newState in
+            Task { @MainActor in self?.updateStatusItemTitle(for: newState) }
         }
-        RunLoop.main.add(titleTimer, forMode: .common)
 
         // Show/hide the full-screen break overlay in response to phase changes.
         phaseCancellable = timer.$state
@@ -111,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
 
-        updateStatusItemTitle()
+        updateStatusItemTitle(for: timer.state)
     }
 
     /// Settings + separator + Check for Updates + separator — appears in both the app menu and the status menu.
@@ -135,12 +135,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.target = self
     }
 
-    private func updateStatusItemTitle() {
+    private func updateStatusItemTitle(for state: PomodoroState) {
         guard let button = statusItem?.button else { return }
-        let text = switch timer.state.phase {
+        let text = switch state.phase {
         case .idle: ""
-        case .focus: " F \(timer.state.remainingFormatted)"
-        case .breakRunning: " B \(timer.state.remainingFormatted)"
+        case .focus: " F \(state.remainingFormatted)"
+        case .breakRunning: " B \(state.remainingFormatted)"
         }
         // Tabular (monospaced) digits so each tick doesn't change the title's
         // width — otherwise the variable-length status item resizes and the
@@ -236,11 +236,11 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
 @MainActor
 private func bootstrap() {
     let app = NSApplication.shared
-    _bootstrapDelegate = AppDelegate()
-    app.delegate = _bootstrapDelegate
-    app.run()
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    // NSApplication.delegate is unretained; run() never returns, so this
+    // stack frame keeps the delegate alive for the app's lifetime.
+    withExtendedLifetime(delegate) { app.run() }
 }
-
-nonisolated(unsafe) private var _bootstrapDelegate: AppDelegate?
 
 MainActor.assumeIsolated { bootstrap() }
