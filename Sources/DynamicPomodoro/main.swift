@@ -58,13 +58,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
     }
 
-    /// Quitting mid-break would be a one-keystroke, unlogged break skip —
-    /// far cheaper than the sanctioned 15-second hold. The tool absorbs that
-    /// decision (PURPOSE principle 4): finish the break or hold to skip,
-    /// and quit works again the moment the break is over.
+    /// Quitting mid-break (or while one is owed) would be a one-keystroke,
+    /// unlogged break skip — far cheaper than the sanctioned 15-second hold.
+    /// The tool absorbs that decision (PURPOSE principle 4): finish the
+    /// break or hold to skip, and quit works again the moment it's over.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if case .breakRunning = timer.state.phase { return .terminateCancel }
-        return .terminateNow
+        switch timer.state.phase {
+        case .breakRunning, .breakPending: return .terminateCancel
+        case .idle, .focus: return .terminateNow
+        }
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -142,6 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let text = switch state.phase {
         case .idle: ""
         case .focus: " F \(state.remainingFormatted)"
+        case .breakPending: " B …"
         case .breakRunning: " B \(state.remainingFormatted)"
         }
         // Tabular (monospaced) digits so each tick doesn't change the title's

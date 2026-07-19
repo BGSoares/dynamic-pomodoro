@@ -46,11 +46,12 @@ final class PomodoroCoreTests {
         return Calendar.current.date(from: c)!
     }
 
-    private func reduce(_ state: inout PomodoroState, _ action: PomodoroAction) -> [PomodoroEffect] {
+    private func reduce(_ state: inout PomodoroState, _ action: PomodoroAction, isOnCall: Bool = false) -> [PomodoroEffect] {
         PomodoroReducer.reduce(&state, action,
                                settings: settings,
                                log: log,
                                library: library,
+                               isOnCall: isOnCall,
                                rng: &rng)
     }
 
@@ -214,6 +215,145 @@ final class PomodoroCoreTests {
         #expect(entry?.startedAt == startedAt)
         #expect(entry?.endedAt == deadline)
         #expect(entry?.plannedMinutes == planned)
+    }
+
+    // MARK: - Break deferral while on a call
+
+    /// Reach `.focus` and return its deadline.
+    private func startFocusSession(_ state: inout PomodoroState) -> Date {
+        _ = reduce(&state, .startFocus(now: date(hour: 13)))
+        guard case .focus(let deadline, _, _) = state.phase else {
+            Issue.record("Expected .focus")
+            return date(hour: 13)
+        }
+        return deadline
+    }
+
+    @Test func deadlineOnCallDefersTheBreak() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        let effects = reduce(&state, .tick(now: deadline), isOnCall: true)
+
+        guard case .breakPending(let planned, let since) = state.phase else {
+            Issue.record("Expected .breakPending, got \(state.phase)")
+            return
+        }
+        #expect(since == deadline)
+        #expect(planned == settings.minFocusMinutes)
+        // Focus still completed, honestly, at its deadline.
+        #expect(contains(effects, logOfKind: .focusCompleted))
+        #expect(loggedEntry(in: effects)?.endedAt == deadline)
+        // But nothing that would intrude on the call.
+        #expect(!effects.contains(.playFocusCompleteChime))
+        #expect(!effects.contains(.lockScreen))
+        #expect(!effects.contains(.stopTicker))
+    }
+
+    @Test func pendingTickStillOnCallDoesNothing() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true)
+        let snapshot = state
+        let effects = reduce(&state, .tick(now: deadline.addingTimeInterval(60)), isOnCall: true)
+        #expect(state == snapshot)
+        #expect(effects.isEmpty)
+    }
+
+    @Test func pendingStartsBreakOnceCallEnds() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true)
+        let callEnd = deadline.addingTimeInterval(300)
+        let effects = reduce(&state, .tick(now: callEnd), isOnCall: false)
+
+        guard case .breakRunning(_, let startedAt, let breakPlanned, _, let reminder) = state.phase else {
+            Issue.record("Expected .breakRunning, got \(state.phase)")
+            return
+        }
+        #expect(startedAt == callEnd)
+        #expect(breakPlanned == BreakLogic.breakDuration(forFocusMinutes: settings.minFocusMinutes))
+        #expect(reminder != nil)
+        #expect(effects.contains(.playFocusCompleteChime))
+        // focusCompleted was already logged when the deferral began.
+        #expect(!contains(effects, logOfKind: .focusCompleted))
+    }
+
+    @Test func pendingPastCapGoesIdleAndLogsSkippedBreak() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true)
+        let wayLater = deadline.addingTimeInterval(PomodoroReducer.breakPendingCapSeconds + 60)
+        let effects = reduce(&state, .tick(now: wayLater), isOnCall: true)
+
+        #expect(state.phase == .idle)
+        #expect(effects.contains(.stopTicker))
+        #expect(contains(effects, logOfKind: .breakSkipped))
+        #expect(!effects.contains(.playFocusCompleteChime))
+    }
+
+    @Test func startPendingBreakOverridesTheCall() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true)
+        let effects = reduce(&state, .startPendingBreak(now: deadline.addingTimeInterval(30)), isOnCall: true)
+
+        guard case .breakRunning = state.phase else {
+            Issue.record("Expected .breakRunning, got \(state.phase)")
+            return
+        }
+        #expect(effects.contains(.playFocusCompleteChime))
+    }
+
+    @Test func fastForwardFromFocusOnCallDefersLikeTheRealDeadline() {
+        var state = PomodoroState()
+        _ = startFocusSession(&state)
+        let effects = reduce(&state, .fastForward(now: date(hour: 13, minute: 1)), isOnCall: true)
+        guard case .breakPending = state.phase else {
+            Issue.record("Expected .breakPending, got \(state.phase)")
+            return
+        }
+        #expect(contains(effects, logOfKind: .focusCompleted))
+        #expect(!effects.contains(.playFocusCompleteChime))
+    }
+
+    @Test func fastForwardFromPendingStartsBreakDespiteCall() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true)
+        _ = reduce(&state, .fastForward(now: deadline.addingTimeInterval(10)), isOnCall: true)
+        guard case .breakRunning = state.phase else {
+            Issue.record("Expected .breakRunning, got \(state.phase)")
+            return
+        }
+    }
+
+    @Test func startPendingBreakOutsidePendingIsIgnored() {
+        var state = PomodoroState()
+        let effects = reduce(&state, .startPendingBreak(now: date(hour: 13)))
+        #expect(state.phase == .idle)
+        #expect(effects.isEmpty)
+    }
+
+    @Test func deadlineNotOnCallBehavesExactlyAsBefore() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        let effects = reduce(&state, .tick(now: deadline), isOnCall: false)
+        guard case .breakRunning = state.phase else {
+            Issue.record("Expected .breakRunning, got \(state.phase)")
+            return
+        }
+        #expect(contains(effects, logOfKind: .focusCompleted))
+        #expect(effects.contains(.playFocusCompleteChime))
+    }
+
+    @Test func missedDeadlineGraceWinsOverCallDeferral() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        // Asleep way past the deadline AND on a call at wake: absence wins —
+        // no pending break, no fabricated completion.
+        let effects = reduce(&state, .tick(now: deadline.addingTimeInterval(PomodoroReducer.missedDeadlineGraceSeconds + 60)), isOnCall: true)
+        #expect(state.phase == .idle)
+        #expect(contains(effects, logOfKind: .focusAbandoned))
     }
 
     // MARK: - 30s break lock
