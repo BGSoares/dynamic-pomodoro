@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] newPhase in
                 guard let self else { return }
                 Task { @MainActor in
-                    if case .breakRunning = newPhase { overlayManager.show() } else { overlayManager.hide() }
+                    if case .breakRunning = newPhase { self.overlayManager.show() } else { self.overlayManager.hide() }
                 }
             }
     }
