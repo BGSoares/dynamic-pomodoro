@@ -46,7 +46,10 @@ final class BreakOverlayManager {
             self.screenObserver = nil
         }
         let current = windows
-        guard current.contains(where: { $0.isVisible }) else { return }
+        guard !current.isEmpty else { return }
+        // Not gated on isVisible: a window whose alpha is 0 reports
+        // isVisible == false, and an early-return here would leak the
+        // panels (ordered in, at shielding level) forever.
         // Clear synchronously so a show() racing with this fade-out
         // doesn't operate on windows we're tearing down.
         windows.removeAll()
@@ -111,6 +114,11 @@ final class BreakOverlayManager {
         } else {
             panel.ignoresMouseEvents = true
         }
+        // No system window animations: on macOS 26 the implicit appear
+        // animation can wedge a shielding-level borderless panel at its
+        // initial state (90% frame, alpha 0), leaving the overlay invisible
+        // for the whole break. Our own 4s alpha fade is the only animation.
+        panel.animationBehavior = .none
         // Shielding level sits above native fullscreen apps. `.screenSaver`
         // is too low on modern macOS — apps in their own fullscreen Space
         // punch through it.
