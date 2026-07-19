@@ -1,0 +1,25 @@
+name: CI
+
+# Build + test on every push and PR. This exists because the app once sat
+# broken for weeks on a newer local toolchain with nothing to catch it:
+# the release workflow only runs on tags, and the test suite needs a
+# toolchain with a testing runtime (local machines may have bare CLT).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      # Pinned by SHA, matching release.yml, so a compromise of the action
+      # repo can't inject code into the build.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
