@@ -1,7 +1,5 @@
 # Dynamic Pomodoro
 
-> **Routine review agent:** the rotating Question 2 of the in-app feedback flow lives in [`Sources/DynamicPomodoro/Resources/feedback_question.json`](Sources/DynamicPomodoro/Resources/feedback_question.json). Read [`Sources/DynamicPomodoro/Resources/AGENT_README.md`](Sources/DynamicPomodoro/Resources/AGENT_README.md) for the schema and rules. User responses log to `~/Library/Application Support/DynamicPomodoro/feedback.json`.
-
 macOS menu-bar pomodoro timer with session durations that follow a bell curve across the workday, plus active break prompts drawn from a curated activity library.
 
 Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit, no dependencies.
@@ -57,8 +55,7 @@ Sources/DynamicPomodoro/
 ├── Models/
 │   ├── Settings.swift                 # UserDefaults-backed config
 │   ├── Activity.swift                 # Activity model + library loader
-│   ├── SessionLog.swift               # JSON log in ~/Library/Application Support
-│   └── Feedback.swift                 # In-app feedback survey model + storage
+│   └── SessionLog.swift               # JSON log in ~/Library/Application Support
 ├── Logic/                             # Pure, unit-testable
 │   ├── DurationCurve.swift            # §3 — cosine curve + first-session rule
 │   ├── BreakLogic.swift               # §4.1 — 20% with 5-min floor
@@ -77,18 +74,15 @@ Sources/DynamicPomodoro/
 │   ├── BreakOverlayView.swift         # Full-screen break overlay (fade-in prep)
 │   ├── BreakMirrorView.swift          # Placeholder in main window during break
 │   ├── HoldToSkipButton.swift
-│   ├── SettingsView.swift
-│   └── FeedbackSheet.swift            # One-shot post-session survey
+│   └── SettingsView.swift
 └── Resources/
-    ├── activities.json                # 26 built-in activities
-    └── feedback_question.json         # Routine-agent-owned Q2 of the survey
+    └── activities.json                # 26 built-in activities
 ```
 
 Data persisted locally:
 
 - **Settings** → `UserDefaults` (domain: your user account)
 - **Session log** → `~/Library/Application Support/DynamicPomodoro/sessions.json`
-- **Feedback responses** → `~/Library/Application Support/DynamicPomodoro/feedback.json`
 
 ## Spec implementation notes
 

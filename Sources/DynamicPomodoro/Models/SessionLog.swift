@@ -179,10 +179,4 @@ final class SessionLogStore {
     func dailyStats(calendar: Calendar = .current, now: Date = Date()) -> DailyStats {
         DailyStats.compute(from: entries, calendar: calendar, now: now)
     }
-
-    /// Total completed focus sessions across all time — gates the
-    /// once-per-user feedback prompt.
-    func completedFocusCount() -> Int {
-        entries.lazy.filter { $0.kind == .focusCompleted }.count
-    }
 }
