@@ -2,7 +2,10 @@
 # Builds DynamicPomodoro.app and installs it to /Applications.
 # Usage: ./build-app.sh [version] [build]
 #   version: CFBundleShortVersionString (default: 1.0)
-#   build:   CFBundleVersion (default: 1)
+#   build:   CFBundleVersion (default: git commit count, so a bare local
+#            install never carries a build number older than the published
+#            release — Sparkle would otherwise offer to "update" a fresh
+#            dev build to the older released version within hours)
 # Requirements: Xcode Command Line Tools (xcode-select --install)
 
 set -euo pipefail
@@ -13,7 +16,7 @@ APP_DIR="/Applications/${APP_NAME}.app"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 VERSION="${1:-1.0}"
-BUILD="${2:-1}"
+BUILD="${2:-$(git -C "$SCRIPT_DIR" rev-list --count HEAD 2>/dev/null || echo 1)}"
 
 # Sparkle appcast URL — Sparkle fetches this at startup (and on demand) to
 # discover new versions. GitHub transparently redirects this URL to the

@@ -40,6 +40,9 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
 
+      - name: Check build number is newer than the published release
+        run: ./scripts/check-build-monotonic.sh "${{ steps.meta.outputs.build }}" "${{ github.repository }}"
+
       - name: Build .app bundle
         run: ./build-app.sh "${{ steps.meta.outputs.version }}" "${{ steps.meta.outputs.build }}"
 
@@ -82,35 +85,13 @@ jobs:
 
       - name: Generate appcast.xml
         run: |
-          VERSION="${{ steps.meta.outputs.version }}"
-          BUILD="${{ steps.meta.outputs.build }}"
-          PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
-          REPO="${{ github.repository }}"
-          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${VERSION}/DynamicPomodoro-${VERSION}.zip"
-          FEED_URL="https://github.com/${REPO}/releases/latest/download/appcast.xml"
-          cat > dist/appcast.xml <<EOF
-          <?xml version="1.0" encoding="utf-8"?>
-          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-              <channel>
-                  <title>Dynamic Pomodoro</title>
-                  <link>${FEED_URL}</link>
-                  <description>Updates for Dynamic Pomodoro</description>
-                  <language>en</language>
-                  <item>
-                      <title>Version ${VERSION}</title>
-                      <pubDate>${PUB_DATE}</pubDate>
-                      <sparkle:version>${BUILD}</sparkle:version>
-                      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-                      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-                      <enclosure
-                          url="${DOWNLOAD_URL}"
-                          length="${{ steps.sign.outputs.length }}"
-                          type="application/octet-stream"
-                          sparkle:edSignature="${{ steps.sign.outputs.ed_signature }}" />
-                  </item>
-              </channel>
-          </rss>
-          EOF
+          ./scripts/make-appcast.sh \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ steps.meta.outputs.build }}" \
+            "${{ steps.sign.outputs.ed_signature }}" \
+            "${{ steps.sign.outputs.length }}" \
+            "${{ github.repository }}" \
+            dist/appcast.xml
 
       - name: Create GitHub release (zip + appcast)
         env:

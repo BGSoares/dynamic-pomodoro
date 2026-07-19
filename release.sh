@@ -56,6 +56,9 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     exit 1
 fi
 
+# Refuse to publish a build number Sparkle clients would ignore.
+"${SCRIPT_DIR}/scripts/check-build-monotonic.sh" "$BUILD" "$REPO"
+
 echo "==> Building ${APP_NAME} v${VERSION} (build ${BUILD})..."
 "${SCRIPT_DIR}/build-app.sh" "$VERSION" "$BUILD"
 
@@ -75,35 +78,10 @@ if [ -z "$ED_SIGNATURE" ] || [ -z "$LENGTH" ]; then
     exit 1
 fi
 
-PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${VERSION}/${ZIP_NAME}"
-
 # Write appcast.xml into dist/. We attach it as a release asset (the
 # `releases/latest/download/appcast.xml` redirect is what installed clients
 # hit), so it never gets committed to main.
-cat > "$APPCAST_PATH" <<EOF
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-    <channel>
-        <title>Dynamic Pomodoro</title>
-        <link>${FEED_URL}</link>
-        <description>Updates for Dynamic Pomodoro</description>
-        <language>en</language>
-        <item>
-            <title>Version ${VERSION}</title>
-            <pubDate>${PUB_DATE}</pubDate>
-            <sparkle:version>${BUILD}</sparkle:version>
-            <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure
-                url="${DOWNLOAD_URL}"
-                length="${LENGTH}"
-                type="application/octet-stream"
-                sparkle:edSignature="${ED_SIGNATURE}" />
-        </item>
-    </channel>
-</rss>
-EOF
+"${SCRIPT_DIR}/scripts/make-appcast.sh" "$VERSION" "$BUILD" "$ED_SIGNATURE" "$LENGTH" "$REPO" "$APPCAST_PATH"
 
 echo "==> Tagging v${VERSION}..."
 git tag -a "v${VERSION}" -m "Release v${VERSION}"
