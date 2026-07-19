@@ -36,9 +36,6 @@ Four settings. No onboarding. No accounts. No cloud. No streaks, scores, leaderb
 **6. Local, private, native.**
 Settings live in `UserDefaults`. Sessions log to `~/Library/Application Support/DynamicPomodoro/sessions.json`. Nothing leaves the machine. Native Swift was chosen over Electron specifically for battery, polish, and menu-bar fit — not portability. There is no mobile app and there will not be one.
 
-**7. Cycling is not decoration.**
-The Galibier, the Stelvio, the Ventoux, Pantani's 1998, LeMond's 8 seconds, Voigt's hour — these are not flavour. They are the cultural frame that makes the work-rest cycle feel like training, which is the frame in which discipline already makes sense. Removing them would not make the app more general-purpose; it would make it less honest about who it's for.
-
 ---
 
 ## How this is supposed to make my life better
@@ -51,8 +48,6 @@ The Galibier, the Stelvio, the Ventoux, Pantani's 1998, LeMond's 8 seconds, Voig
 
 - **No decision fatigue about rest.** I don't choose what to do in the break. The tool does. I just do it.
 
-- **A working identity I recognise.** I think of myself as a cyclist who codes. The app reflects that — recovery between efforts, intervals, the names of the climbs. Using a tool that talks back in language I already believe in makes the work feel like part of a larger practice, not a separate thing to grit through.
-
 ---
 
 ## What this is not
@@ -64,8 +59,6 @@ The Galibier, the Stelvio, the Ventoux, Pantani's 1998, LeMond's 8 seconds, Voig
 - **Not a coaching app.** It does not score me, rank me, or congratulate me. A skipped break is logged, not flagged. There are no achievements.
 
 - **Not configurable infinitely.** The four settings are: workday start, workday end, min focus minutes, max focus minutes. That is the entire surface of personalisation. Everything else is the opinion of the tool. If I disagree with the opinion, I edit the source — that is the privilege of a personal tool over a product.
-
-- **Not adaptive (yet, and maybe ever).** v1.1 was supposed to learn from skipped activities. The most recent collapse deleted the scaffolding for it. Adaptive learning gets reintroduced only if I can name a specific gap a month of usage data has actually surfaced — not because "an app should learn."
 
 - **Not building toward a v2 product.** There is no roadmap. There is the loop, and there are bug fixes and small refinements when the loop reveals them. The roadmap is "use it for another week."
 
@@ -81,7 +74,6 @@ When deciding whether to add, remove, or change something, the order of priority
 2. **Does it reduce friction at the wrong moment?** Anything that makes it easier to skip a break is a regression in disguise.
 3. **Does it grow the surface area?** A new setting, a new toggle, a new screen — each one has to clear a high bar. The recent collapse is the reference point.
 4. **Does it stay local and native?** A feature that needs a server, an account, or a third-party SaaS does not belong here.
-5. **Does it sound like something a product manager would propose, or like something a cyclist would?** This is only half-joking. The cultural frame is load-bearing.
 
 ---
 
