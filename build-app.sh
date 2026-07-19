@@ -1,11 +1,15 @@
 #!/bin/bash
 # Builds DynamicPomodoro.app and installs it to /Applications.
-# Usage: ./build-app.sh [version] [build]
+# Usage: ./build-app.sh [version] [build] [--no-sparkle]
 #   version: CFBundleShortVersionString (default: 1.0)
 #   build:   CFBundleVersion (default: git commit count, so a bare local
 #            install never carries a build number older than the published
 #            release — Sparkle would otherwise offer to "update" a fresh
 #            dev build to the older released version within hours)
+#   --no-sparkle: zero-network variant. No Sparkle framework, no updater,
+#            no SU* Info.plist keys, and — because there is no embedded
+#            ad-hoc-signed framework to load — no library-validation-
+#            disabling entitlement. Updates become manual (rebuild).
 # Requirements: Xcode Command Line Tools (xcode-select --install)
 
 set -euo pipefail
@@ -15,8 +19,16 @@ BUNDLE_ID="com.personal.dynamic-pomodoro"
 APP_DIR="/Applications/${APP_NAME}.app"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-VERSION="${1:-1.0}"
-BUILD="${2:-$(git -C "$SCRIPT_DIR" rev-list --count HEAD 2>/dev/null || echo 1)}"
+NO_SPARKLE=0
+POSITIONAL=()
+for arg in "$@"; do
+    case "$arg" in
+        --no-sparkle) NO_SPARKLE=1 ;;
+        *) POSITIONAL+=("$arg") ;;
+    esac
+done
+VERSION="${POSITIONAL[0]:-1.0}"
+BUILD="${POSITIONAL[1]:-$(git -C "$SCRIPT_DIR" rev-list --count HEAD 2>/dev/null || echo 1)}"
 
 # Sparkle appcast URL — Sparkle fetches this at startup (and on demand) to
 # discover new versions. GitHub transparently redirects this URL to the
@@ -37,7 +49,12 @@ SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-3ZTTqmnStf8m2JQVxofLJ75c+o4ekG3lEpBjqdLLpm
 
 echo "Building release binary (v${VERSION} build ${BUILD})..."
 cd "$SCRIPT_DIR"
-swift build -c release 2>&1
+if [ "$NO_SPARKLE" -eq 1 ]; then
+    echo "(no-sparkle variant: updater disabled, zero network surface)"
+    swift build -c release --disable-default-traits 2>&1
+else
+    swift build -c release 2>&1
+fi
 
 BINARY=".build/arm64-apple-macosx/release/${APP_NAME}"
 # Intel Macs produce a different path
@@ -64,6 +81,18 @@ mkdir -p "${APP_DIR}/Contents/Resources"
 mkdir -p "${APP_DIR}/Contents/Frameworks"
 
 cp "$BINARY" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
+
+SPARKLE_PLIST_KEYS=""
+if [ "$NO_SPARKLE" -eq 0 ]; then
+SPARKLE_PLIST_KEYS="    <key>SUFeedURL</key>
+    <string>${FEED_URL}</string>
+    <key>SUPublicEDKey</key>
+    <string>${SU_PUBLIC_ED_KEY}</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>"
+fi
 
 cat > "${APP_DIR}/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -96,14 +125,7 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
     <string>AppIcon</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
-    <key>SUFeedURL</key>
-    <string>${FEED_URL}</string>
-    <key>SUPublicEDKey</key>
-    <string>${SU_PUBLIC_ED_KEY}</string>
-    <key>SUEnableAutomaticChecks</key>
-    <true/>
-    <key>SUScheduledCheckInterval</key>
-    <integer>86400</integer>
+${SPARKLE_PLIST_KEYS}
 </dict>
 </plist>
 EOF
@@ -140,54 +162,63 @@ for file in "${RESOURCE_FILES[@]}"; do
     fi
 done
 
-# Bundle Sparkle.framework. SPM links against the framework but doesn't copy
-# it into our app bundle (Xcode normally handles that via a build phase).
-# Prefer the release-config copy SPM materialises alongside the binary;
-# fall back to the XCFramework slice in .build/artifacts.
-SPARKLE_FRAMEWORK=$(dirname "$BINARY")/Sparkle.framework
-if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
-    SPARKLE_FRAMEWORK=$(find .build/artifacts -path "*macos-arm64*/Sparkle.framework" -type d -print -quit 2>/dev/null)
-fi
-if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
-    SPARKLE_FRAMEWORK=$(find .build -name "Sparkle.framework" -type d -print -quit 2>/dev/null)
-fi
-if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
-    echo "ERROR: Sparkle.framework not found in .build — auto-update will not work."
-    echo "       Ensure the Sparkle SPM dependency is resolved (swift package resolve)."
-    exit 1
-fi
-echo "Embedding Sparkle.framework from ${SPARKLE_FRAMEWORK}..."
-cp -R "$SPARKLE_FRAMEWORK" "${APP_DIR}/Contents/Frameworks/"
+if [ "$NO_SPARKLE" -eq 0 ]; then
+    # Bundle Sparkle.framework. SPM links against the framework but doesn't copy
+    # it into our app bundle (Xcode normally handles that via a build phase).
+    # Prefer the release-config copy SPM materialises alongside the binary;
+    # fall back to the XCFramework slice in .build/artifacts.
+    SPARKLE_FRAMEWORK=$(dirname "$BINARY")/Sparkle.framework
+    if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
+        SPARKLE_FRAMEWORK=$(find .build/artifacts -path "*macos-arm64*/Sparkle.framework" -type d -print -quit 2>/dev/null)
+    fi
+    if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
+        SPARKLE_FRAMEWORK=$(find .build -name "Sparkle.framework" -type d -print -quit 2>/dev/null)
+    fi
+    if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
+        echo "ERROR: Sparkle.framework not found in .build — auto-update will not work."
+        echo "       Ensure the Sparkle SPM dependency is resolved (swift package resolve)."
+        exit 1
+    fi
+    echo "Embedding Sparkle.framework from ${SPARKLE_FRAMEWORK}..."
+    cp -R "$SPARKLE_FRAMEWORK" "${APP_DIR}/Contents/Frameworks/"
 
-# `swift build` only emits `@loader_path` as an rpath, so dyld looks for
-# `@rpath/Sparkle.framework/...` next to the binary in Contents/MacOS/ and
-# never inside Contents/Frameworks/ where we just copied it. Add the
-# standard app-bundle Frameworks rpath before signing — adding it after
-# would invalidate the signature.
-install_name_tool -add_rpath @executable_path/../Frameworks \
-    "${APP_DIR}/Contents/MacOS/${APP_NAME}"
+    # `swift build` only emits `@loader_path` as an rpath, so dyld looks for
+    # `@rpath/Sparkle.framework/...` next to the binary in Contents/MacOS/ and
+    # never inside Contents/Frameworks/ where we just copied it. Add the
+    # standard app-bundle Frameworks rpath before signing — adding it after
+    # would invalidate the signature.
+    install_name_tool -add_rpath @executable_path/../Frameworks \
+        "${APP_DIR}/Contents/MacOS/${APP_NAME}"
 
-# Ad-hoc code-signing so Gatekeeper lets Sparkle relaunch the app after an
-# update install. Without this, the relaunched binary can hit "killed: 9"
-# on Apple Silicon (the kernel rejects unsigned ARM64 mach-o on relaunch).
-# Sign helpers and framework first, then the outer bundle (top-down would
-# invalidate inner signatures).
-echo "Ad-hoc code-signing bundle..."
-codesign --force --options runtime --sign - \
-    "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" 2>/dev/null || true
-codesign --force --options runtime --sign - \
-    "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" 2>/dev/null || true
-codesign --force --options runtime --sign - \
-    "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" 2>/dev/null || true
-codesign --force --options runtime --sign - \
-    "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" 2>/dev/null || true
-codesign --force --options runtime --sign - \
-    "${APP_DIR}/Contents/Frameworks/Sparkle.framework"
-codesign --force --options runtime \
-    --entitlements "${SCRIPT_DIR}/Entitlements.plist" \
-    --sign - "${APP_DIR}"
+    # Ad-hoc code-signing so Gatekeeper lets Sparkle relaunch the app after an
+    # update install. Without this, the relaunched binary can hit "killed: 9"
+    # on Apple Silicon (the kernel rejects unsigned ARM64 mach-o on relaunch).
+    # Sign helpers and framework first, then the outer bundle (top-down would
+    # invalidate inner signatures).
+    echo "Ad-hoc code-signing bundle..."
+    codesign --force --options runtime --sign - \
+        "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" 2>/dev/null || true
+    codesign --force --options runtime --sign - \
+        "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" 2>/dev/null || true
+    codesign --force --options runtime --sign - \
+        "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" 2>/dev/null || true
+    codesign --force --options runtime --sign - \
+        "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" 2>/dev/null || true
+    codesign --force --options runtime --sign - \
+        "${APP_DIR}/Contents/Frameworks/Sparkle.framework"
+    # The entitlement disables library validation solely so the ad-hoc-signed
+    # Sparkle.framework can be loaded by the ad-hoc-signed app.
+    codesign --force --options runtime \
+        --entitlements "${SCRIPT_DIR}/Entitlements.plist" \
+        --sign - "${APP_DIR}"
+else
+    # No embedded framework — library validation stays fully enabled and no
+    # entitlements are granted at all.
+    echo "Ad-hoc code-signing bundle (hardened runtime, no entitlements)..."
+    codesign --force --options runtime --sign - "${APP_DIR}"
+fi
 
-if [ -z "$SU_PUBLIC_ED_KEY" ]; then
+if [ "$NO_SPARKLE" -eq 0 ] && [ -z "$SU_PUBLIC_ED_KEY" ]; then
     echo ""
     echo "WARNING: SU_PUBLIC_ED_KEY is empty. Auto-update will refuse to install"
     echo "         signed appcasts. Generate keys before your first release:"

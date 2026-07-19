@@ -1,7 +1,9 @@
 import AppKit
 import Combine
-import Sparkle
 import SwiftUI
+#if canImport(Sparkle)
+import Sparkle
+#endif
 
 // Entry point. Uses AppKit directly (rather than SwiftUI's @main App + MenuBarExtra)
 // so this builds as a plain SPM executable — no Xcode project or app bundle required.
@@ -208,8 +210,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Point the menu item at Sparkle's controller so its built-in
     /// `validateMenuItem:` greys the item out while a check is in flight.
-    /// Absent in `swift run` (no bundle, no controller).
+    /// Absent in `swift run` (no bundle, no controller) and in the
+    /// no-AutoUpdate build variant (no Sparkle at all).
     private func addCheckForUpdatesItem(to menu: NSMenu) {
+        #if canImport(Sparkle)
         guard let controller = updater.controller else { return }
         let item = NSMenuItem(
             title: "Check for Updates…",
@@ -218,6 +222,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         item.target = controller
         menu.addItem(item)
+        #endif
     }
 }
 
