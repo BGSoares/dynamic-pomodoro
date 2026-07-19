@@ -12,6 +12,9 @@ struct MainWindowView: View {
                 IdleView(timer: timer)
             case .focus:
                 FocusView(timer: timer)
+            case .breakPending:
+                // Break owed, call live — no overlay until the call ends.
+                BreakPendingView(timer: timer)
             case .breakRunning:
                 // The real break UI is the full-screen overlay window;
                 // this main-window placeholder just mirrors timer state

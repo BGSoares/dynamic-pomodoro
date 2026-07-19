@@ -22,6 +22,7 @@ final class TimerEngine: ObservableObject {
     private let log: SessionLogStore
     private let notifications: NotificationService
     private let library: [Activity]
+    private let callProbe: () -> Bool
     private var rng = SystemRandomNumberGenerator()
 
     private var ticker: Timer?
@@ -31,12 +32,14 @@ final class TimerEngine: ObservableObject {
         settings: Settings = .shared,
         log: SessionLogStore = .shared,
         notifications: NotificationService = .shared,
-        library: [Activity] = Activity.defaultLibrary
+        library: [Activity] = Activity.defaultLibrary,
+        callProbe: @escaping () -> Bool = TimerEngine.defaultCallProbe
     ) {
         self.settings = settings
         self.log = log
         self.notifications = notifications
         self.library = library
+        self.callProbe = callProbe
 
         #if canImport(AppKit)
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -57,11 +60,22 @@ final class TimerEngine: ObservableObject {
         #endif
     }
 
+    /// Live-call signal for the reducer. The env override mirrors the
+    /// DP_APP_SUPPORT_DIR seam: lets the deferral flow be exercised E2E
+    /// without joining a real call.
+    nonisolated static func defaultCallProbe() -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["DP_FAKE_ON_CALL"] != nil { return true }
+        #endif
+        return CallDetectionService.isOnCall()
+    }
+
     // MARK: - Public actions
 
     func startFocus(now: Date = Date()) { dispatch(.startFocus(now: now)) }
     func abandonFocus(now: Date = Date()) { dispatch(.abandonFocus(now: now)) }
     func skipBreak(now: Date = Date()) { dispatch(.skipBreak(now: now)) }
+    func startPendingBreak(now: Date = Date()) { dispatch(.startPendingBreak(now: now)) }
     func fastForward(now: Date = Date()) { dispatch(.fastForward(now: now)) }
 
     // MARK: - Read helpers used by IdleView
@@ -87,6 +101,7 @@ final class TimerEngine: ObservableObject {
             settings: settings,
             log: log,
             library: library,
+            isOnCall: callProbe(),
             rng: &rng
         )
         for effect in effects { run(effect) }

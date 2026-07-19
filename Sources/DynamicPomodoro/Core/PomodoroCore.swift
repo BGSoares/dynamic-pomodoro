@@ -10,6 +10,9 @@ struct PomodoroState: Equatable {
     enum Phase: Equatable {
         case idle
         case focus(deadline: Date, startedAt: Date, planned: Int)
+        /// Focus is done but a call is live (mic in use) — the break is owed
+        /// and starts on its own the moment the call ends.
+        case breakPending(planned: Int, since: Date)
         case breakRunning(
             deadline: Date,
             startedAt: Date,
@@ -36,7 +39,8 @@ extension PomodoroState.Phase {
         switch self {
         case .idle: 0
         case .focus: 1
-        case .breakRunning: 2
+        case .breakPending: 2
+        case .breakRunning: 3
         }
     }
 }
@@ -48,6 +52,12 @@ extension PomodoroState {
     }
     var currentReminderMessage: String? {
         if case .breakRunning(_, _, _, _, let r) = phase { return r }
+        return nil
+    }
+
+    /// When the current phase is `.breakPending`, the moment it began.
+    var pendingSince: Date? {
+        if case .breakPending(_, let since) = phase { return since }
         return nil
     }
 
@@ -68,6 +78,9 @@ enum PomodoroAction {
     case startFocus(now: Date)
     case abandonFocus(now: Date)
     case skipBreak(now: Date)
+    /// Start an owed break immediately, overriding call detection — the
+    /// manual escape valve on the pending screen.
+    case startPendingBreak(now: Date)
     case tick(now: Date)
     case fastForward(now: Date)
 }
@@ -99,12 +112,18 @@ enum PomodoroReducer {
     /// completion, no break, no chime, no screen lock on wake.
     static let missedDeadlineGraceSeconds: TimeInterval = 180
 
+    /// How long an owed break waits for a call to end before the moment has
+    /// passed. Bounds the damage of a stuck call signal (an always-on mic
+    /// tool would otherwise defer breaks forever).
+    static let breakPendingCapSeconds: TimeInterval = 30 * 60
+
     static func reduce(
         _ state: inout PomodoroState,
         _ action: PomodoroAction,
         settings: Settings,
         log: SessionLogStore,
         library: [Activity],
+        isOnCall: Bool,
         rng: inout SystemRandomNumberGenerator
     ) -> [PomodoroEffect] {
         switch action {
@@ -159,7 +178,34 @@ enum PomodoroReducer {
                 let remaining = max(0, Int(ceil(deadline.timeIntervalSince(now))))
                 state.remainingSeconds = remaining
                 if remaining == 0 {
+                    if isOnCall {
+                        // Never throw the overlay + screen lock into a live
+                        // meeting. The focus still completed at its deadline;
+                        // the break is owed and waits for the call to end.
+                        // No chime — it could bleed into the call.
+                        beginPhase(&state, .breakPending(planned: planned, since: deadline), seconds: 0)
+                        return [
+                            .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: deadline, minutes: planned)),
+                            .notify(title: "Focus complete", body: "Break starts when your call ends."),
+                        ]
+                    }
                     return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng)
+                }
+                return []
+
+            case .breakPending(let planned, let since):
+                if now.timeIntervalSince(since) > Self.breakPendingCapSeconds {
+                    // The call outlasted the break's moment. Go idle; the
+                    // absent recovery is logged honestly as a skipped break.
+                    let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: planned)
+                    resetToIdle(&state)
+                    return [
+                        .stopTicker,
+                        .logSession(SessionLogEntry(kind: .breakSkipped, from: since, to: now, minutes: breakMinutes)),
+                    ]
+                }
+                if !isOnCall {
+                    return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
                 }
                 return []
 
@@ -177,10 +223,26 @@ enum PomodoroReducer {
                 return []
             }
 
+        case .startPendingBreak(let now):
+            guard case .breakPending(let planned, _) = state.phase else { return [] }
+            return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
+
         case .fastForward(let now):
             switch state.phase {
-            case .focus:
+            case .focus(_, let startedAt, let planned):
+                // Mirror the real deadline: a live call defers here too, so
+                // the pending flow is exercisable via the test shortcut. A
+                // second fast-forward force-starts the break from pending.
+                if isOnCall {
+                    beginPhase(&state, .breakPending(planned: planned, since: now), seconds: 0)
+                    return [
+                        .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)),
+                        .notify(title: "Focus complete", body: "Break starts when your call ends."),
+                    ]
+                }
                 return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng)
+            case .breakPending(let planned, _):
+                return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
             case .breakRunning:
                 return completeBreak(state: &state, now: now)
             case .idle:
@@ -200,7 +262,24 @@ enum PomodoroReducer {
         rng: inout SystemRandomNumberGenerator
     ) -> [PomodoroEffect] {
         guard case .focus(_, let startedAt, let planned) = state.phase else { return [] }
+        let focusLog = PomodoroEffect.logSession(
+            SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)
+        )
+        return [focusLog] + startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
+    }
 
+    /// Enter `.breakRunning` for a completed focus of `planned` minutes.
+    /// Shared by the immediate path (focus deadline, no call) and the
+    /// deferred path (`.breakPending` once the call ends or is overridden).
+    private static func startBreak(
+        state: inout PomodoroState,
+        planned: Int,
+        now: Date,
+        settings: Settings,
+        log: SessionLogStore,
+        library: [Activity],
+        rng: inout SystemRandomNumberGenerator
+    ) -> [PomodoroEffect] {
         let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: planned)
         let breakSeconds = breakMinutes * 60
         let activity = ActivitySelector.select(
@@ -223,7 +302,6 @@ enum PomodoroReducer {
         ), seconds: breakSeconds)
 
         return [
-            .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)),
             .playFocusCompleteChime,
             .notify(title: "Focus complete", body: "Step away. The next session needs you fresh."),
         ]
