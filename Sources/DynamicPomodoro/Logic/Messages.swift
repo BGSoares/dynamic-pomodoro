@@ -27,12 +27,12 @@ enum ReminderMessages {
         "Two hours without a break costs you the next two hours of quality.",
         "The cost of a break is 5 minutes. The cost of skipping it is the rest of the day.",
 
-        // Cycling metaphors
-        "Pros recover between intervals. So do you.",
-        "Even in a breakaway, riders take the wheel of the next rider. Sit on for 5 minutes.",
-        "Easy spinning between hard efforts is what makes you strong. Same brain, same rule.",
-        "No rider trains through fatigue — they rest through it. Your prefrontal cortex deserves the same respect.",
-        "Between climbs, you eat. Between sessions, you rest. Both are non-negotiable.",
+        // Training metaphors
+        "Athletes recover between intervals. That's what makes the intervals count.",
+        "Recovery isn't the opposite of effort. It's the half that makes effort work.",
+        "Easy efforts between hard ones are what make you strong. Same brain, same rule.",
+        "Nobody trains through fatigue – they rest through it. Your prefrontal cortex deserves the same respect.",
+        "Between hard efforts, you refuel. Between sessions, you rest. Both are non-negotiable.",
 
         // Commitment
         "The work will still be there in 5 minutes. So will you, only sharper.",
@@ -53,8 +53,8 @@ enum SkipNudgeMessages {
     static let pool: [String] = [
         "The session you protect by skipping will be the worse for it.",
         "Your future self at 4pm is asking you to let go.",
-        "Pros recover. Are you sure?",
+        "Recovery is part of the training. Are you sure?",
         "Five minutes now buys you the rest of the afternoon.",
-        "Your legs need this too."
+        "Your body needs this too."
     ]
 }

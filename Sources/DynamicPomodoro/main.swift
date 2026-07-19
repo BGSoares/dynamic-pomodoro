@@ -1,7 +1,9 @@
 import AppKit
 import Combine
-import Sparkle
 import SwiftUI
+#if canImport(Sparkle)
+import Sparkle
+#endif
 
 // Entry point. Uses AppKit directly (rather than SwiftUI's @main App + MenuBarExtra)
 // so this builds as a plain SPM executable — no Xcode project or app bundle required.
@@ -18,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private lazy var overlayManager = BreakOverlayManager(timer: timer)
     private var phaseCancellable: AnyCancellable?
+    private var titleCancellable: AnyCancellable?
 
     private lazy var menuBarFont = NSFont.monospacedDigitSystemFont(
         ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
@@ -25,21 +28,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
+        // Menu-bar app: no Dock icon, no app switcher entry. Matches the
+        // installed bundle's LSUIElement and the README's promise; windows
+        // are focused explicitly via activate(ignoringOtherApps:).
+        NSApp.setActivationPolicy(.accessory)
         setupMainMenu()
         notifications.requestAuthorizationIfNeeded()
         setupStatusItem()
 
         openMainWindow()
 
-        // Drive title refresh once per second — cheap, and independent of the
-        // engine's internal ticker. Scheduled in `.common` modes so it keeps
-        // firing during event tracking (e.g. while the user holds the skip
-        // button).
-        let titleTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateStatusItemTitle() }
+        // Drive the menu-bar title straight from engine state — no second
+        // timer, no idle wakeups, no beat drift against the engine tick.
+        // @Published emits on willSet, so use the emitted value rather than
+        // re-reading timer.state inside the sink.
+        titleCancellable = timer.$state.sink { [weak self] newState in
+            Task { @MainActor in self?.updateStatusItemTitle(for: newState) }
         }
-        RunLoop.main.add(titleTimer, forMode: .common)
 
         // Show/hide the full-screen break overlay in response to phase changes.
         phaseCancellable = timer.$state
@@ -48,9 +53,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] newPhase in
                 guard let self else { return }
                 Task { @MainActor in
-                    if case .breakRunning = newPhase { overlayManager.show() } else { overlayManager.hide() }
+                    if case .breakRunning = newPhase { self.overlayManager.show() } else { self.overlayManager.hide() }
                 }
             }
+    }
+
+    /// Quitting mid-break would be a one-keystroke, unlogged break skip —
+    /// far cheaper than the sanctioned 15-second hold. The tool absorbs that
+    /// decision (PURPOSE principle 4): finish the break or hold to skip,
+    /// and quit works again the moment the break is over.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if case .breakRunning = timer.state.phase { return .terminateCancel }
+        return .terminateNow
     }
 
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
@@ -63,11 +77,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenuItem.submenu = appMenu
 
         addSharedMenuTail(to: appMenu)
+        #if DEBUG
         // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
-        // end-of-phase UI can be exercised without waiting. Deliberately awkward
-        // (all four modifiers) so it isn't hit accidentally.
+        // end-of-phase UI can be exercised without waiting. Debug builds only:
+        // in a release build it would be a friction-free break skip that logs
+        // a full breakCompleted, corrupting both the loop and the data.
         addItem("Fast-forward timer (test)", to: appMenu, action: #selector(menuFastForward),
                 key: "t", modifiers: [.command, .control, .option, .shift])
+        #endif
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Dynamic Pomodoro",
                         action: #selector(NSApplication.terminate(_:)),
@@ -91,13 +108,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addItem("Open", to: menu, action: #selector(openMainWindow), key: "o")
         menu.addItem(.separator())
         addItem("Start focus", to: menu, action: #selector(menuStartFocus), key: "s")
-        addItem("Abandon session", to: menu, action: #selector(menuAbandon))
         menu.addItem(.separator())
         addSharedMenuTail(to: menu)
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
 
-        updateStatusItemTitle()
+        updateStatusItemTitle(for: timer.state)
     }
 
     /// Settings + separator + Check for Updates + separator — appears in both the app menu and the status menu.
@@ -121,12 +137,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.target = self
     }
 
-    private func updateStatusItemTitle() {
+    private func updateStatusItemTitle(for state: PomodoroState) {
         guard let button = statusItem?.button else { return }
-        let text = switch timer.state.phase {
+        let text = switch state.phase {
         case .idle: ""
-        case .focus: " F \(timer.state.remainingFormatted)"
-        case .breakRunning: " B \(timer.state.remainingFormatted)"
+        case .focus: " F \(state.remainingFormatted)"
+        case .breakRunning: " B \(state.remainingFormatted)"
         }
         // Tabular (monospaced) digits so each tick doesn't change the title's
         // width — otherwise the variable-length status item resizes and the
@@ -186,18 +202,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openMainWindow()
     }
 
-    @objc private func menuAbandon() {
-        if case .focus = timer.state.phase { timer.abandonFocus() }
-    }
-
+    #if DEBUG
     @objc private func menuFastForward() {
         timer.fastForward()
     }
+    #endif
 
     /// Point the menu item at Sparkle's controller so its built-in
     /// `validateMenuItem:` greys the item out while a check is in flight.
-    /// Absent in `swift run` (no bundle, no controller).
+    /// Absent in `swift run` (no bundle, no controller) and in the
+    /// no-AutoUpdate build variant (no Sparkle at all).
     private func addCheckForUpdatesItem(to menu: NSMenu) {
+        #if canImport(Sparkle)
         guard let controller = updater.controller else { return }
         let item = NSMenuItem(
             title: "Check for Updates…",
@@ -206,6 +222,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         item.target = controller
         menu.addItem(item)
+        #endif
     }
 }
 
@@ -224,11 +241,11 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
 @MainActor
 private func bootstrap() {
     let app = NSApplication.shared
-    _bootstrapDelegate = AppDelegate()
-    app.delegate = _bootstrapDelegate
-    app.run()
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    // NSApplication.delegate is unretained; run() never returns, so this
+    // stack frame keeps the delegate alive for the app's lifetime.
+    withExtendedLifetime(delegate) { app.run() }
 }
-
-nonisolated(unsafe) private var _bootstrapDelegate: AppDelegate?
 
 MainActor.assumeIsolated { bootstrap() }

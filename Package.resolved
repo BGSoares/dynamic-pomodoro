@@ -1,4 +1,5 @@
 {
+  "originHash" : "1e0da9c31cf31422a75cab9129f05181b8e224a5422e0e5314eafcfdbd5afe72",
   "pins" : [
     {
       "identity" : "sparkle",
@@ -10,5 +11,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

@@ -1,7 +1,9 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DynamicPomodoro
 
-final class DailyStatsTests: XCTestCase {
+@Suite("DailyStats")
+struct DailyStatsTests {
     private let cal = Calendar.current
 
     private func date(year: Int = 2025, month: Int = 6, day: Int = 15, hour: Int, minute: Int = 0) -> Date {
@@ -29,26 +31,26 @@ final class DailyStatsTests: XCTestCase {
         )
     }
 
-    func testEmptyEntriesYieldZeros() {
+    @Test func emptyEntriesYieldZeros() {
         let stats = DailyStats.compute(from: [], now: date(hour: 12))
-        XCTAssertEqual(stats, .empty)
-        XCTAssertEqual(stats.totalSeconds, 0)
+        #expect(stats == .empty)
+        #expect(stats.totalSeconds == 0)
     }
 
-    func testCountsCompletedFocusAsPomos() {
+    @Test func countsCompletedFocusAsPomos() {
         let now = date(hour: 14)
         let entries = [
             entry(.focusCompleted, start: date(hour: 9), plannedMinutes: 25),
             entry(.focusCompleted, start: date(hour: 11), plannedMinutes: 30),
         ]
         let stats = DailyStats.compute(from: entries, now: now)
-        XCTAssertEqual(stats.pomoCount, 2.0, accuracy: 0.0001)
-        XCTAssertEqual(stats.focusSeconds, (25 + 30) * 60)
-        XCTAssertEqual(stats.breakSeconds, 0)
-        XCTAssertEqual(stats.totalSeconds, 55 * 60)
+        #expect(abs(stats.pomoCount - 2.0) < 0.0001)
+        #expect(stats.focusSeconds == (25 + 30) * 60)
+        #expect(stats.breakSeconds == 0)
+        #expect(stats.totalSeconds == 55 * 60)
     }
 
-    func testTotalIncludesCompletedBreaks() {
+    @Test func totalIncludesCompletedBreaks() {
         let now = date(hour: 14)
         let entries = [
             entry(.focusCompleted, start: date(hour: 9), plannedMinutes: 25),
@@ -57,48 +59,47 @@ final class DailyStatsTests: XCTestCase {
             entry(.breakCompleted, start: date(hour: 10, minute: 30), plannedMinutes: 7),
         ]
         let stats = DailyStats.compute(from: entries, now: now)
-        XCTAssertEqual(stats.pomoCount, 2.0, accuracy: 0.0001)
-        XCTAssertEqual(stats.focusSeconds, 55 * 60)
-        XCTAssertEqual(stats.breakSeconds, 12 * 60)
-        XCTAssertEqual(stats.totalSeconds, 67 * 60)
+        #expect(abs(stats.pomoCount - 2.0) < 0.0001)
+        #expect(stats.focusSeconds == 55 * 60)
+        #expect(stats.breakSeconds == 12 * 60)
+        #expect(stats.totalSeconds == 67 * 60)
     }
 
-    func testAbandonedFocusContributesProportionalPomo() {
+    @Test func abandonedFocusContributesProportionalPomo() {
         let now = date(hour: 14)
-        // The user's example: 20-min planned, abandoned at minute 10 → 0.5 pomos.
+        // 20-min planned, abandoned at minute 10 → 0.5 pomos.
         let entries = [
             entry(.focusAbandoned, start: date(hour: 9), plannedMinutes: 20, elapsedSeconds: 10 * 60),
             entry(.focusCompleted, start: date(hour: 10), plannedMinutes: 25),
         ]
         let stats = DailyStats.compute(from: entries, now: now)
-        XCTAssertEqual(stats.pomoCount, 1.5, accuracy: 0.0001)
-        XCTAssertEqual(stats.focusSeconds, (10 + 25) * 60)
+        #expect(abs(stats.pomoCount - 1.5) < 0.0001)
+        #expect(stats.focusSeconds == (10 + 25) * 60)
     }
 
-    func testAbandonedBeyondPlannedCapsAtOnePomo() {
-        // Defensive: timer should fire .focusCompleted at the deadline so this
-        // shouldn't occur in practice, but if elapsed somehow exceeds planned
-        // we cap the pomo contribution at 1.0 (no over-credit).
+    @Test func abandonedBeyondPlannedCapsAtOnePomo() {
+        // Defensive: if elapsed somehow exceeds planned we cap the pomo
+        // contribution at 1.0 (no over-credit).
         let entries = [
             entry(.focusAbandoned, start: date(hour: 9), plannedMinutes: 20, elapsedSeconds: 30 * 60),
         ]
         let stats = DailyStats.compute(from: entries, now: date(hour: 14))
-        XCTAssertEqual(stats.pomoCount, 1.0, accuracy: 0.0001)
+        #expect(abs(stats.pomoCount - 1.0) < 0.0001)
     }
 
-    func testSkippedBreakIsExcluded() {
+    @Test func skippedBreakIsExcluded() {
         let now = date(hour: 14)
         let entries = [
             entry(.focusCompleted, start: date(hour: 9), plannedMinutes: 25),
             entry(.breakSkipped, start: date(hour: 9, minute: 25), plannedMinutes: 5, elapsedSeconds: 30),
         ]
         let stats = DailyStats.compute(from: entries, now: now)
-        XCTAssertEqual(stats.pomoCount, 1.0, accuracy: 0.0001)
-        XCTAssertEqual(stats.focusSeconds, 25 * 60)
-        XCTAssertEqual(stats.breakSeconds, 0)
+        #expect(abs(stats.pomoCount - 1.0) < 0.0001)
+        #expect(stats.focusSeconds == 25 * 60)
+        #expect(stats.breakSeconds == 0)
     }
 
-    func testEntriesFromOtherDaysAreExcluded() {
+    @Test func entriesFromOtherDaysAreExcluded() {
         let today = date(year: 2025, month: 6, day: 15, hour: 14)
         let yesterday = date(year: 2025, month: 6, day: 14, hour: 14)
         let tomorrow = date(year: 2025, month: 6, day: 16, hour: 9)
@@ -108,7 +109,7 @@ final class DailyStatsTests: XCTestCase {
             entry(.focusCompleted, start: tomorrow, plannedMinutes: 25),
         ]
         let stats = DailyStats.compute(from: entries, now: today)
-        XCTAssertEqual(stats.pomoCount, 1.0, accuracy: 0.0001)
-        XCTAssertEqual(stats.focusSeconds, 30 * 60)
+        #expect(abs(stats.pomoCount - 1.0) < 0.0001)
+        #expect(stats.focusSeconds == 30 * 60)
     }
 }

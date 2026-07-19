@@ -1,10 +1,9 @@
 # Dynamic Pomodoro
 
-> **Routine review agent:** the rotating Question 2 of the in-app feedback flow lives in [`Sources/DynamicPomodoro/Resources/feedback_question.json`](Sources/DynamicPomodoro/Resources/feedback_question.json). Read [`Sources/DynamicPomodoro/Resources/AGENT_README.md`](Sources/DynamicPomodoro/Resources/AGENT_README.md) for the schema and rules. User responses log to `~/Library/Application Support/DynamicPomodoro/feedback.json`.
-
 macOS menu-bar pomodoro timer with session durations that follow a bell curve across the workday, plus active break prompts drawn from a curated activity library.
 
-Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit, no dependencies.
+Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit.
+Only runtime dependency is [Sparkle](https://sparkle-project.org) (auto-update).
 
 ## Build & run
 
@@ -52,13 +51,13 @@ The build number (`CFBundleVersion`, used by Sparkle to decide whether an update
 Sources/DynamicPomodoro/
 ├── main.swift                         # NSApplication bootstrap, menu bar, windows
 ├── BreakOverlayManager.swift          # Full-screen break panels, one per display
+├── ResourceBundle.swift               # Bundle.module-safe resource lookup
 ├── Core/
 │   └── PomodoroCore.swift             # Pure state machine (idle → focus → break)
 ├── Models/
 │   ├── Settings.swift                 # UserDefaults-backed config
 │   ├── Activity.swift                 # Activity model + library loader
-│   ├── SessionLog.swift               # JSON log in ~/Library/Application Support
-│   └── Feedback.swift                 # In-app feedback survey model + storage
+│   └── SessionLog.swift               # JSON log in ~/Library/Application Support
 ├── Logic/                             # Pure, unit-testable
 │   ├── DurationCurve.swift            # §3 — cosine curve + first-session rule
 │   ├── BreakLogic.swift               # §4.1 — 20% with 5-min floor
@@ -77,18 +76,15 @@ Sources/DynamicPomodoro/
 │   ├── BreakOverlayView.swift         # Full-screen break overlay (fade-in prep)
 │   ├── BreakMirrorView.swift          # Placeholder in main window during break
 │   ├── HoldToSkipButton.swift
-│   ├── SettingsView.swift
-│   └── FeedbackSheet.swift            # One-shot post-session survey
+│   └── SettingsView.swift
 └── Resources/
-    ├── activities.json                # 26 built-in activities
-    └── feedback_question.json         # Routine-agent-owned Q2 of the survey
+    └── activities.json                # 26 built-in activities
 ```
 
 Data persisted locally:
 
 - **Settings** → `UserDefaults` (domain: your user account)
 - **Session log** → `~/Library/Application Support/DynamicPomodoro/sessions.json`
-- **Feedback responses** → `~/Library/Application Support/DynamicPomodoro/feedback.json`
 
 ## Spec implementation notes
 
@@ -96,18 +92,24 @@ Data persisted locally:
 - **§3.5 interruption handling.** Abandon discards the session entirely — no pause state, per spec. A confirmation dialog guards the abandon button.
 - **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day) produces an empty pool, the selector relaxes the duration-band constraint first (keeping time-of-day), then falls back to the full library, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
 - **§4.5 message frequency.** Reminder line rotates once per calendar day (deterministic by date) and is shown on every break that day. Logic lives in `Logic/Messages.swift`.
-- **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasEntryToday`.
+- **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasCompletedFocusToday`.
 - **Open Q #1** decided in favor of **native Swift/SwiftUI** over Electron — better battery, cleaner menu bar integration, and the scope is small enough that Electron's build-speed advantage doesn't matter.
 - **Open Q #2**: starter library is 26 activities across 7 categories, 2 duration bands, 4 time-of-day slots. Enough variety that recency + category rotation keep back-to-back breaks distinct.
 - **Open Q #3**: no daily session cap. Can be added to `PomodoroReducer.reduce`'s `.startFocus` case if needed.
 
 ## Tests
 
-Unit tests for the pure logic live in `Tests/DynamicPomodoroTests/`. They use `XCTest`, which requires **Xcode** (not just Command Line Tools) to run:
+Unit tests for the pure logic live in `Tests/DynamicPomodoroTests/`, written with [swift-testing](https://github.com/swiftlang/swift-testing).
+
+Bare Command Line Tools ship no testing runtime (neither XCTest nor swift-testing).
+To run tests locally, use a full toolchain — Xcode, or the swift.org toolchain via [swiftly](https://www.swift.org/install/):
 
 ```bash
-swift test          # requires Xcode installed
+brew install swiftly && swiftly init --no-modify-profile
+~/.swiftly/bin/swift test
 ```
+
+CI runs the suite on every push and PR (`.github/workflows/ci.yml`).
 
 ## Packaging as a real .app
 

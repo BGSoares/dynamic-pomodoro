@@ -110,7 +110,7 @@
   {
     "id": "stairs",
     "name": "Stairs",
-    "instruction": "Find a staircase? Up and down at a pace that gets your heart moving. Stop when the timer does.",
+    "instruction": "Find a staircase? Up and down at a pace that gets your heart moving, until the break feels spent. The screen locks itself — no need to watch the clock.",
     "category": "walk",
     "band": "medium",
     "energy": "active",
@@ -146,7 +146,7 @@
   {
     "id": "drink_water",
     "name": "Drink water",
-    "instruction": "Top up? Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated, and so are your legs for tomorrow's ride.",
+    "instruction": "Top up? Fill a full glass. Drink it slowly — not in one go. You're probably already mildly dehydrated.",
     "category": "hydration",
     "band": "short",
     "energy": "gentle",

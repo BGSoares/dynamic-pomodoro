@@ -22,7 +22,7 @@ This app fixes both. Focus durations follow a bell curve across the workday. Bre
 A focus session is what fits *this hour of this day*, not a constant. The cosine curve in [DurationCurve.swift](Sources/DynamicPomodoro/Logic/DurationCurve.swift) is the literal expression of this principle. The first session of the day is always the shortest — readiness is a function of time-since-start, not just clock time.
 
 **2. Rest is part of the work, not a tax on it.**
-This is the cycling metaphor that runs through the entire app: pros recover between intervals, and that recovery is *why* the intervals get better. The reminder messages in [Messages.swift](Sources/DynamicPomodoro/Logic/Messages.swift) are not motivational filler — they are the scientific and athletic argument for why a break is non-negotiable.
+This is the training principle that runs through the entire app: athletes recover between intervals, and that recovery is *why* the intervals get better. The reminder messages in [Messages.swift](Sources/DynamicPomodoro/Logic/Messages.swift) are not motivational filler — they are the scientific and athletic argument for why a break is non-negotiable.
 
 **3. Recovery is active, specific, and prescribed.**
 A break that says "take 5 minutes" produces another browser tab. A break that says "find a doorway, forearm against the frame, step forward, feel the chest open" produces a body that is no longer collapsed over a keyboard. The activity library is the content of the app. It is curated, not crowd-sourced, not customisable through the UI — it is the opinion of the tool.
@@ -31,7 +31,7 @@ A break that says "take 5 minutes" produces another browser tab. A break that sa
 Starting a focus session is one click. Skipping a break costs a 15-second hold and one final line of resistance. The screen locks 30 seconds into the break. Every other display is blacked out. This is not a productivity-shaming UX — it is the recognition that the impulse to skip a break is *exactly* the moment willpower fails, so the tool absorbs that decision instead of asking you to make it.
 
 **5. The smallest surface that does the job.**
-Four settings. No onboarding. No accounts. No cloud. No streaks, scores, leaderboards, or weekly summary emails. The recent collapse from ~4k to ~1.8k LOC was not refactoring for its own sake — it was deleting everything that wasn't the core loop, and the core loop is small. New features have to earn their way in past this principle.
+Four settings. No onboarding. No accounts. No cloud. No streaks, scores, leaderboards, or weekly summary emails. The recent collapse from ~4k to under 2k LOC was not refactoring for its own sake — it was deleting everything that wasn't the core loop, and the core loop is small. New features have to earn their way in past this principle.
 
 **6. Local, private, native.**
 Settings live in `UserDefaults`. Sessions log to `~/Library/Application Support/DynamicPomodoro/sessions.json`. Nothing leaves the machine. Native Swift was chosen over Electron specifically for battery, polish, and menu-bar fit — not portability. There is no mobile app and there will not be one.

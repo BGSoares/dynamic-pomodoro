@@ -13,25 +13,42 @@ final class Settings: ObservableObject {
         static let maxFocusMinutes = "maxFocusMinutes"
     }
 
+    private let defaults: UserDefaults
+
     @Published var workdayStartMinutes: Int {
-        didSet { UserDefaults.standard.set(workdayStartMinutes, forKey: Key.workdayStartMinutes) }
+        didSet { defaults.set(workdayStartMinutes, forKey: Key.workdayStartMinutes) }
     }
     @Published var workdayEndMinutes: Int {
-        didSet { UserDefaults.standard.set(workdayEndMinutes, forKey: Key.workdayEndMinutes) }
+        didSet { defaults.set(workdayEndMinutes, forKey: Key.workdayEndMinutes) }
     }
     @Published var minFocusMinutes: Int {
-        didSet { UserDefaults.standard.set(minFocusMinutes, forKey: Key.minFocusMinutes) }
+        didSet { defaults.set(minFocusMinutes, forKey: Key.minFocusMinutes) }
     }
     @Published var maxFocusMinutes: Int {
-        didSet { UserDefaults.standard.set(maxFocusMinutes, forKey: Key.maxFocusMinutes) }
+        didSet { defaults.set(maxFocusMinutes, forKey: Key.maxFocusMinutes) }
     }
 
-    private init() {
-        let d = UserDefaults.standard
-        workdayStartMinutes = d.object(forKey: Key.workdayStartMinutes) as? Int ?? (9 * 60)
-        workdayEndMinutes = d.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
-        minFocusMinutes = d.object(forKey: Key.minFocusMinutes) as? Int ?? 20
-        maxFocusMinutes = d.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
+    /// `defaults` is injectable so tests run against a scratch suite instead
+    /// of mutating the real domain through the shared singleton.
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+
+        // Clamp persisted values to the same bounds SettingsView enforces.
+        // UserDefaults contents are not trusted input (manual `defaults
+        // write`, domain migration) and the curve math assumes sane ranges.
+        let start = defaults.object(forKey: Key.workdayStartMinutes) as? Int ?? (9 * 60)
+        let end = defaults.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
+        let minF = defaults.object(forKey: Key.minFocusMinutes) as? Int ?? 20
+        let maxF = defaults.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
+
+        let clampedStart = min(max(start, 0), 23 * 60 + 45)
+        let clampedEnd = min(max(end, clampedStart + 60), 24 * 60)
+        let clampedMax = min(max(max(maxF, 10), min(max(minF, 5), 60) + 5), 90)
+
+        workdayStartMinutes = min(clampedStart, clampedEnd - 60)
+        workdayEndMinutes = clampedEnd
+        minFocusMinutes = min(min(max(minF, 5), 60), clampedMax - 5)
+        maxFocusMinutes = clampedMax
     }
 
     var midpointMinutes: Int { (workdayStartMinutes + workdayEndMinutes) / 2 }

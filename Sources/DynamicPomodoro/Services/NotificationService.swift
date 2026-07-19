@@ -12,7 +12,6 @@ final class NotificationService {
     static let shared = NotificationService()
 
     private var center: UNUserNotificationCenter?
-    private var authorized = false
 
     private init() {
         if Bundle.main.bundleIdentifier != nil {
@@ -22,19 +21,15 @@ final class NotificationService {
 
     func requestAuthorizationIfNeeded() {
         guard let center else { return }
-        center.getNotificationSettings { [weak self] settings in
+        center.getNotificationSettings { settings in
             if settings.authorizationStatus == .notDetermined {
-                center.requestAuthorization(options: [.alert, .sound]) { ok, _ in
-                    self?.authorized = ok
-                }
-            } else {
-                self?.authorized = settings.authorizationStatus == .authorized
+                center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
             }
         }
     }
 
     func notify(title: String, body: String) {
-        guard authorized, let center else { return }
+        guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -44,6 +39,9 @@ final class NotificationService {
             content: content,
             trigger: nil
         )
+        // No cached authorization flag: the system drops the request itself
+        // when unauthorized, and the flag was written from UN callback
+        // threads — a data race for zero benefit.
         center.add(req)
     }
 }

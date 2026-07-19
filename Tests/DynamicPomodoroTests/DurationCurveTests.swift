@@ -1,14 +1,25 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DynamicPomodoro
 
-final class DurationCurveTests: XCTestCase {
-    private func makeSettings() -> Settings {
-        let s = Settings.shared
-        s.workdayStartMinutes = 9 * 60
-        s.workdayEndMinutes = 18 * 60
-        s.minFocusMinutes = 20
-        s.maxFocusMinutes = 40
-        return s
+@Suite("DurationCurve")
+final class DurationCurveTests {
+    private let suiteName: String
+    private let defaults: UserDefaults
+    private let settings: Settings
+
+    init() {
+        suiteName = "DurationCurveTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)!
+        settings = Settings(defaults: defaults)
+        settings.workdayStartMinutes = 9 * 60
+        settings.workdayEndMinutes = 18 * 60
+        settings.minFocusMinutes = 20
+        settings.maxFocusMinutes = 40
+    }
+
+    deinit {
+        defaults.removePersistentDomain(forName: suiteName)
     }
 
     private func date(hour: Int, minute: Int = 0) -> Date {
@@ -18,91 +29,78 @@ final class DurationCurveTests: XCTestCase {
         return Calendar.current.date(from: c)!
     }
 
-    func testFirstSessionOfDayIsAlwaysMinimum() {
-        let s = makeSettings()
+    @Test func firstSessionOfDayIsAlwaysMinimum() {
         // Even at peak time, first session = min.
         let d = DurationCurve.focusDuration(
             now: date(hour: 13, minute: 30),
             isFirstSessionOfDay: true,
-            settings: s
+            settings: settings
         )
-        XCTAssertEqual(d, 20)
+        #expect(d == 20)
     }
 
-    func testMidpointReachesMaximum() {
-        let s = makeSettings()
+    @Test func midpointReachesMaximum() {
         let d = DurationCurve.focusDuration(
             now: date(hour: 13, minute: 30),
             isFirstSessionOfDay: false,
-            settings: s
+            settings: settings
         )
-        XCTAssertEqual(d, 40)
+        #expect(d == 40)
     }
 
-    func testWorkdayEdgesReturnMinimum() {
-        let s = makeSettings()
-        XCTAssertEqual(
-            DurationCurve.focusDuration(now: date(hour: 9), isFirstSessionOfDay: false, settings: s),
-            20
-        )
-        XCTAssertEqual(
-            DurationCurve.focusDuration(now: date(hour: 18), isFirstSessionOfDay: false, settings: s),
-            20
-        )
+    @Test func workdayEdgesReturnMinimum() {
+        #expect(DurationCurve.focusDuration(now: date(hour: 9), isFirstSessionOfDay: false, settings: settings) == 20)
+        #expect(DurationCurve.focusDuration(now: date(hour: 18), isFirstSessionOfDay: false, settings: settings) == 20)
     }
 
-    func testOutsideWorkdayClampsToMinimum() {
-        let s = makeSettings()
+    @Test func outsideWorkdayClampsToMinimum() {
         let early = DurationCurve.focusDuration(
-            now: date(hour: 7), isFirstSessionOfDay: false, settings: s
+            now: date(hour: 7), isFirstSessionOfDay: false, settings: settings
         )
         let late = DurationCurve.focusDuration(
-            now: date(hour: 22), isFirstSessionOfDay: false, settings: s
+            now: date(hour: 22), isFirstSessionOfDay: false, settings: settings
         )
-        XCTAssertEqual(early, 20)
-        XCTAssertEqual(late, 20)
+        #expect(early == 20)
+        #expect(late == 20)
     }
 
-    func testMidMorningIsBetweenMinAndMax() {
-        let s = makeSettings()
+    @Test func midMorningIsBetweenMinAndMax() {
         let d = DurationCurve.focusDuration(
             now: date(hour: 10, minute: 30),
             isFirstSessionOfDay: false,
-            settings: s
+            settings: settings
         )
-        XCTAssertGreaterThan(d, 20)
-        XCTAssertLessThan(d, 40)
+        #expect(d > 20)
+        #expect(d < 40)
         // Per spec formula: distance=180min, ratio=0.667, cos(π·0.667)≈-0.5,
         // weight=0.25, duration = 20 + 20·0.25 = 25. The spec's illustrative table
         // says "~30 min" here, but the explicit formula block is authoritative.
-        XCTAssertEqual(d, 25)
+        #expect(d == 25)
     }
 
-    func testNoonIsBelowPeak() {
-        let s = makeSettings()
+    @Test func noonIsBelowPeak() {
         // 12:00 is 90min from midpoint → formula yields 35 (not the table's ~40).
         // Confirms we follow the formula, not the table.
         let d = DurationCurve.focusDuration(
             now: date(hour: 12),
             isFirstSessionOfDay: false,
-            settings: s
+            settings: settings
         )
-        XCTAssertEqual(d, 35)
+        #expect(d == 35)
     }
 
-    func testCurveIsSymmetricAroundMidpoint() {
-        let s = makeSettings()
+    @Test func curveIsSymmetricAroundMidpoint() {
         let morning = DurationCurve.focusDuration(
             now: date(hour: 11, minute: 30),
             isFirstSessionOfDay: false,
-            settings: s
+            settings: settings
         )
         // Mirror across 13:30 → 15:30.
         let afternoon = DurationCurve.focusDuration(
             now: date(hour: 15, minute: 30),
             isFirstSessionOfDay: false,
-            settings: s
+            settings: settings
         )
-        XCTAssertEqual(morning, afternoon)
+        #expect(morning == afternoon)
     }
 }

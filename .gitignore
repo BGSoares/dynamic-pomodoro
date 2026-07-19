@@ -6,3 +6,5 @@ DerivedData/
 .DS_Store
 .vscode/
 dist/
+tmp/
+AppIcon.iconset/
