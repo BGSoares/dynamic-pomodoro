@@ -92,6 +92,13 @@ enum PomodoroReducer {
     /// without the lock would be a security risk.
     static let breakLockDelaySeconds: TimeInterval = 30
 
+    /// Seconds past a focus deadline beyond which the session is treated as
+    /// interrupted-by-absence (lid closed, machine asleep) rather than
+    /// completed. While the app is awake, ticks arrive every second, so an
+    /// overshoot this large can only mean nobody was there: no fabricated
+    /// completion, no break, no chime, no screen lock on wake.
+    static let missedDeadlineGraceSeconds: TimeInterval = 180
+
     static func reduce(
         _ state: inout PomodoroState,
         _ action: PomodoroAction,
@@ -106,7 +113,7 @@ enum PomodoroReducer {
             guard case .idle = state.phase else { return [] }
             let minutes = DurationCurve.focusDuration(
                 now: now,
-                isFirstSessionOfDay: !log.hasEntryToday(now: now),
+                isFirstSessionOfDay: !log.hasCompletedFocusToday(now: now),
                 settings: settings
             )
             let sessionSeconds = minutes * 60
@@ -138,7 +145,17 @@ enum PomodoroReducer {
             case .idle:
                 return [.stopTicker]
 
-            case .focus(let deadline, _, _):
+            case .focus(let deadline, let startedAt, let planned):
+                if now.timeIntervalSince(deadline) > Self.missedDeadlineGraceSeconds {
+                    // Slept across the deadline. The ticker died before the
+                    // deadline, so actual focus was < planned; log it as
+                    // abandoned at the deadline (upper bound) and go idle.
+                    resetToIdle(&state)
+                    return [
+                        .stopTicker,
+                        .logSession(SessionLogEntry(kind: .focusAbandoned, from: startedAt, to: deadline, minutes: planned)),
+                    ]
+                }
                 let remaining = max(0, Int(ceil(deadline.timeIntervalSince(now))))
                 state.remainingSeconds = remaining
                 if remaining == 0 {

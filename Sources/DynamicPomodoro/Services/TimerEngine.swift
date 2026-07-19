@@ -69,7 +69,7 @@ final class TimerEngine: ObservableObject {
     func suggestedFocusMinutes(now: Date = Date()) -> Int {
         DurationCurve.focusDuration(
             now: now,
-            isFirstSessionOfDay: !log.hasEntryToday(now: now),
+            isFirstSessionOfDay: !log.hasCompletedFocusToday(now: now),
             settings: settings
         )
     }

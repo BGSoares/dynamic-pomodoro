@@ -155,11 +155,13 @@ final class SessionLogStore {
 
     func append(_ entry: SessionLogEntry) { store.append(entry) }
 
-    /// Has any focus or break entry been recorded today (user-local day)?
-    /// Used to decide whether the next focus session is the day's first
-    /// (which forces the curve to its minimum duration).
-    func hasEntryToday(calendar: Calendar = .current, now: Date = Date()) -> Bool {
-        entries.contains { calendar.isDate($0.startedAt, inSameDayAs: now) }
+    /// Has a focus session been *completed* today (user-local day)?
+    /// Decides whether the next session is the day's first, which forces the
+    /// curve to its minimum duration. Only completed focus counts: a
+    /// one-minute abandoned attempt provides no warm-up, so it must not
+    /// consume the day's short first session.
+    func hasCompletedFocusToday(calendar: Calendar = .current, now: Date = Date()) -> Bool {
+        entries.contains { $0.kind == .focusCompleted && calendar.isDate($0.startedAt, inSameDayAs: now) }
     }
 
     /// Most recent break-activity IDs, newest first.

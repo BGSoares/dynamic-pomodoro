@@ -53,6 +53,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
     }
 
+    /// Quitting mid-break would be a one-keystroke, unlogged break skip —
+    /// far cheaper than the sanctioned 15-second hold. The tool absorbs that
+    /// decision (PURPOSE principle 4): finish the break or hold to skip,
+    /// and quit works again the moment the break is over.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if case .breakRunning = timer.state.phase { return .terminateCancel }
+        return .terminateNow
+    }
+
     // MARK: - Main menu (needed for ⌘Q and ⌘, to work on an .accessory app)
 
     private func setupMainMenu() {
@@ -63,11 +72,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenuItem.submenu = appMenu
 
         addSharedMenuTail(to: appMenu)
+        #if DEBUG
         // Hidden test shortcut: ⌘⌃⌥⇧T fast-forwards the current timer so the
-        // end-of-phase UI can be exercised without waiting. Deliberately awkward
-        // (all four modifiers) so it isn't hit accidentally.
+        // end-of-phase UI can be exercised without waiting. Debug builds only:
+        // in a release build it would be a friction-free break skip that logs
+        // a full breakCompleted, corrupting both the loop and the data.
         addItem("Fast-forward timer (test)", to: appMenu, action: #selector(menuFastForward),
                 key: "t", modifiers: [.command, .control, .option, .shift])
+        #endif
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Dynamic Pomodoro",
                         action: #selector(NSApplication.terminate(_:)),
@@ -91,7 +103,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addItem("Open", to: menu, action: #selector(openMainWindow), key: "o")
         menu.addItem(.separator())
         addItem("Start focus", to: menu, action: #selector(menuStartFocus), key: "s")
-        addItem("Abandon session", to: menu, action: #selector(menuAbandon))
         menu.addItem(.separator())
         addSharedMenuTail(to: menu)
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -186,13 +197,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openMainWindow()
     }
 
-    @objc private func menuAbandon() {
-        if case .focus = timer.state.phase { timer.abandonFocus() }
-    }
-
+    #if DEBUG
     @objc private func menuFastForward() {
         timer.fastForward()
     }
+    #endif
 
     /// Point the menu item at Sparkle's controller so its built-in
     /// `validateMenuItem:` greys the item out while a check is in flight.
