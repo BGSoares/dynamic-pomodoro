@@ -3,6 +3,13 @@ import Foundation
 /// Shared Application Support directory and codecs for all on-disk persistence.
 enum AppSupport {
     static var directory: URL {
+        #if DEBUG
+        // Test seam: lets E2E runs point persistence at a scratch directory
+        // instead of the real Application Support folder.
+        if let override = ProcessInfo.processInfo.environment["DP_APP_SUPPORT_DIR"] {
+            return URL(fileURLWithPath: override, isDirectory: true)
+        }
+        #endif
         let fm = FileManager.default
         let base = (try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
             ?? fm.temporaryDirectory
@@ -24,7 +31,7 @@ enum AppSupport {
 }
 
 /// One entry per focus session or break, for the success-metrics review (§10).
-/// Stored as JSON lines in Application Support.
+/// Stored as a single pretty-printed JSON array in Application Support.
 struct SessionLogEntry: Codable, Equatable {
     enum Kind: String, Codable {
         case focusCompleted
@@ -93,23 +100,26 @@ extension SessionLogEntry {
 }
 
 /// Generic append-only JSON array persisted to a single file in Application Support.
-/// Shared by SessionLogStore and FeedbackStore to avoid duplicating load/save/queue boilerplate.
+/// Shared by SessionLogStore and FeedbackStore to avoid duplicating load/save boilerplate.
+/// Main-thread only: every caller (TimerEngine, views) is @MainActor, so no
+/// internal synchronization is needed.
 final class JSONArrayStore<Element: Codable> {
     private(set) var elements: [Element] = []
     private let fileURL: URL
-    private let queue: DispatchQueue
 
-    init(directory: URL, filename: String, label: String) {
+    init(directory: URL, filename: String) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         fileURL = directory.appendingPathComponent(filename)
-        queue = DispatchQueue(label: label)
         load()
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
-        guard let decoded = try? AppSupport.decoder.decode([Element].self, from: data) else {
-            // Preserve corrupted file — the rename signals corruption without destroying history.
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        guard let data = try? Data(contentsOf: fileURL),
+              let decoded = try? AppSupport.decoder.decode([Element].self, from: data) else {
+            // Unreadable or corrupt: preserve the file — the rename signals
+            // the problem without destroying history, and the next save()
+            // would otherwise clobber it.
             let backup = fileURL.appendingPathExtension("corrupt-\(Int(Date().timeIntervalSince1970))")
             try? FileManager.default.moveItem(at: fileURL, to: backup)
             return
@@ -123,7 +133,8 @@ final class JSONArrayStore<Element: Codable> {
     }
 
     func append(_ element: Element) {
-        queue.sync { elements.append(element); save() }
+        elements.append(element)
+        save()
     }
 }
 
@@ -139,7 +150,7 @@ final class SessionLogStore {
     /// Construct against an explicit directory. Used by tests to point at a
     /// temp dir instead of the user's real Application Support folder.
     init(directory: URL) {
-        store = JSONArrayStore(directory: directory, filename: "sessions.json", label: "pomodoro.sessionlog")
+        store = JSONArrayStore(directory: directory, filename: "sessions.json")
     }
 
     func append(_ entry: SessionLogEntry) { store.append(entry) }

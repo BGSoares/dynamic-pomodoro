@@ -63,7 +63,7 @@ final class FeedbackStore {
     private convenience init() { self.init(directory: AppSupport.directory) }
 
     init(directory: URL) {
-        store = JSONArrayStore(directory: directory, filename: "feedback.json", label: "pomodoro.feedback")
+        store = JSONArrayStore(directory: directory, filename: "feedback.json")
     }
 
     func append(_ response: FeedbackResponse) { store.append(response) }
