@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.1
 import PackageDescription
 
 let package = Package(
@@ -13,11 +13,16 @@ let package = Package(
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            resources: [.process("Resources")]
+            resources: [.process("Resources")],
+            // Language mode pinned to v5: the tools-version bump (needed for
+            // swift-testing under bare Command Line Tools) must not drag the
+            // codebase into strict-concurrency mode as a side effect.
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
             name: "DynamicPomodoroTests",
-            dependencies: ["DynamicPomodoro"]
+            dependencies: ["DynamicPomodoro"],
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
     ]
 )

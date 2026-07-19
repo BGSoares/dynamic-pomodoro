@@ -99,11 +99,17 @@ Data persisted locally:
 
 ## Tests
 
-Unit tests for the pure logic live in `Tests/DynamicPomodoroTests/`. They use `XCTest`, which requires **Xcode** (not just Command Line Tools) to run:
+Unit tests for the pure logic live in `Tests/DynamicPomodoroTests/`, written with [swift-testing](https://github.com/swiftlang/swift-testing).
+
+Bare Command Line Tools ship no testing runtime (neither XCTest nor swift-testing).
+To run tests locally, use a full toolchain — Xcode, or the swift.org toolchain via [swiftly](https://www.swift.org/install/):
 
 ```bash
-swift test          # requires Xcode installed
+brew install swiftly && swiftly init --no-modify-profile
+~/.swiftly/bin/swift test
 ```
+
+CI runs the suite on every push and PR (`.github/workflows/ci.yml`).
 
 ## Packaging as a real .app
 
