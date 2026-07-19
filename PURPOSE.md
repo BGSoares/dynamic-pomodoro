@@ -22,7 +22,7 @@ This app fixes both. Focus durations follow a bell curve across the workday. Bre
 A focus session is what fits *this hour of this day*, not a constant. The cosine curve in [DurationCurve.swift](Sources/DynamicPomodoro/Logic/DurationCurve.swift) is the literal expression of this principle. The first session of the day is always the shortest — readiness is a function of time-since-start, not just clock time.
 
 **2. Rest is part of the work, not a tax on it.**
-This is the cycling metaphor that runs through the entire app: pros recover between intervals, and that recovery is *why* the intervals get better. The reminder messages in [Messages.swift](Sources/DynamicPomodoro/Logic/Messages.swift) are not motivational filler — they are the scientific and athletic argument for why a break is non-negotiable.
+This is the training principle that runs through the entire app: athletes recover between intervals, and that recovery is *why* the intervals get better. The reminder messages in [Messages.swift](Sources/DynamicPomodoro/Logic/Messages.swift) are not motivational filler — they are the scientific and athletic argument for why a break is non-negotiable.
 
 **3. Recovery is active, specific, and prescribed.**
 A break that says "take 5 minutes" produces another browser tab. A break that says "find a doorway, forearm against the frame, step forward, feel the chest open" produces a body that is no longer collapsed over a keyboard. The activity library is the content of the app. It is curated, not crowd-sourced, not customisable through the UI — it is the opinion of the tool.
