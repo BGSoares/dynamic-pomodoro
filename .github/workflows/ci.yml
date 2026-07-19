@@ -10,6 +10,10 @@ on:
     branches: [main]
   pull_request:
 
+# Build+test needs nothing beyond checkout; keep the token read-only.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: macos-latest
