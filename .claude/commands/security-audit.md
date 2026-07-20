@@ -24,8 +24,8 @@ The app's exposure is narrow. Audit these surfaces, in priority order:
    - Appcast URL — is it HTTPS, does the redirect chain stay HTTPS, what happens on cert failure, what happens if the GitHub redirect target is attacker-controlled (private repo / typo-squatting).
 
 2. **Local files the app reads or writes.**
-   - `~/Library/Application Support/DynamicPomodoro/sessions.json` and `feedback.json` — does the writer validate path, follow symlinks, atomic-write, set sane permissions? Could another process on the same machine (which is in-scope only for a malicious helper / shared-mac case) inject content that crashes the parser or steers selection logic?
-   - JSON decoding of bundled `Resources/activities.json` and `feedback_question.json` — fail-closed vs fail-open, behaviour on malformed JSON, behaviour on a swapped bundle resource (codesign should catch this; verify).
+   - `~/Library/Application Support/DynamicPomodoro/sessions.json` — does the writer validate path, follow symlinks, atomic-write, set sane permissions? Could another process on the same machine (which is in-scope only for a malicious helper / shared-mac case) inject content that crashes the parser or steers selection logic?
+   - JSON decoding of bundled `Resources/activities.json` — fail-closed vs fail-open, behaviour on malformed JSON, behaviour on a swapped bundle resource (codesign should catch this; verify).
    - [`Sources/DynamicPomodoro/Models/SessionLog.swift`](../../Sources/DynamicPomodoro/Models/SessionLog.swift) and any other persistence in `Models/` — same questions.
 
 3. **Sandbox and entitlements.**

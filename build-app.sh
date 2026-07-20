@@ -146,7 +146,6 @@ fi
 # resolve them via `Bundle.main`. See Sources/DynamicPomodoro/ResourceBundle.swift.
 RESOURCE_FILES=(
     activities.json
-    feedback_question.json
     DolphinTemplate.png
     DolphinTemplate@2x.png
 )
