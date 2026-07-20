@@ -41,9 +41,17 @@ git push origin v1.0.1
 
 The workflow uses the `SPARKLE_ED_PRIVATE_KEY` repository secret to sign the zip, so no Sparkle install or local Keychain key is needed for releases. Mirrors Lede's `tauri-action` setup.
 
-Fallback (local): `./release.sh 1.0.1` does the same thing on your machine — builds, signs (with the Keychain key from `generate_keys`), tags, and creates the release with both assets attached. Useful if CI is broken or you want to ship a build without pushing the tag through CI. The workflow is idempotent: if it fires on a tag that release.sh already published, it just re-uploads the assets with `--clobber`.
+Fallback (local): `./release.sh 1.0.1` does the same thing on your machine — builds, signs (with the Keychain key from `generate_keys`), tags, and creates the release with all three assets attached. Useful if CI is broken or you want to ship a build without pushing the tag through CI. The workflow is idempotent: if it fires on a tag that release.sh already published, it just re-uploads the assets with `--clobber`.
 
 The build number (`CFBundleVersion`, used by Sparkle to decide whether an update is newer) defaults to the count of git commits, so it increases monotonically without manual bookkeeping.
+
+### Zero-network variant (NoSparkle)
+
+Each release also carries `DynamicPomodoro-NoSparkle-<version>.zip`.
+That build has no updater framework, no `SU*` Info.plist keys, and no entitlements – library validation stays fully enabled and the app makes no network connections at all.
+Use it on machines where auto-update (or any network activity) is unwanted.
+Updates are manual: download the next release's NoSparkle zip and replace the app in `/Applications`.
+The same variant builds locally via `./build-app.sh <version> <build> --no-sparkle`.
 
 ## Architecture
 

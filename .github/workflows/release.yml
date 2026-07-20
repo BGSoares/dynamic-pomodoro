@@ -2,8 +2,9 @@ name: Release
 
 # Tag-push release pattern: tag `vX.Y.Z`, push, and CI builds the .app,
 # signs the zip with the Sparkle EdDSA key from repository secrets,
-# then creates a GitHub release with both the zip and a fresh appcast.xml
-# as assets. Installed clients pick up the appcast via the
+# then creates a GitHub release with the zip, a fresh appcast.xml, and a
+# NoSparkle zip (zero-network variant, installed manually) as assets.
+# Installed clients pick up the appcast via the
 # `releases/latest/download/appcast.xml` redirect — same pattern Lede uses.
 # Requires the repo to be public.
 #
@@ -42,6 +43,18 @@ jobs:
 
       - name: Check build number is newer than the published release
         run: ./scripts/check-build-monotonic.sh "${{ steps.meta.outputs.build }}" "${{ github.repository }}"
+
+      # Both variants build into the same /Applications/DynamicPomodoro.app
+      # path, so each build is zipped before the next one overwrites it.
+      - name: Build .app bundle (NoSparkle variant)
+        run: ./build-app.sh "${{ steps.meta.outputs.version }}" "${{ steps.meta.outputs.build }}" --no-sparkle
+
+      - name: Zip the NoSparkle .app
+        run: |
+          mkdir -p dist
+          (cd /Applications && ditto -c -k --keepParent --sequesterRsrc \
+              DynamicPomodoro.app \
+              "$GITHUB_WORKSPACE/dist/DynamicPomodoro-NoSparkle-${{ steps.meta.outputs.version }}.zip")
 
       - name: Build .app bundle
         run: ./build-app.sh "${{ steps.meta.outputs.version }}" "${{ steps.meta.outputs.build }}"
@@ -93,21 +106,24 @@ jobs:
             "${{ github.repository }}" \
             dist/appcast.xml
 
-      - name: Create GitHub release (zip + appcast)
+      - name: Create GitHub release (zip + appcast + NoSparkle zip)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
           ZIP="dist/DynamicPomodoro-$VERSION.zip"
+          NOSPARKLE_ZIP="dist/DynamicPomodoro-NoSparkle-$VERSION.zip"
           APPCAST="dist/appcast.xml"
+          NOTES="Auto-update release. Existing installs will pick this up via Sparkle.
+          The NoSparkle zip is the zero-network variant (no updater, no entitlements) – install it manually."
           # Idempotent: if the tag was pushed by a local release.sh that
           # already created the release, just upload/replace the assets
           # instead of failing.
           if gh release view "v$VERSION" >/dev/null 2>&1; then
               echo "Release v$VERSION already exists — uploading assets with --clobber"
-              gh release upload "v$VERSION" "$ZIP" "$APPCAST" --clobber
+              gh release upload "v$VERSION" "$ZIP" "$NOSPARKLE_ZIP" "$APPCAST" --clobber
           else
-              gh release create "v$VERSION" "$ZIP" "$APPCAST" \
+              gh release create "v$VERSION" "$ZIP" "$NOSPARKLE_ZIP" "$APPCAST" \
                   --title "v$VERSION" \
-                  --notes "Auto-update release. Existing installs will pick this up via Sparkle."
+                  --notes "$NOTES"
           fi
