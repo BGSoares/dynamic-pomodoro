@@ -16,11 +16,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updater = UpdaterService.shared
 
     private var statusItem: NSStatusItem!
+    /// Held so the countdown can detach it (button click cancels instead of
+    /// opening the menu) and reattach it once the countdown ends.
+    private var statusMenu: NSMenu!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private lazy var overlayManager = BreakOverlayManager(timer: timer)
+    private lazy var unlockAutoStart = UnlockAutoStartService(timer: timer)
     private var phaseCancellable: AnyCancellable?
     private var titleCancellable: AnyCancellable?
+    private var countdownCancellable: AnyCancellable?
 
     private lazy var menuBarFont = NSFont.monospacedDigitSystemFont(
         ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
@@ -56,6 +61,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     if case .breakRunning = newPhase { self.overlayManager.show() } else { self.overlayManager.hide() }
                 }
             }
+
+        // Short-circuit the status item's own menu while a countdown is
+        // active, so a click cancels it instead of opening "Open"/"Start
+        // focus"/etc (SPEC_UNLOCK_AUTOSTART.md §5.2).
+        countdownCancellable = unlockAutoStart.$isCountingDown.sink { [weak self] active in
+            Task { @MainActor in self?.updateStatusItemForCountdown(active) }
+        }
     }
 
     /// Quitting mid-break (or while one is owed) would be a one-keystroke,
@@ -86,6 +98,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // a full breakCompleted, corrupting both the loop and the data.
         addItem("Fast-forward timer (test)", to: appMenu, action: #selector(menuFastForward),
                 key: "t", modifiers: [.command, .control, .option, .shift])
+        // Hidden test shortcut: exercises the unlock auto-start countdown
+        // (SPEC_UNLOCK_AUTOSTART.md) without actually locking the screen.
+        // Runs the identical gate + countdown path a real unlock would.
+        addItem("Simulate unlock (test)", to: appMenu, action: #selector(menuSimulateUnlock),
+                key: "u", modifiers: [.command, .control, .option, .shift])
         #endif
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Dynamic Pomodoro",
@@ -113,9 +130,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         addSharedMenuTail(to: menu)
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        statusItem.menu = menu
+        statusMenu = menu
+        statusItem.menu = statusMenu
 
         updateStatusItemTitle(for: timer.state)
+    }
+
+    /// While the unlock auto-start countdown is up, detach the status
+    /// item's menu and point its button at the cancel action instead — a
+    /// click cancels the countdown rather than opening "Open"/"Start
+    /// focus"/etc. Restored the moment the countdown ends, by any path.
+    private func updateStatusItemForCountdown(_ active: Bool) {
+        guard let button = statusItem?.button else { return }
+        if active {
+            statusItem.menu = nil
+            button.target = self
+            button.action = #selector(cancelUnlockCountdown)
+        } else {
+            button.target = nil
+            button.action = nil
+            statusItem.menu = statusMenu
+        }
+    }
+
+    @objc private func cancelUnlockCountdown() {
+        unlockAutoStart.cancelCountdown(suppress: true)
     }
 
     /// Settings + separator + Check for Updates + separator — appears in both the app menu and the status menu.
@@ -208,6 +247,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #if DEBUG
     @objc private func menuFastForward() {
         timer.fastForward()
+    }
+
+    @objc private func menuSimulateUnlock() {
+        unlockAutoStart.handleUnlock()
     }
     #endif
 
