@@ -108,6 +108,11 @@ struct UnlockGateTests {
         #expect(UnlockGate.shouldStillFire(deadline: deadline, now: deadline.addingTimeInterval(-5)))
     }
 
+    @Test func stillFiresExactlyAtTheGraceBoundary() {
+        let deadline = Date(timeIntervalSince1970: 2_000_000)
+        #expect(UnlockGate.shouldStillFire(deadline: deadline, now: deadline.addingTimeInterval(3)))
+    }
+
     @Test func doesNotFireAfterOvershootingGrace() {
         let deadline = Date(timeIntervalSince1970: 2_000_000)
         #expect(!UnlockGate.shouldStillFire(deadline: deadline, now: deadline.addingTimeInterval(3.01)))

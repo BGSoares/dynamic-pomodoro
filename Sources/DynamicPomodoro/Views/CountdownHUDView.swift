@@ -5,6 +5,9 @@ import SwiftUI
 /// knowledge of the notification, the gate, or its own panel lifecycle.
 struct CountdownHUDView: View {
     @ObservedObject var service: UnlockAutoStartService
+    /// The panel handles its own alpha fade; this drives the "subtle SwiftUI
+    /// scale 0.96→1" half of the entrance §5.1 asks for.
+    @State private var appeared = false
 
     /// Drains from 1 to 0 as the countdown runs out.
     private var progress: Double {
@@ -39,5 +42,9 @@ struct CountdownHUDView: View {
         }
         .padding(24)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .scaleEffect(appeared ? 1 : 0.96)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.25)) { appeared = true }
+        }
     }
 }
