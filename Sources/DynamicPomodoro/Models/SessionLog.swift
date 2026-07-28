@@ -179,4 +179,19 @@ final class SessionLogStore {
     func dailyStats(calendar: Calendar = .current, now: Date = Date()) -> DailyStats {
         DailyStats.compute(from: entries, calendar: calendar, now: now)
     }
+
+    /// The moment the most recent break ended (completed or skipped) — but
+    /// only if nothing has run since. Entries are appended in chronological
+    /// order and logged at the *end* of a phase, so "the log's last entry is
+    /// a break end" already means "no focus has started after it"; the
+    /// caller pairs this with the engine's own idle check (a focus in
+    /// progress hasn't logged anything yet, so it wouldn't show up here
+    /// either way, but the phase check is the authoritative "nothing is
+    /// running" signal).
+    func lastBreakEnd() -> Date? {
+        guard let last = entries.last,
+              last.kind == .breakCompleted || last.kind == .breakSkipped
+        else { return nil }
+        return last.endedAt
+    }
 }

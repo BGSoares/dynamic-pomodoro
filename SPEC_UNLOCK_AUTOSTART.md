@@ -1,6 +1,6 @@
 # Feature spec — Unlock auto-start countdown
 
-**Status:** Proposed · not yet implemented
+**Status:** Implemented, per the recommendations in §10's open questions.
 **Scope:** One new service, one new HUD view, one pure gate, one log query, two hidden tunables, one status-item hook.
 
 ---

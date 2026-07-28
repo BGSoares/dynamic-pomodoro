@@ -2,7 +2,11 @@ import Foundation
 import SwiftUI
 
 /// User-configurable settings, persisted in UserDefaults.
-/// Four values. That's the whole surface.
+/// Four values shown in `SettingsView` — that's the whole personalisation
+/// surface (PURPOSE principle 5). Two more live here unexposed: opinionated
+/// timings for the unlock auto-start countdown, tunable via `defaults write`
+/// but deliberately absent from the UI, same posture as the reducer's
+/// hardcoded timing constants.
 final class Settings: ObservableObject {
     static let shared = Settings()
 
@@ -11,6 +15,8 @@ final class Settings: ObservableObject {
         static let workdayEndMinutes = "workdayEndMinutes"
         static let minFocusMinutes = "minFocusMinutes"
         static let maxFocusMinutes = "maxFocusMinutes"
+        static let autoStartCountdownSeconds = "autoStartCountdownSeconds"
+        static let autoStartWindowMinutes = "autoStartWindowMinutes"
     }
 
     private let defaults: UserDefaults
@@ -27,6 +33,14 @@ final class Settings: ObservableObject {
     @Published var maxFocusMinutes: Int {
         didSet { defaults.set(maxFocusMinutes, forKey: Key.maxFocusMinutes) }
     }
+    /// HUD countdown length before an owed-nothing unlock auto-starts focus.
+    @Published var autoStartCountdownSeconds: Int {
+        didSet { defaults.set(autoStartCountdownSeconds, forKey: Key.autoStartCountdownSeconds) }
+    }
+    /// How long after a break ends an unlock still counts as "just back" (§3, G3).
+    @Published var autoStartWindowMinutes: Int {
+        didSet { defaults.set(autoStartWindowMinutes, forKey: Key.autoStartWindowMinutes) }
+    }
 
     /// `defaults` is injectable so tests run against a scratch suite instead
     /// of mutating the real domain through the shared singleton.
@@ -40,6 +54,8 @@ final class Settings: ObservableObject {
         let end = defaults.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
         let minF = defaults.object(forKey: Key.minFocusMinutes) as? Int ?? 20
         let maxF = defaults.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
+        let countdown = defaults.object(forKey: Key.autoStartCountdownSeconds) as? Int ?? 15
+        let window = defaults.object(forKey: Key.autoStartWindowMinutes) as? Int ?? 20
 
         let clampedStart = min(max(start, 0), 23 * 60 + 45)
         let clampedEnd = min(max(end, clampedStart + 60), 24 * 60)
@@ -49,6 +65,8 @@ final class Settings: ObservableObject {
         workdayEndMinutes = clampedEnd
         minFocusMinutes = min(min(max(minF, 5), 60), clampedMax - 5)
         maxFocusMinutes = clampedMax
+        autoStartCountdownSeconds = min(max(countdown, 3), 120)
+        autoStartWindowMinutes = min(max(window, 1), 180)
     }
 
     var midpointMinutes: Int { (workdayStartMinutes + workdayEndMinutes) / 2 }
