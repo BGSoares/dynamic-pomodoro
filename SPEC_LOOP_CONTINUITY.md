@@ -16,7 +16,7 @@ into the menu bar, one refines a dial.
 
 Changes 1 and 2 reuse the unlock countdown's machinery;
 [`SPEC_UNLOCK_AUTOSTART.md`](SPEC_UNLOCK_AUTOSTART.md) stays authoritative for the unlock trigger,
-with one amendment forced by change 5 (§6.4).
+with one amendment forced by change 5 (§6.5).
 
 ---
 
@@ -172,8 +172,8 @@ session; doing nothing starts nothing.
 
 No new view, no new window, no countdown, no auto-start.
 
-The break-complete chime and the "Break complete — Ready when you are" notification are unchanged
-except that the chime is now call-gated (§6.2).
+The break-complete chime and the "Break complete — Ready when you are" notification are unchanged,
+full stop — neither is gated on anything (§6.4).
 
 **Ordering note for the implementer:** the overlay's fade-out (1.5 s, shielding level) is still
 running when the window is presented, so the window is revealed *by* the fade rather than popping
@@ -330,14 +330,18 @@ consumer honours it — otherwise half of §9's manual checklist is untestable.
 | Countdown-cancel window (§4.2) | Not presented. |
 | Countdown HUD, both triggers (§2, unlock) | Not shown, and no session starts (§6.3). |
 | `.breakPending` window | Already removed by §4.3 — the menu item replaces it. |
-| Focus-complete and break-complete chimes | Not played. `TimerEngine.run` gates both effects on the call probe. The reducer already withholds the chime on the deferred path ("it could bleed into the call"); this finishes the thought. |
-| Full-screen break overlay | Already prevented: a break cannot *start* during a call (`.breakPending`). See §11 for the mid-break-call boundary. |
+| Full-screen break overlay | Structurally impossible already — see §6.4. No code. |
+| Chimes | Nothing to gate — see §6.4. No code. |
 
 **Not suppressed:** the menu-bar title and its click behaviour (ambient, cannot land in a shared
 screen); user notifications (macOS Focus modes are the right layer, and the "break starts when your
 call ends" banner is the only signal that a break is owed); a window the user opens themselves from
-the menu. The rule is that the app never puts a window on screen *the user did not ask for* while a
-call is live — Esc-to-cancel is a request to stop a countdown, not a request for a window.
+the menu; and **anything downstream of "Start break now"** (§4.3) — that override exists precisely
+for a false call signal, so the break it starts runs in full, overlay and chime included.
+
+The rule underneath all of this: the app never puts a window on screen, or a sound in the room,
+*that the user did not ask for*, while a call is live. Esc-to-cancel is a request to stop a
+countdown, not a request for a window. "Start break now" is a request for a break.
 
 ### §6.3 A suppressed countdown starts nothing
 
@@ -347,7 +351,39 @@ this app begins without the user having seen the countdown that offered it. The 
 rather than queued, and no suppression flag is written — so a later unlock inside the window can
 still offer once the call is over.
 
-### §6.4 Amendment to SPEC_UNLOCK_AUTOSTART.md
+### §6.4 Why the overlay and the chimes need no code
+
+A call cannot begin during a break. The overlay covers every display at shielding level and the
+screen locks 30 seconds in, so joining a meeting requires getting past both — which means holding
+skip for 15 seconds, which *ends the break*. And a break never starts during a call in the first
+place (`.breakPending`). The two states are mutually exclusive by construction, not by a check.
+
+That leaves exactly two ways `isOnCall()` can read true while a break runs, and neither wants
+suppressing:
+
+- **The explicit override.** "Start break now" (§4.3) deliberately starts a break while the probe
+  says a call is live — it is the escape valve for a false positive, or a call the mic outlives.
+  Suppressing its overlay would break the one control that exists to overrule the probe, and
+  suppressing its chime would silence a break the user asked for out loud.
+- **A lingering mic stream.** A meeting app that holds the input device open after a call, or an
+  always-on audio tool. No real call, nobody to disturb; `breakPendingCapSeconds` already exists
+  because the codebase knows this happens.
+
+So principle 7's sound clause is satisfied structurally: every chime path either cannot coincide
+with a live call, or is one the user requested. Gating `SoundService` would be dead code that only
+ever fired on a false positive. The principle still governs anything added later — it just costs
+nothing today.
+
+The window and HUD suppressions are **not** in this category and do real work: unlocking into a
+live call is entirely ordinary (dialled in, muted, screen locked while you stepped away, break ends,
+you come back), and that is exactly when a countdown card must not appear over a shared screen.
+
+The one clause this reasoning leaves thin is F3 on the break-end foreground (§3.2), which can now
+only fire when the probe is wrong — after an override, or on a stuck stream. It stays anyway: one
+gate, applied uniformly, in one place. The cost is an occasional un-fronted window; the cost of the
+opposite mistake is the reason principle 7 exists.
+
+### §6.5 Amendment to SPEC_UNLOCK_AUTOSTART.md
 
 That spec's §3 says: *"Call state is deliberately **not** a gate input."* Principle 7 reverses it.
 The implementing PR amends that line and adds the call clause to the unlock service's entry point.
@@ -388,13 +424,13 @@ Pure decisions in `Logic/`, effectful glue in `Services/`, AppKit wiring in `mai
 | `Services/UnlockAutoStartService.swift` → `Services/AutoStartService.swift` | **Renamed** (two triggers now). Loses its observers to the monitor; gains `offerAfterSkip(now:)` beside `handleUnlock(now:)`, both funnelling into the existing `startCountdown(now:breakEnd:)` and both returning early on a live call (§6.3). Cancel paths call the window presenter (§4.2). `CountdownHUDView`'s `@ObservedObject` type follows the rename. |
 | `Services/CallDetectionService.swift` | Absorb the `DP_FAKE_ON_CALL` DEBUG override from `TimerEngine` (§6.1). |
 | `Core/PomodoroCore.swift` | Three new `PomodoroEffect` cases: `.offerAutoStart` (from `.skipBreak`, **after** `.logSession`), `.presentMainWindow` (from `completeBreak` only), `.hideMainWindow` (from `.startFocus`). The `.breakPending` entry points and the cap branch emit none of them (§2.2, §4.3). |
-| `Services/TimerEngine.swift` | Interprets the three effects by forwarding to injected closures (default no-ops, so tests stay AppKit-free). Gates `.playFocusCompleteChime` / `.playBreakCompleteChime` on the call probe (§6.2). No lock probe needed — the lock check lives with the window presenter. |
+| `Services/TimerEngine.swift` | Interprets the three effects by forwarding to injected closures (default no-ops, so tests stay AppKit-free). No chime gate (§6.4) and no lock probe — the lock check lives with the window presenter. |
 | `main.swift` | Owns `ScreenLockMonitor` and the presenter `presentMainWindow(requireUnlocked:)`, which applies F2/F3 in one place: `requireUnlocked: true` from the break-end effect, `false` from a countdown cancel. Drops `openMainWindow()` from launch and from `menuStartFocus()`. Adds the phase-gated "Start break now" item (§4.3). Rewrites `updateStatusItemTitle` for the idle title, adds the idle-only 60 s ticker and its recompute seams (§5.2), and unifies the status item's menu-vs-action mode across the idle click and the countdown short-circuit (§5.3). |
 | `Views/SettingsView.swift` | `step: 5` → `step: 1`, twice (§7). |
 | `PURPOSE.md` | Principle 7 (**already added in this PR**). |
 | `Tests/.../PomodoroCoreTests.swift` | Extended — the effect-emission matrix, §9. |
 | `Tests/.../ScreenLockStateTests.swift` | **New.** Small; §9. |
-| `SPEC_UNLOCK_AUTOSTART.md` | One-line amendment to §3 (§6.4) plus the rename pointer. |
+| `SPEC_UNLOCK_AUTOSTART.md` | One-line amendment to §3 (§6.5) plus the rename pointer. |
 | `README.md` | Architecture tree entries, and "Spec implementation notes" bullets. |
 
 `UnlockGate`'s pure functions are untouched.
@@ -412,8 +448,9 @@ Pure decisions in `Logic/`, effectful glue in `Services/`, AppKit wiring in `mai
     (§2.2) — the most important negative test in this spec.
   - Break completing emits `.presentMainWindow`; `.startFocus` emits `.hideMainWindow`.
   - Entering `.breakPending` (tick path and fast-forward path) emits **no** window effect (§4.3).
-  - With the call probe true, no chime effect reaches `SoundService` (§6.2) — asserted at the
-    engine's effect-interpretation seam, since the reducer still emits the chime.
+  - `.startPendingBreak` while the call probe is true still emits `.playFocusCompleteChime` and
+    enters `.breakRunning` — the override is exempt from principle 7 (§6.4), and a regression here
+    would silently disable the escape valve.
 - `ScreenLockStateTests`: `.unknown` and `.locked` do not satisfy F2; `.unlocked` does.
 - Existing `UnlockGateTests` and `SessionLogStoreTests` must pass **unchanged** — proof the unlock
   countdown's date logic was not disturbed.
@@ -435,8 +472,9 @@ Pure decisions in `Logic/`, effectful glue in `Services/`, AppKit wiring in `mai
    and the window disappears. Stay locked through the end instead → no window; unlock → countdown.
 8. Relaunch mid-break, let the break end while unlocked → no foregrounding (`.unknown`, §3.1).
 9. `DP_FAKE_ON_CALL=1`: fast-forward a focus session → `.breakPending`, **no window**, "Start break
-   now" appears in the menu and works. Simulate unlock → **no HUD, no session**. Let a break end →
-   **no window, no chime**. Clear the variable → everything returns.
+   now" appears in the menu. Click it → the break runs in full, overlay and chime, despite the
+   "call" (§6.4). Simulate unlock while idle → **no HUD, no session**; clear the variable, simulate
+   again → HUD returns.
 10. Settings → focus steppers move 1 min at a time; drag the minimum up and confirm it stops 5 below
     the maximum; workday steppers still jump 15 min.
 
@@ -467,6 +505,8 @@ Pure decisions in `Logic/`, effectful glue in `Services/`, AppKit wiring in `mai
 - The idle title costs a coalesced wakeup a minute while idle (§5.2) and permanent menu-bar width.
 - A Mac that never locks gets neither the unlock countdown nor the break-end foreground (§3.1).
 - Long calls silently eat breaks and suppress offers (principle 7's stated price).
+- F3 (§3.2) can now only fire when the call probe is wrong — after an override or on a stuck mic
+  stream — costing an occasional un-fronted window. Kept for uniformity: one gate, one place (§6.4).
 - The `UnlockAutoStartService` → `AutoStartService` rename dirties a file the existing spec names by
   path; that spec gets a pointer, not a rewrite.
 
@@ -474,16 +514,15 @@ Pure decisions in `Logic/`, effectful glue in `Services/`, AppKit wiring in `mai
 
 ## §11 Open questions for the implementing PR
 
-1. **Idle title copy.** Specced as `Start 32m`. The decision was written as "Start 32" — one
-   character, and the bare number is more ambiguous next to a dolphin. Say the word and it drops.
-2. **A call starting mid-break.** Principle 7 says no overlay during a call; the overlay is already
-   up in this case, and tearing it down would make joining a call a friction-free break skip. The
-   screen locks 30 s into every break, so this needs the user to unlock mid-break and join a
-   meeting. Recommendation: leave the overlay standing, treat it as the boundary of the principle,
-   revisit only if it ever happens.
-3. **Does the idle title belong in the menu bar during a call?** It is ambient and cannot appear in
-   a capture of another app's window, so §6.2 keeps it. It *is* visible in a full-screen share of
-   the whole display. Recommendation: keep — a two-word status item is not an interruption.
+None. The three raised in review are settled and folded in above: the idle title reads `Start 32m`;
+the title stays visible during calls; and "a call starting mid-break" turned out not to be a
+scenario at all, which is what §6.4 is now about.
+
+One thing to watch rather than decide: the status item now carries three different click meanings
+(cancel a countdown, start a session, open the menu) across four phases. That is the only place in
+this spec where two features share a control, and §5.3's precedence table is the whole of the
+contract — implement it as one function that owns the status item's mode, not as two features each
+reaching for `statusItem.menu`.
 
 ---
 
@@ -533,3 +572,6 @@ All answered by the owner before this spec was written.
 | Idle menu-bar title? | `Start 32m`, live from the curve, always accurate. |
 | What does clicking it do? | Starts the session immediately; right-click opens the menu. |
 | Which windows does it replace? | The launch window. The break-end foreground stays. |
+| Idle title copy: `Start 32m` or `Start 32`? | `Start 32m`. |
+| Should the idle title be hidden during a call? | No — keep it. |
+| Should the overlay be torn down if a call starts mid-break? | Moot — it cannot happen (§6.4). |

@@ -39,6 +39,8 @@ Settings live in `UserDefaults`. Sessions log to `~/Library/Application Support/
 **7. Never interrupt a meeting.**
 While a call is live, the app puts nothing on screen and makes no sound. No window, no full-screen overlay, no countdown card, no chime. Breaks already wait for the call to end ([CallDetectionService](Sources/DynamicPomodoro/Services/CallDetectionService.swift) holds them in `.breakPending`) and the deferred path already withholds its chime; this is that instinct generalised to every surface the app has. The reason is that a shared screen puts my work in front of other people, and a full-screen "TAKE A BREAK" card landing in someone else's meeting window is the single worst thing this tool could do to me. macOS exposes no way to know whether the screen is being shared, so *any live call* is the proxy — deliberately the broader signal, because being wrong in the other direction is unrecoverable. The cost is that a break owed through a long call goes unclaimed and a session that would have started on its own doesn't. Both are fine. A missed pomodoro is a missed pomodoro; an overlay in a client call is a story people tell.
 
+The exception is anything I explicitly ask for. "Start break now" exists precisely because the call signal can be wrong, so the break it starts runs in full — overlay, chime and all. The rule is that the app never puts a window on screen, or a sound in the room, that I did not ask for while a call is live.
+
 ---
 
 ## How this is supposed to make my life better
