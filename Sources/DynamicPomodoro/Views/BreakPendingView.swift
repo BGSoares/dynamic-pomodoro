@@ -1,8 +1,12 @@
 import SwiftUI
 
-/// Shown in the main window while a break is owed but a call is live.
-/// The break starts on its own when the call ends; the button is the manual
-/// escape valve (for false positives, or leaving a call the mic outlives).
+/// Shown only if a window happens to already be open while a break is owed
+/// but a call is live — .breakPending never opens a window on its own
+/// (SPEC_LOOP_CONTINUITY.md §4.2). The manual escape valve (for false
+/// positives, or a call the mic outlives) lives in the status menu's
+/// "Start break now" item now, not here — principle 7 forbids fronting a
+/// window for it, so the override "moves to the status menu" (§4.2) rather
+/// than staying duplicated in both places.
 struct BreakPendingView: View {
     @ObservedObject var timer: TimerEngine
 
@@ -29,8 +33,9 @@ struct BreakPendingView: View {
                     .monospacedDigit()
             }
 
-            Button("Start break now") { timer.startPendingBreak() }
-                .buttonStyle(.borderedProminent)
+            Text("Use “Start break now” in the menu bar to start it early.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
                 .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

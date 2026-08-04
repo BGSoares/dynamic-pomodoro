@@ -95,6 +95,19 @@ enum PomodoroEffect: Equatable {
     case startTicker
     case stopTicker
     case lockScreen
+    /// A completed hold-to-skip offers the auto-start countdown
+    /// (SPEC_LOOP_CONTINUITY.md §2) — never the call-cap skip (§2.2).
+    /// Carries `now` so the countdown's gate check uses the same instant
+    /// the skip was logged at.
+    case offerAutoStart(now: Date)
+    /// A break completed (not skipped, not capped) while the screen was
+    /// known unlocked brings the main window forward (§3). Emitted
+    /// unconditionally from `completeBreak`; the F2/F3 gate lives with the
+    /// window presenter, not the reducer.
+    case presentMainWindow
+    /// Any path into `.focus` hides the main window (§4.2) — it's the one
+    /// state that never shows it.
+    case hideMainWindow
 }
 
 // MARK: - Reducer
@@ -141,6 +154,7 @@ enum PomodoroReducer {
             return [
                 .startTicker,
                 .notify(title: "Focus started", body: "\(minutes) min."),
+                .hideMainWindow,
             ]
 
         case .abandonFocus(let now):
@@ -154,9 +168,13 @@ enum PomodoroReducer {
         case .skipBreak(let now):
             guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
             resetToIdle(&state)
+            // .logSession must precede .offerAutoStart: the offer reads
+            // SessionLogStore.lastBreakEnd(), which is this entry
+            // (SPEC_LOOP_CONTINUITY.md §2.4). Effects run in array order.
             return [
                 .stopTicker,
                 .logSession(SessionLogEntry(kind: .breakSkipped, from: startedAt, to: now, minutes: planned, activity: activity.id)),
+                .offerAutoStart(now: now),
             ]
 
         case .tick(let now):
@@ -315,6 +333,7 @@ enum PomodoroReducer {
             .logSession(SessionLogEntry(kind: .breakCompleted, from: startedAt, to: now, minutes: planned, activity: activity.id)),
             .playBreakCompleteChime,
             .notify(title: "Break complete", body: "Ready when you are."),
+            .presentMainWindow,
         ]
     }
 

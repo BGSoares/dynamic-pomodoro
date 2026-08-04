@@ -9,23 +9,32 @@ import Sparkle
 // so this builds as a plain SPM executable — no Xcode project or app bundle required.
 // Trade-off: we wire menu bar + windows by hand, but gain `swift run` portability.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settings = Settings.shared
     private let timer = TimerEngine()
     private let notifications = NotificationService.shared
     private let updater = UpdaterService.shared
 
     private var statusItem: NSStatusItem!
-    /// Held so the countdown can detach it (button click cancels instead of
-    /// opening the menu) and reattach it once the countdown ends.
+    /// Held so the countdown and the idle click can detach it (a click
+    /// cancels/starts instead of opening "Open"/"Start focus"/etc) and
+    /// reattach it once the countdown ends or the phase leaves idle.
     private var statusMenu: NSMenu!
+    /// Hidden except during `.breakPending` (SPEC_LOOP_CONTINUITY.md §4.3).
+    private var startBreakNowItem: NSMenuItem!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private lazy var overlayManager = BreakOverlayManager(timer: timer)
-    private lazy var unlockAutoStart = UnlockAutoStartService(timer: timer)
+    private lazy var autoStart = AutoStartService(timer: timer)
+    private lazy var screenLockMonitor = ScreenLockMonitor()
     private var phaseCancellable: AnyCancellable?
     private var titleCancellable: AnyCancellable?
     private var countdownCancellable: AnyCancellable?
+    private var settingsCancellable: AnyCancellable?
+    /// Idle-only ticker so the menu-bar title's suggested duration stays
+    /// accurate while idle (SPEC_LOOP_CONTINUITY.md §5.2) — created on
+    /// entering `.idle`, invalidated on leaving it.
+    private var idleTitleTicker: Timer?
 
     private lazy var menuBarFont = NSFont.monospacedDigitSystemFont(
         ofSize: NSFont.menuBarFont(ofSize: 0).pointSize,
@@ -41,7 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notifications.requestAuthorizationIfNeeded()
         setupStatusItem()
 
-        openMainWindow()
+        // No window at launch (SPEC_LOOP_CONTINUITY.md §4.2) — the status
+        // item already says "Start Nm" and one click starts it.
+
+        wireEffectHooks()
 
         // Drive the menu-bar title straight from engine state — no second
         // timer, no idle wakeups, no beat drift against the engine tick.
@@ -51,23 +63,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in self?.updateStatusItemTitle(for: newState) }
         }
 
-        // Show/hide the full-screen break overlay in response to phase changes.
+        // Show/hide the full-screen break overlay, the "Start break now"
+        // menu item, and the idle title ticker in response to phase changes.
         phaseCancellable = timer.$state
             .map(\.phase)
             .removeDuplicates(by: { $0.tag == $1.tag })
             .sink { [weak self] newPhase in
-                guard let self else { return }
-                Task { @MainActor in
-                    if case .breakRunning = newPhase { self.overlayManager.show() } else { self.overlayManager.hide() }
-                }
+                Task { @MainActor in self?.handlePhaseChange(newPhase) }
             }
 
-        // Short-circuit the status item's own menu while a countdown is
-        // active, so a click cancels it instead of opening "Open"/"Start
-        // focus"/etc (SPEC_UNLOCK_AUTOSTART.md §5.2).
-        countdownCancellable = unlockAutoStart.$isCountingDown.sink { [weak self] active in
-            Task { @MainActor in self?.updateStatusItemForCountdown(active) }
+        // One function owns the status item's menu-vs-action mode
+        // (SPEC_LOOP_CONTINUITY.md §5.3); both the phase sink above and this
+        // countdown sink call into it rather than each reaching for
+        // statusItem.menu independently.
+        countdownCancellable = autoStart.$isCountingDown.sink { [weak self] _ in
+            Task { @MainActor in self?.updateStatusItemMode() }
         }
+
+        // The idle title is a function of Settings (min/max/workday all
+        // move the curve) — recompute whenever any of them change, in
+        // addition to the phase-driven recompute above.
+        settingsCancellable = settings.objectWillChange.sink { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.updateStatusItemTitle(for: self.timer.state)
+            }
+        }
+
+        // Same staleness seams IdleView already covers, for the same
+        // reason: the idle title can otherwise go stale for up to the
+        // ticker's 60s while nothing else prompts a recompute.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.updateStatusItemTitle(for: self.timer.state)
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.updateStatusItemTitle(for: self.timer.state)
+            }
+        }
+    }
+
+    /// Connects the reducer's three window/countdown effects, the unlock
+    /// countdown's cancel path, and the screen-lock signal to the AppKit
+    /// glue that interprets them. Kept separate from the Combine sinks below
+    /// so the wiring reads as one block.
+    private func wireEffectHooks() {
+        timer.onOfferAutoStart = { [weak self] now in self?.autoStart.offerAfterSkip(now: now) }
+        timer.onPresentMainWindow = { [weak self] in self?.presentMainWindow(requireUnlocked: true) }
+        timer.onHideMainWindow = { [weak self] in self?.hideMainWindow() }
+
+        autoStart.onCancelPresentsWindow = { [weak self] in self?.presentMainWindow(requireUnlocked: false) }
+
+        screenLockMonitor.onUnlock = { [weak self] in self?.autoStart.handleUnlock() }
+        screenLockMonitor.onLock = { [weak self] in self?.autoStart.handleLock() }
     }
 
     /// Quitting mid-break (or while one is owed) would be a one-keystroke,
@@ -121,31 +177,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             image?.isTemplate = true
             button.image = image
             button.imagePosition = .imageLeft
+            // Harmless in menu-attached mode (button.action is nil there);
+            // needed so a right-click reaches the action in idle/countdown
+            // mode (SPEC_LOOP_CONTINUITY.md §5.3) instead of only left-click.
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
         let menu = NSMenu()
+        menu.delegate = self
         addItem("Open", to: menu, action: #selector(openMainWindow), key: "o")
         menu.addItem(.separator())
         addItem("Start focus", to: menu, action: #selector(menuStartFocus), key: "s")
+        startBreakNowItem = addItem("Start break now", to: menu, action: #selector(menuStartBreakNow))
+        startBreakNowItem.isHidden = true
         menu.addItem(.separator())
         addSharedMenuTail(to: menu)
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusMenu = menu
-        statusItem.menu = statusMenu
 
+        updateStatusItemMode()
         updateStatusItemTitle(for: timer.state)
     }
 
-    /// While the unlock auto-start countdown is up, detach the status
-    /// item's menu and point its button at the cancel action instead — a
-    /// click cancels the countdown rather than opening "Open"/"Start
-    /// focus"/etc. Restored the moment the countdown ends, by any path.
-    private func updateStatusItemForCountdown(_ active: Bool) {
+    /// Reacts to every phase change: the full-screen break overlay, the
+    /// "Start break now" menu item's visibility, and the idle-only title
+    /// ticker are all level-triggered off the current phase rather than
+    /// edge-triggered off a specific transition.
+    private func handlePhaseChange(_ phase: PomodoroState.Phase) {
+        if case .breakRunning = phase { overlayManager.show() } else { overlayManager.hide() }
+
+        if case .breakPending = phase {
+            startBreakNowItem.isHidden = false
+        } else {
+            startBreakNowItem.isHidden = true
+        }
+
+        if case .idle = phase {
+            startIdleTitleTicker()
+        } else {
+            stopIdleTitleTicker()
+        }
+
+        updateStatusItemMode()
+    }
+
+    /// One function owns whether the status item shows its menu or acts as
+    /// a button, so the countdown short-circuit and the idle click-to-start
+    /// affordance compose instead of fighting over `statusItem.menu`
+    /// (SPEC_LOOP_CONTINUITY.md §5.3). Precedence, highest first: a running
+    /// countdown, then idle, then everything else (menu, as always).
+    private func updateStatusItemMode() {
         guard let button = statusItem?.button else { return }
-        if active {
+        if autoStart.isCountingDown {
             statusItem.menu = nil
             button.target = self
-            button.action = #selector(cancelUnlockCountdown)
+            button.action = #selector(statusItemCountdownClick)
+        } else if case .idle = timer.state.phase {
+            statusItem.menu = nil
+            button.target = self
+            button.action = #selector(statusItemIdleClick)
         } else {
             button.target = nil
             button.action = nil
@@ -153,8 +243,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func cancelUnlockCountdown() {
-        unlockAutoStart.cancelCountdown(suppress: true)
+    /// Both left and right click cancel a running countdown — there's only
+    /// one meaning available in this mode.
+    @objc private func statusItemCountdownClick() {
+        autoStart.cancelCountdown(suppress: true)
+    }
+
+    /// Left click starts the suggested session; right/control click opens
+    /// the menu via the standard reattach-click-detach dance, matching what
+    /// the countdown short-circuit already does for its own cancel click.
+    @objc private func statusItemIdleClick() {
+        let event = NSApp.currentEvent
+        let wantsMenu = event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true
+        if wantsMenu {
+            statusItem.menu = statusMenu
+            statusItem.button?.performClick(nil)
+            // `menuDidClose` detaches the menu again once it's dismissed.
+        } else {
+            timer.startFocus()
+        }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        updateStatusItemMode()
     }
 
     /// Settings + separator + Check for Updates + separator — appears in both the app menu and the status menu.
@@ -166,22 +277,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// App-specific menu items only — Quit-style responder-chain items use addItem(withTitle:) directly.
+    @discardableResult
     private func addItem(
         _ title: String,
         to menu: NSMenu,
         action: Selector,
         key: String = "",
         modifiers: NSEvent.ModifierFlags = .command
-    ) {
+    ) -> NSMenuItem {
         let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
         item.keyEquivalentModifierMask = modifiers
         item.target = self
+        return item
     }
 
     private func updateStatusItemTitle(for state: PomodoroState) {
         guard let button = statusItem?.button else { return }
         let text = switch state.phase {
-        case .idle: ""
+        case .idle: " Start \(timer.suggestedFocusMinutes())m"
         case .focus: " F \(state.remainingFormatted)"
         case .breakPending: " B …"
         case .breakRunning: " B \(state.remainingFormatted)"
@@ -190,6 +303,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // width — otherwise the variable-length status item resizes and the
         // dolphin icon visibly shifts left/right in the menu bar.
         button.attributedTitle = NSAttributedString(string: text, attributes: [.font: menuBarFont])
+    }
+
+    /// The idle title is a live function of `Date()` (the curve moves
+    /// continuously), but `timer.$state` never emits while idle — so
+    /// without this, the title would freeze at whatever the curve said when
+    /// the last break ended. A generous tolerance lets macOS coalesce the
+    /// wakeup; this timer does not exist outside `.idle` (§5.2).
+    private func startIdleTitleTicker() {
+        stopIdleTitleTicker()
+        let t = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in self.updateStatusItemTitle(for: self.timer.state) }
+        }
+        t.tolerance = 15
+        RunLoop.main.add(t, forMode: .common)
+        idleTitleTicker = t
+    }
+
+    private func stopIdleTitleTicker() {
+        idleTitleTicker?.invalidate()
+        idleTitleTicker = nil
     }
 
     // MARK: - Windows
@@ -202,6 +336,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
              delegate: MainWindowDelegate.shared) {
             NSHostingController(rootView: MainWindowView(timer: self.timer))
         }
+    }
+
+    /// Gated opening for the two app-initiated windows (SPEC_LOOP_CONTINUITY.md
+    /// §4.2): a break ending unlocked (`requireUnlocked: true`, F2+F3) and a
+    /// cancelled countdown (`requireUnlocked: false`, F3 only — the cancel
+    /// itself is proof enough of presence). "Open" from the menu bypasses
+    /// this entirely and is never suppressed, not even during a call.
+    private func presentMainWindow(requireUnlocked: Bool) {
+        guard !CallDetectionService.isOnCall() else { return }
+        if requireUnlocked && screenLockMonitor.state != .unlocked { return }
+        openMainWindow()
+    }
+
+    private func hideMainWindow() {
+        mainWindow?.orderOut(nil)
     }
 
     @objc private func openSettings() {
@@ -241,7 +390,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuStartFocus() {
         if case .idle = timer.state.phase { timer.startFocus() }
-        openMainWindow()
+    }
+
+    @objc private func menuStartBreakNow() {
+        timer.startPendingBreak()
     }
 
     #if DEBUG
@@ -250,7 +402,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func menuSimulateUnlock() {
-        unlockAutoStart.handleUnlock()
+        autoStart.handleUnlock()
     }
     #endif
 

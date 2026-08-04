@@ -28,12 +28,19 @@ final class TimerEngine: ObservableObject {
     private var ticker: Timer?
     private var wakeObserver: NSObjectProtocol?
 
+    /// Effect hooks for the three window/countdown effects `PomodoroCore`
+    /// can emit. Default no-ops so the reducer and this engine stay
+    /// AppKit-free for tests; `main.swift` wires the real behaviour.
+    var onOfferAutoStart: (Date) -> Void = { _ in }
+    var onPresentMainWindow: () -> Void = {}
+    var onHideMainWindow: () -> Void = {}
+
     init(
         settings: Settings = .shared,
         log: SessionLogStore = .shared,
         notifications: NotificationService = .shared,
         library: [Activity] = Activity.defaultLibrary,
-        callProbe: @escaping () -> Bool = TimerEngine.defaultCallProbe
+        callProbe: @escaping () -> Bool = CallDetectionService.isOnCall
     ) {
         self.settings = settings
         self.log = log
@@ -58,16 +65,6 @@ final class TimerEngine: ObservableObject {
             NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
         }
         #endif
-    }
-
-    /// Live-call signal for the reducer. The env override mirrors the
-    /// DP_APP_SUPPORT_DIR seam: lets the deferral flow be exercised E2E
-    /// without joining a real call.
-    nonisolated static func defaultCallProbe() -> Bool {
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["DP_FAKE_ON_CALL"] != nil { return true }
-        #endif
-        return CallDetectionService.isOnCall()
     }
 
     // MARK: - Public actions
@@ -123,6 +120,12 @@ final class TimerEngine: ObservableObject {
             stopTicker()
         case .lockScreen:
             ScreenLockService.lockScreen()
+        case .offerAutoStart(let now):
+            onOfferAutoStart(now)
+        case .presentMainWindow:
+            onPresentMainWindow()
+        case .hideMainWindow:
+            onHideMainWindow()
         }
     }
 

@@ -68,6 +68,16 @@ final class PomodoroCoreTests {
         return nil
     }
 
+    private func isOfferAutoStart(_ effect: PomodoroEffect) -> Bool {
+        if case .offerAutoStart = effect { return true }
+        return false
+    }
+
+    private func isLogSession(_ effect: PomodoroEffect) -> Bool {
+        if case .logSession = effect { return true }
+        return false
+    }
+
     // MARK: - startFocus
 
     @Test func startFocusFromIdleTransitionsToFocus() throws {
@@ -88,6 +98,8 @@ final class PomodoroCoreTests {
         // First effect is startTicker; second is a focus-started notification.
         #expect(effects.first == .startTicker)
         #expect(contains(effects, notificationTitled: "Focus started"))
+        // Any path into .focus hides the main window (SPEC_LOOP_CONTINUITY.md §4.2).
+        #expect(effects.contains(.hideMainWindow))
     }
 
     @Test func startFocusFromFocusIsIgnored() {
@@ -247,6 +259,10 @@ final class PomodoroCoreTests {
         #expect(!effects.contains(.playFocusCompleteChime))
         #expect(!effects.contains(.lockScreen))
         #expect(!effects.contains(.stopTicker))
+        // Entering .breakPending is not a window moment either way
+        // (SPEC_LOOP_CONTINUITY.md §4.3).
+        #expect(!effects.contains(.presentMainWindow))
+        #expect(!effects.contains(.hideMainWindow))
     }
 
     @Test func pendingTickStillOnCallDoesNothing() {
@@ -289,8 +305,18 @@ final class PomodoroCoreTests {
         #expect(effects.contains(.stopTicker))
         #expect(contains(effects, logOfKind: .breakSkipped))
         #expect(!effects.contains(.playFocusCompleteChime))
+        // The most important negative test in SPEC_LOOP_CONTINUITY.md §9:
+        // the call-cap skip (an owed break the app gave up on mid-call) must
+        // never auto-start the next session — only hold-to-skip does (§2.2).
+        // A regression here would silently start a session nobody asked for,
+        // over a live call.
+        #expect(!effects.contains(where: isOfferAutoStart))
     }
 
+    // "Start break now" is exempt from principle 7 (SPEC_LOOP_CONTINUITY.md
+    // §6.4): it's the explicit override for a false call signal, so the
+    // break it starts runs in full, chime included. A regression here would
+    // silently disable that escape valve.
     @Test func startPendingBreakOverridesTheCall() {
         var state = PomodoroState()
         let deadline = startFocusSession(&state)
@@ -314,6 +340,8 @@ final class PomodoroCoreTests {
         }
         #expect(contains(effects, logOfKind: .focusCompleted))
         #expect(!effects.contains(.playFocusCompleteChime))
+        #expect(!effects.contains(.presentMainWindow))
+        #expect(!effects.contains(.hideMainWindow))
     }
 
     @Test func fastForwardFromPendingStartsBreakDespiteCall() {
@@ -418,6 +446,30 @@ final class PomodoroCoreTests {
         #expect(contains(effects, logOfKind: .breakSkipped))
     }
 
+    @Test func skipBreakOffersAutoStartAfterLoggingIt() {
+        var state = PomodoroState()
+        _ = reduce(&state, .startFocus(now: date(hour: 13)))
+        guard case .focus(let focusDeadline, _, _) = state.phase else {
+            Issue.record("Expected .focus")
+            return
+        }
+        _ = reduce(&state, .tick(now: focusDeadline))
+
+        let effects = reduce(&state, .skipBreak(now: focusDeadline.addingTimeInterval(60)))
+
+        #expect(effects.contains(where: isOfferAutoStart))
+        // Load-bearing per SPEC_LOOP_CONTINUITY.md §2.4: the offer reads
+        // SessionLogStore.lastBreakEnd(), which is this .logSession — so it
+        // must run after the log write, not merely alongside it. Effects
+        // are interpreted in array order.
+        guard let logIndex = effects.firstIndex(where: isLogSession),
+              let offerIndex = effects.firstIndex(where: isOfferAutoStart) else {
+            Issue.record("Expected both .logSession and .offerAutoStart in \(effects)")
+            return
+        }
+        #expect(logIndex < offerIndex)
+    }
+
     @Test func tickAtBreakDeadlineCompletesBreak() {
         var state = PomodoroState()
         _ = reduce(&state, .startFocus(now: date(hour: 13)))
@@ -436,6 +488,10 @@ final class PomodoroCoreTests {
         #expect(effects.contains(.stopTicker))
         #expect(effects.contains(.playBreakCompleteChime))
         #expect(contains(effects, logOfKind: .breakCompleted))
+        // A completed break brings the main window forward (SPEC_LOOP_CONTINUITY.md
+        // §3) — the F2/F3 gate (unlocked, no call) lives with the window
+        // presenter, not the reducer, so this fires unconditionally here.
+        #expect(effects.contains(.presentMainWindow))
     }
 
     // MARK: - fastForward
@@ -462,6 +518,7 @@ final class PomodoroCoreTests {
         #expect(state.phase == .idle)
         #expect(contains(effects, logOfKind: .breakCompleted))
         #expect(effects.contains(.stopTicker))
+        #expect(effects.contains(.presentMainWindow))
     }
 
     @Test func fastForwardFromIdleDoesNothing() {
