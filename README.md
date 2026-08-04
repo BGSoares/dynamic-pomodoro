@@ -71,23 +71,27 @@ Sources/DynamicPomodoro/
 │   ├── BreakLogic.swift               # §4.1 — 20% with 5-min floor
 │   ├── ActivitySelector.swift         # §4.3 — filter + soft rules
 │   ├── Messages.swift                 # §4.5 — reminder + skip-nudge pools
-│   └── UnlockGate.swift               # Unlock auto-start gate (see SPEC_UNLOCK_AUTOSTART.md)
+│   ├── UnlockGate.swift               # Unlock auto-start gate (see SPEC_UNLOCK_AUTOSTART.md)
+│   └── ScreenLockState.swift          # unknown/locked/unlocked (see SPEC_LOOP_CONTINUITY.md §3.1)
 ├── Services/
 │   ├── TimerEngine.swift              # Drives PomodoroCore, owns the ticker
 │   ├── NotificationService.swift      # UNUserNotificationCenter
 │   ├── ScreenLockService.swift        # Locks the screen 30s into a break
+│   ├── ScreenLockMonitor.swift        # Tracks ScreenLockState from the lock/unlock notification pair
 │   ├── SoundService.swift             # System sound chimes
+│   ├── CallDetectionService.swift     # CoreAudio-based live-call probe
 │   ├── UpdaterService.swift           # Sparkle wrapper (auto-update)
-│   └── UnlockAutoStartService.swift   # Unlock-triggered countdown + HUD panel
+│   └── AutoStartService.swift         # Unlock + skip auto-start countdown, HUD panel (renamed from UnlockAutoStartService)
 ├── Views/                             # SwiftUI
 │   ├── MainWindowView.swift
 │   ├── IdleView.swift
 │   ├── FocusView.swift
 │   ├── BreakOverlayView.swift         # Full-screen break overlay (fade-in prep)
 │   ├── BreakMirrorView.swift          # Placeholder in main window during break
+│   ├── BreakPendingView.swift         # Owed break waiting for a call to end
 │   ├── HoldToSkipButton.swift
 │   ├── SettingsView.swift
-│   └── CountdownHUDView.swift         # Unlock auto-start countdown card
+│   └── CountdownHUDView.swift         # Auto-start countdown card (unlock and skip triggers)
 └── Resources/
     └── activities.json                # 26 built-in activities
 ```
@@ -103,8 +107,10 @@ Data persisted locally:
 - **§3.5 interruption handling.** Abandon discards the session entirely — no pause state, per spec. A confirmation dialog guards the abandon button.
 - **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day) produces an empty pool, the selector relaxes the duration-band constraint first (keeping time-of-day), then falls back to the full library, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
 - **§4.5 message frequency.** Reminder line rotates once per calendar day (deterministic by date) and is shown on every break that day. Logic lives in `Logic/Messages.swift`.
-- **Unlock auto-start countdown.** On a macOS unlock, if the app is idle and a break ended within the last 20 minutes (tunable, not shown in `SettingsView`), a floating HUD counts down from 15s (also tunable) and auto-starts the next focus session via the same `startFocus()` path a manual start uses. Esc (captured locally by the HUD panel — no global monitor, no Input Monitoring prompt) or a click on the menu-bar item cancels it, once per break end. Full design in `SPEC_UNLOCK_AUTOSTART.md`.
-- **Breaks defer during calls.** If the mic is in use when a focus session ends (any meeting app — Meet, Zoom, FaceTime… — holds the input stream open even while muted), the break waits in a `breakPending` state and starts on its own when the call ends. Bounded by a 30-minute cap (then logged as `breakSkipped`), visible in the main window with a "Start break now" override. Detection is `CallDetectionService` (CoreAudio device state; no capture, no permission prompt).
+- **Unlock and skip auto-start countdown.** On a macOS unlock, or on a completed hold-to-skip, if the app is idle and (for the unlock trigger) a break ended within the last 20 minutes (tunable, not shown in `SettingsView`), a floating HUD counts down from 15s (also tunable) and auto-starts the next focus session via the same `startFocus()` path a manual start uses. Esc (captured locally by the HUD panel — no global monitor, no Input Monitoring prompt) or a click on the menu-bar item cancels it — which also opens the main window, since the cancel is a decision to not start now. Both triggers are call-gated: a live call drops the offer entirely, with no suppression written. Full design in `SPEC_UNLOCK_AUTOSTART.md` and `SPEC_LOOP_CONTINUITY.md` §2.
+- **Breaks defer during calls.** If the mic is in use when a focus session ends (any meeting app — Meet, Zoom, FaceTime… — holds the input stream open even while muted), the break waits in a `breakPending` state and starts on its own when the call ends. Bounded by a 30-minute cap (then logged as `breakSkipped`, and never auto-starts the next session). "Start break now" overrides the wait and lives in the status menu (shown only during `breakPending`) rather than a window, since principle 7 forbids opening a window while a call is live. Detection is `CallDetectionService` (CoreAudio device state; no capture, no permission prompt).
+- **Window discipline.** The main window opens only when it has a decision to offer: a break that completed while the screen was known unlocked (`ScreenLockMonitor`, tracking `.unknown`/`.locked`/`.unlocked` — launch counts as `.unknown`, never treated as unlocked), or a cancelled countdown. It never opens at launch or during a focus session, and closing it just hides it, same as before. The menu bar carries the rest: the status item reads `Start 32m` while idle (recomputed on a 60s idle-only coalesced timer, plus Settings/wake/activate), and one click starts that session; right-click (or a click while a countdown is running) opens the menu or cancels it respectively. Full design in `SPEC_LOOP_CONTINUITY.md`.
+- **Never interrupt a meeting (PURPOSE principle 7).** While `CallDetectionService.isOnCall()` reads true, nothing new appears or sounds: no break-end foreground, no countdown HUD, no countdown-cancel window. The full-screen break overlay and the chimes need no explicit gate — a call can't coincide with a break by construction (see `SPEC_LOOP_CONTINUITY.md` §6.4). The one exception is anything explicitly requested, chiefly "Start break now", which runs in full regardless of the call signal.
 - **Open Q #4** (first-session reset boundary) is currently **calendar midnight**, not workday-start. Easy to switch in `SessionLogStore.hasCompletedFocusToday`.
 - **Open Q #1** decided in favor of **native Swift/SwiftUI** over Electron — better battery, cleaner menu bar integration, and the scope is small enough that Electron's build-speed advantage doesn't matter.
 - **Open Q #2**: starter library is 26 activities across 7 categories, 2 duration bands, 4 time-of-day slots. Enough variety that recency + category rotation keep back-to-back breaks distinct.

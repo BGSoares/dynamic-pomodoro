@@ -1,4 +1,5 @@
 import CoreAudio
+import Foundation
 
 /// Detects whether the user is on a call, app-agnostically: every meeting
 /// app (Meet in a browser, Zoom, Teams, FaceTime, Slack huddles) keeps the
@@ -16,8 +17,15 @@ import CoreAudio
 /// one click), while a false negative throws the overlay and screen lock
 /// into a live meeting.
 enum CallDetectionService {
+    /// The `DP_FAKE_ON_CALL` DEBUG env override lives here, not in any one
+    /// caller, so every consumer — the reducer's call gate, the skip and
+    /// unlock countdown offers, the break-end foreground gate — honours it
+    /// identically (SPEC_LOOP_CONTINUITY.md §6.1).
     static func isOnCall() -> Bool {
-        inputDeviceIDs().contains(where: isRunningSomewhere)
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["DP_FAKE_ON_CALL"] != nil { return true }
+        #endif
+        return inputDeviceIDs().contains(where: isRunningSomewhere)
     }
 
     private static func address(

@@ -2,6 +2,10 @@
 
 **Status:** Implemented, per the recommendations in §10's open questions.
 **Scope:** One new service, one new HUD view, one pure gate, one log query, two hidden tunables, one status-item hook.
+**Rename note:** `UnlockAutoStartService` (§7) was renamed to `AutoStartService` by
+[`SPEC_LOOP_CONTINUITY.md`](SPEC_LOOP_CONTINUITY.md) §8 once a second trigger (the skip countdown)
+landed — it can't honestly be named after one trigger any more. This document keeps the original
+name below; treat every reference as the renamed type.
 
 ---
 
@@ -62,8 +66,13 @@ focus→break cycle concluded, and the window (G3) plus one-keypress cancel boun
 after a skip. Deliberate mid-focus abandons do *not* re-arm the offer — after `focusAbandoned` is
 logged, G2 fails.
 
-Call state is deliberately **not** a gate input: focus sessions may start during calls today (only
-break *starts* defer), and the countdown changes nothing about that.
+~~Call state is deliberately **not** a gate input: focus sessions may start during calls today (only
+break *starts* defer), and the countdown changes nothing about that.~~ **Amended by
+[`SPEC_LOOP_CONTINUITY.md`](SPEC_LOOP_CONTINUITY.md) §6.5:** PURPOSE principle 7 (never interrupt a
+meeting) reverses this. `AutoStartService`'s entry point now checks `CallDetectionService.isOnCall()`
+before offering either countdown, alongside the `isCountingDown` guard — a live environment query, so
+it sits in the service rather than in `UnlockGate`'s pure, date-only functions above, which stay
+exactly as tested.
 
 ## §4 Countdown behaviour
 

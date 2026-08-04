@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Floating countdown card shown on a qualifying unlock (SPEC_UNLOCK_AUTOSTART.md §5).
-/// Driven entirely by the service's published countdown state — no
-/// knowledge of the notification, the gate, or its own panel lifecycle.
+/// Floating countdown card shown on a qualifying unlock or hold-to-skip
+/// (SPEC_UNLOCK_AUTOSTART.md §5, SPEC_LOOP_CONTINUITY.md §2.3). Driven
+/// entirely by the service's published countdown state — no knowledge of
+/// the notification, the gate, or its own panel lifecycle.
 struct CountdownHUDView: View {
-    @ObservedObject var service: UnlockAutoStartService
+    @ObservedObject var service: AutoStartService
     /// The panel handles its own alpha fade; this drives the "subtle SwiftUI
     /// scale 0.96→1" half of the entrance §5.1 asks for.
     @State private var appeared = false

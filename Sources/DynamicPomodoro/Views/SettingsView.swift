@@ -30,9 +30,9 @@ struct SettingsView: View {
             }
             Section("Focus duration") {
                 Stepper("Minimum: \(settings.minFocusMinutes) min",
-                        value: minFocusBinding, in: 5...60, step: 5)
+                        value: minFocusBinding, in: 5...60, step: 1)
                 Stepper("Maximum: \(settings.maxFocusMinutes) min",
-                        value: maxFocusBinding, in: 10...90, step: 5)
+                        value: maxFocusBinding, in: 10...90, step: 1)
             }
         }
         .formStyle(.grouped)

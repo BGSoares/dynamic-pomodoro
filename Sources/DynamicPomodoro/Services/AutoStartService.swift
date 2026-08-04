@@ -2,12 +2,14 @@ import AppKit
 import Combine
 import SwiftUI
 
-/// Owns the unlock-triggered auto-start countdown end to end: the
-/// `DistributedNotificationCenter` observers, the gate decision, the
-/// countdown timer, and the floating HUD panel. See
-/// SPEC_UNLOCK_AUTOSTART.md for the full behavioural spec.
+/// Owns both auto-start countdown triggers end to end, and the machinery
+/// they share: the gate decision, the countdown timer, and the floating HUD
+/// panel. Renamed from `UnlockAutoStartService` now that a second trigger
+/// exists — SPEC_UNLOCK_AUTOSTART.md's unlock trigger stays authoritative
+/// for that half; SPEC_LOOP_CONTINUITY.md §2 adds the skip trigger and §6.5
+/// the call gate.
 @MainActor
-final class UnlockAutoStartService: ObservableObject {
+final class AutoStartService: ObservableObject {
     @Published private(set) var isCountingDown = false
     /// Live seconds remaining, read by `CountdownHUDView`.
     @Published private(set) var secondsRemaining: Int = 0
@@ -17,9 +19,11 @@ final class UnlockAutoStartService: ObservableObject {
     private let timer: TimerEngine
     private let settings: Settings
     private let log: SessionLogStore
-
-    private var unlockObserver: NSObjectProtocol?
-    private var lockObserver: NSObjectProtocol?
+    private let callProbe: () -> Bool
+    /// Cancelling either countdown opens the main window
+    /// (SPEC_LOOP_CONTINUITY.md §4.2) — injected so this service, like
+    /// `TimerEngine`, stays AppKit-free for tests.
+    var onCancelPresentsWindow: () -> Void = {}
 
     private var panel: NSPanel?
     private var countdownTimer: Timer?
@@ -30,41 +34,46 @@ final class UnlockAutoStartService: ObservableObject {
     private var offeredBreakEnd: Date?
     private var suppressedBreakEnd: Date?
 
-    init(timer: TimerEngine, settings: Settings = .shared, log: SessionLogStore = .shared) {
+    init(
+        timer: TimerEngine,
+        settings: Settings = .shared,
+        log: SessionLogStore = .shared,
+        callProbe: @escaping () -> Bool = CallDetectionService.isOnCall
+    ) {
         self.timer = timer
         self.settings = settings
         self.log = log
-
-        let center = DistributedNotificationCenter.default()
-        unlockObserver = center.addObserver(
-            forName: Notification.Name("com.apple.screenIsUnlocked"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.handleUnlock() }
-        }
-        lockObserver = center.addObserver(
-            forName: Notification.Name("com.apple.screenIsLocked"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.handleLock() }
-        }
-    }
-
-    deinit {
-        let center = DistributedNotificationCenter.default()
-        if let unlockObserver { center.removeObserver(unlockObserver) }
-        if let lockObserver { center.removeObserver(lockObserver) }
+        self.callProbe = callProbe
     }
 
     // MARK: - Trigger handling
 
-    /// Entry point for a real unlock notification, and — unchanged — for the
-    /// DEBUG "Simulate unlock" menu item, so the HUD is exercisable without
-    /// actually locking the machine.
+    /// Entry point for a real unlock (routed through `ScreenLockMonitor`),
+    /// and — unchanged — for the DEBUG "Simulate unlock" menu item, so the
+    /// HUD is exercisable without actually locking the machine.
     func handleUnlock(now: Date = Date()) {
+        offer(now: now)
+    }
+
+    /// Entry point for a completed hold-to-skip (SPEC_LOOP_CONTINUITY.md
+    /// §2), fed by the reducer's `.offerAutoStart` effect. The call-cap skip
+    /// (an owed break that outlived a 30-minute call) is a different
+    /// reducer branch that never emits that effect, so it never reaches
+    /// here (§2.2) — only the hold-to-skip path does.
+    func offerAfterSkip(now: Date = Date()) {
+        offer(now: now)
+    }
+
+    /// Shared gate for both triggers. `UnlockGate`'s date-based clauses
+    /// (G1–G4) are unaffected by principle 7; the call check sits here,
+    /// beside the `isCountingDown` guard, because it's a live environment
+    /// query rather than a decision about dates (§6.5).
+    private func offer(now: Date) {
         guard !isCountingDown else { return }
+        // A call suppresses the offer outright: no HUD, no session, and no
+        // suppression flag written, so a later unlock inside the window can
+        // still offer once the call ends (§6.2, §6.3).
+        guard !callProbe() else { return }
         guard let breakEnd = log.lastBreakEnd() else { return }
         guard UnlockGate.shouldOffer(
             phase: timer.state.phase,
@@ -80,7 +89,7 @@ final class UnlockAutoStartService: ObservableObject {
     /// again, and left — dismiss without suppressing, so a later unlock in
     /// the window still gets offered. This also rules out the worst outcome:
     /// a session auto-starting into a locked, empty room.
-    private func handleLock() {
+    func handleLock() {
         guard isCountingDown else { return }
         dismiss(suppress: false)
     }
@@ -129,8 +138,9 @@ final class UnlockAutoStartService: ObservableObject {
     }
 
     /// Cancel the active countdown. `suppress: true` (Esc, status-item click)
-    /// records the break end so the offer doesn't repeat; `suppress: false`
-    /// (locked again, deadline overshoot) leaves it re-offerable.
+    /// records the break end so the offer doesn't repeat, and opens the main
+    /// window (§4.2); `suppress: false` (locked again, deadline overshoot)
+    /// leaves it re-offerable and opens nothing — nobody asked for a window.
     func cancelCountdown(suppress: Bool) {
         guard isCountingDown else { return }
         dismiss(suppress: suppress)
@@ -143,6 +153,7 @@ final class UnlockAutoStartService: ObservableObject {
         deadline = nil
         isCountingDown = false
         hidePanel()
+        if suppress { onCancelPresentsWindow() }
     }
 
     // MARK: - Panel
