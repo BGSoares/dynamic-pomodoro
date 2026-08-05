@@ -18,7 +18,7 @@ struct PomodoroState: Equatable {
             startedAt: Date,
             planned: Int,
             activity: Activity,
-            reminder: String?
+            caption: BreakCaption?
         )
     }
 
@@ -50,8 +50,8 @@ extension PomodoroState {
         if case .breakRunning(_, _, _, let a, _) = phase { return a }
         return nil
     }
-    var currentReminderMessage: String? {
-        if case .breakRunning(_, _, _, _, let r) = phase { return r }
+    var currentBreakCaption: BreakCaption? {
+        if case .breakRunning(_, _, _, _, let c) = phase { return c }
         return nil
     }
 
@@ -316,13 +316,27 @@ enum PomodoroReducer {
             startedAt: now,
             planned: breakMinutes,
             activity: activity,
-            reminder: ReminderMessages.lineFor(date: now)
+            caption: breakCaption(now: now, log: log)
         ), seconds: breakSeconds)
 
         return [
             .playFocusCompleteChime,
             .notify(title: "Focus complete", body: "Step away. The next session needs you fresh."),
         ]
+    }
+
+    /// The break card's one quiet line: a due nudge if the day still owes one,
+    /// otherwise the day's rest-argument (PURPOSE principle 8). Never both.
+    /// Swapping costs nothing — the reminder line rotates daily and has already
+    /// been read on every earlier break by the time a late nudge comes due.
+    private static func breakCaption(now: Date, log: SessionLogStore) -> BreakCaption? {
+        if let nudge = Nudges.forBreak(
+            startingAt: now,
+            shownBreakStartsToday: log.shownBreakStartsToday(now: now)
+        ) {
+            return .nudge(nudge)
+        }
+        return ReminderMessages.lineFor(date: now).map(BreakCaption.reminder)
     }
 
     private static func completeBreak(state: inout PomodoroState, now: Date) -> [PomodoroEffect] {

@@ -40,7 +40,7 @@ struct UnlockGateTests {
 
         let runningPhase = PomodoroState.Phase.breakRunning(
             deadline: now.addingTimeInterval(5 * 60), startedAt: now, planned: 20,
-            activity: sampleActivity, reminder: nil
+            activity: sampleActivity, caption: nil
         )
         #expect(!UnlockGate.shouldOffer(
             phase: runningPhase, lastBreakEnd: breakEnd, suppressedBreakEnd: nil,

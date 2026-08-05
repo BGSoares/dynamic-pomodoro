@@ -31,15 +31,7 @@ struct BreakOverlayView: View {
             VStack(spacing: 44) {
                 Spacer()
 
-                if let msg = timer.state.currentReminderMessage {
-                    Text(msg)
-                        .font(.title3)
-                        .italic()
-                        .foregroundStyle(.white.opacity(0.55))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 80)
-                        .frame(maxWidth: 900)
-                }
+                caption
 
                 if let activity = timer.state.currentActivity {
                     VStack(spacing: 20) {
@@ -76,6 +68,39 @@ struct BreakOverlayView: View {
         // any auto-hide config) inset the foreground content while the
         // background still filled the screen, drifting the timer to the right.
         .ignoresSafeArea()
+    }
+
+    /// The one quiet line above the activity — the day's rest-argument, or a
+    /// due nudge in the same slot (PURPOSE principle 8). A nudge gets no badge,
+    /// no icon and no chrome: the two-line shape and the upright face are the
+    /// whole difference, because this one is addressed to you rather than being
+    /// a quotation about rest.
+    @ViewBuilder
+    private var caption: some View {
+        if let breakCaption = timer.state.currentBreakCaption {
+            switch breakCaption {
+            case .reminder(let msg):
+                Text(msg)
+                    .font(.title3)
+                    .italic()
+                    .foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 80)
+                    .frame(maxWidth: 900)
+            case .nudge(let nudge):
+                VStack(spacing: 10) {
+                    Text(nudge.ask)
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.62))
+                    Text(nudge.because)
+                        .font(.callout)
+                        .foregroundStyle(.white.opacity(0.38))
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 80)
+                .frame(maxWidth: 900)
+            }
+        }
     }
 
     private var countdownRing: some View {

@@ -169,6 +169,22 @@ final class SessionLogStore {
         Array(entries.reversed().compactMap(\.activityID).prefix(limit))
     }
 
+    /// Start times of today's breaks that actually put a card on screen,
+    /// chronological — the input to nudge assignment (`Nudges.assign`).
+    ///
+    /// A break capped out by a long call is logged as skipped with no activity
+    /// because nothing was ever displayed, so `activityID` is the discriminator
+    /// for "the user saw this break" — the same signal `recentBreakActivityIDs`
+    /// leans on. Without that filter an unseen break would silently spend the
+    /// day's nudge.
+    func shownBreakStartsToday(calendar: Calendar = .current, now: Date = Date()) -> [Date] {
+        entries.filter {
+            $0.activityID != nil
+                && ($0.kind == .breakCompleted || $0.kind == .breakSkipped)
+                && calendar.isDate($0.startedAt, inSameDayAs: now)
+        }.map(\.startedAt)
+    }
+
     /// Category of the most recent break activity, if any.
     func lastBreakCategory(library: [Activity]) -> Activity.Category? {
         guard let lastID = entries.last(where: { $0.activityID != nil })?.activityID else { return nil }

@@ -151,4 +151,24 @@ final class SessionLogStoreTests {
         store.append(breakEntry)
         #expect(store.lastBreakEnd() == breakEntry.endedAt)
     }
+
+    // MARK: - shownBreakStartsToday (nudge assignment input)
+
+    /// Only today's breaks that actually displayed a card count. A break capped
+    /// out by a long call carries no activity because nothing was ever shown —
+    /// counting it would silently spend the day's nudge on an empty screen.
+    @Test func shownBreakStartsTodayCountsOnlyBreaksThatWereDisplayed() {
+        let store = SessionLogStore(directory: tempDir)
+        let yesterday = entry(kind: .breakCompleted, day: 14, hour: 17, activity: "walk")
+        let completed = entry(kind: .breakCompleted, day: 15, hour: 10, activity: "neck_rolls")
+        let cappedByCall = entry(kind: .breakSkipped, day: 15, hour: 11)
+        let heldToSkip = entry(kind: .breakSkipped, day: 15, hour: 12, activity: "eye_rest")
+        let focus = entry(kind: .focusCompleted, day: 15, hour: 13)
+        [yesterday, completed, cappedByCall, heldToSkip, focus].forEach(store.append)
+
+        let now = Calendar.current.date(
+            from: DateComponents(year: 2025, month: 6, day: 15, hour: 18)
+        )!
+        #expect(store.shownBreakStartsToday(now: now) == [completed.startedAt, heldToSkip.startedAt])
+    }
 }

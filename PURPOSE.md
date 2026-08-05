@@ -41,6 +41,9 @@ While a call is live, the app puts nothing on screen and makes no sound. No wind
 
 The exception is anything I explicitly ask for. "Start break now" exists precisely because the call signal can be wrong, so the break it starts runs in full — overlay, chime and all. The rule is that the app never puts a window on screen, or a sound in the room, that I did not ask for while a call is live.
 
+**8. A nudge rides a break. It never gets a surface of its own.**
+There are a few small things I want to do at roughly the right hour — eat something around 16:20, so that I get home not hungry, which is the entire difference between cooking dinner and grazing past it. The obvious solutions are a reminders app, a notification, a checklist. All three fail the same way: they arrive while I am working, so I dismiss them, and dismissing becomes the habit. A break is an interruption I have already agreed to, and it is the one moment in the day when I am out of the chair and receptive. So a due nudge takes the one quiet line the break card already has — the same slot as the daily rest-argument, same size, same position — and says its piece once. Nothing new appears, nothing chimes, nothing asks whether I did it. There is no completion state, no streak, no acknowledgement, and no log entry: the app cannot tell whether I ate the muesli and is not built to find out. This is still not a wellness app, and a nudge is emphatically not a task — [Nudges.swift](Sources/DynamicPomodoro/Logic/Nudges.swift) is a short list of lines with times on them, curated in source like the activity library. The cost is that a day with no break after the nudge's time gets no nudge at all, and that is the right trade: the thing is worth exactly one line on a card I was already going to read, and not one pixel more. If it ever needs more than that to work, it was the wrong tool for it.
+
 ---
 
 ## How this is supposed to make my life better
