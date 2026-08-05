@@ -282,13 +282,13 @@ final class PomodoroCoreTests {
         let callEnd = deadline.addingTimeInterval(300)
         let effects = reduce(&state, .tick(now: callEnd), isOnCall: false)
 
-        guard case .breakRunning(_, let startedAt, let breakPlanned, _, let reminder) = state.phase else {
+        guard case .breakRunning(_, let startedAt, let breakPlanned, _, let caption) = state.phase else {
             Issue.record("Expected .breakRunning, got \(state.phase)")
             return
         }
         #expect(startedAt == callEnd)
         #expect(breakPlanned == BreakLogic.breakDuration(forFocusMinutes: settings.minFocusMinutes))
-        #expect(reminder != nil)
+        #expect(caption != nil)
         #expect(effects.contains(.playFocusCompleteChime))
         // focusCompleted was already logged when the deferral began.
         #expect(!contains(effects, logOfKind: .focusCompleted))
@@ -526,5 +526,42 @@ final class PomodoroCoreTests {
         let effects = reduce(&state, .fastForward(now: date(hour: 13)))
         #expect(state.phase == .idle)
         #expect(effects.isEmpty)
+    }
+
+    // MARK: - Break caption (reminder vs. nudge)
+
+    private func isNudge(_ caption: BreakCaption?) -> Bool {
+        if case .nudge = caption { return true }
+        return false
+    }
+
+    /// End-to-end wiring: the caption slot carries the day's rest-argument
+    /// until a nudge comes due, then the nudge, then the rest-argument again.
+    /// Times are derived from the shipped pool so editing it can't rot this.
+    @Test func breakCaptionYieldsTheSlotToADueNudgeExactlyOnce() throws {
+        let due = try #require(Nudges.all.map(\.afterMinutes).min())
+        let before = max(0, due - 10)
+        var state = PomodoroState()
+
+        func runBreak(atMinutes m: Int) {
+            _ = reduce(&state, .startFocus(now: date(hour: m / 60, minute: m % 60)))
+            _ = reduce(&state, .fastForward(now: date(hour: m / 60, minute: m % 60)))
+        }
+        func endBreak(atMinutes m: Int) {
+            _ = reduce(&state, .fastForward(now: date(hour: m / 60, minute: m % 60)))
+        }
+
+        runBreak(atMinutes: before)
+        #expect(state.currentBreakCaption != nil)
+        #expect(!isNudge(state.currentBreakCaption))
+        endBreak(atMinutes: before + 5)
+
+        runBreak(atMinutes: due + 5)
+        #expect(isNudge(state.currentBreakCaption))
+        endBreak(atMinutes: due + 10)
+
+        runBreak(atMinutes: due + 20)
+        #expect(state.currentBreakCaption != nil)
+        #expect(!isNudge(state.currentBreakCaption))
     }
 }
