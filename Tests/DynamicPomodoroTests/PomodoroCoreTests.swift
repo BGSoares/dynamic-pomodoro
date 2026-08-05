@@ -535,8 +535,19 @@ final class PomodoroCoreTests {
         return false
     }
 
+    /// The reducer *returns* log entries; `TimerEngine` is what appends them.
+    /// Nudge assignment reads that log back, so a multi-break test has to close
+    /// the loop the way the engine does — otherwise the log stays empty and
+    /// every break looks like the day's first.
+    private func reduceWritingLog(_ state: inout PomodoroState, _ action: PomodoroAction) {
+        for case .logSession(let entry) in reduce(&state, action) {
+            log.append(entry)
+        }
+    }
+
     /// End-to-end wiring: the caption slot carries the day's rest-argument
-    /// until a nudge comes due, then the nudge, then the rest-argument again.
+    /// until a nudge comes due, then the nudge, then the rest-argument again —
+    /// the nudge is spent for the day.
     /// Times are derived from the shipped pool so editing it can't rot this.
     @Test func breakCaptionYieldsTheSlotToADueNudgeExactlyOnce() throws {
         let due = try #require(Nudges.all.map(\.afterMinutes).min())
@@ -544,11 +555,11 @@ final class PomodoroCoreTests {
         var state = PomodoroState()
 
         func runBreak(atMinutes m: Int) {
-            _ = reduce(&state, .startFocus(now: date(hour: m / 60, minute: m % 60)))
-            _ = reduce(&state, .fastForward(now: date(hour: m / 60, minute: m % 60)))
+            reduceWritingLog(&state, .startFocus(now: date(hour: m / 60, minute: m % 60)))
+            reduceWritingLog(&state, .fastForward(now: date(hour: m / 60, minute: m % 60)))
         }
         func endBreak(atMinutes m: Int) {
-            _ = reduce(&state, .fastForward(now: date(hour: m / 60, minute: m % 60)))
+            reduceWritingLog(&state, .fastForward(now: date(hour: m / 60, minute: m % 60)))
         }
 
         runBreak(atMinutes: before)
