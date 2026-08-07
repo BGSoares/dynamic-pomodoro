@@ -50,6 +50,12 @@ be read once and then recalled from memory in a corridor. Write for that.
 Investigation into improving the break-card messaging. Findings are durable; the resulting plan is
 [`SPEC_RECOVERY_MESSAGING.md`](SPEC_RECOVERY_MESSAGING.md).
 
+**What this note describes is the library as measured on 2026-08-07.** Spec §2 has since landed —
+the medium band went 2 → 10, back-to-back repetition went to 0% in every cell, and the `energy`
+field is gone. The measurements below are kept as the record of *why*, not as current state. Spec
+§3 and §4 are unstarted, so everything said here about the caption and about under-filled
+prescriptions still holds.
+
 ## Measured: where repetition actually lives
 
 Simulated `ActivitySelector` against the real library (20k draws per cell, replaying the recency
@@ -87,11 +93,12 @@ Pantani stage. They score on psychological detachment but fail PURPOSE principle
 Daylight / distance-viewing — the best-evidenced and least socially awkward recovery available to
 an office worker — is 4 of 26.
 
-## Found: dead schema
+## Found: dead schema — resolved
 
-`activities.json` authors an `energy` field on every entry (24 `gentle`, 1 `moderate`, 1 `active`).
-`Activity` does not declare it, so `JSONDecoder` discards it silently. Either use it or delete it;
-right now it is a lie in the data file.
+`activities.json` authored an `energy` field on every entry (24 `gentle`, 1 `moderate`,
+1 `active`). `Activity` never declared it, so `JSONDecoder` discarded it silently. Deleted
+2026-08-07: at 24 of 26 `gentle` the data carried no signal, and a field nothing reads is a lie in
+the file. Re-add it deliberately if curve-matched effort ever earns its way in.
 
 ## Found: the most-repeated string in the app is not an activity
 

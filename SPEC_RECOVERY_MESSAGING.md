@@ -1,6 +1,7 @@
 # Feature spec — Recovery messaging
 
-**Status:** Proposed. Research complete ([`CLAUDE.md`](CLAUDE.md), research note 2026-08-07); no code written.
+**Status:** §2 (Change 1) **implemented**. §3 and §4 proposed, not started.
+Research complete — [`CLAUDE.md`](CLAUDE.md), research note 2026-08-07.
 **Scope:** Three changes to the break card — one pure content change, one optional schema field plus
 one line of rendering, one rewrite of `Logic/Messages.swift`. No new windows, no new settings, no
 new services, no new persistence.
@@ -66,30 +67,39 @@ thing actually on screen.
 
 ## §2 Change 1 — A real library for the long break
 
-Pure content. No code, no schema, no tests beyond an invariant (§6).
+**Implemented.** Pure content, plus the invariant test that would have caught the defect (§6.1).
 
 **Acceptance criterion:** every `(band, time_of_day)` cell holds **≥ 6 activities across ≥ 3
 categories**. Six is the floor at which `prefix(3)` recency leaves a real choice and the category
 rule can still fire; three categories is what stops the category rule from being structurally dead.
 
-Add eight medium-band activities to `Resources/activities.json`, bringing the band to ten and every
-cell above the floor:
+Eight medium-band activities added to `Resources/activities.json`, taking the band from 2 to 10:
 
 | id | category | suitable_times |
 |---|---|---|
-| `outdoor_block` | walk | midday, afternoon, end_of_day |
+| `outdoor_block` | walk | all four |
 | `daylight_stand` | walk | morning, midday, afternoon |
 | `corridor_loop` | walk | all four |
-| `mobility_flow` | stretch | morning, afternoon, end_of_day |
-| `hip_flexor_series` | stretch | morning, afternoon, end_of_day |
+| `mobility_flow` | stretch | all four |
 | `extended_exhale` | breathwork | afternoon, end_of_day |
 | `body_scan` | mindfulness | afternoon, end_of_day |
 | `palming` | eye_rest | all four |
 | `kettle_and_window` | hydration | all four |
 
-Resulting cells: morning 7, midday 7, afternoon 11, end of day 8 — and medium-band categories
-become walk 5 / stretch 2 / breathwork 1 / mindfulness 1 / eye_rest 1 / hydration 1, so the
-back-to-back category rule has something to bite on for the first time.
+`daylight_stand` skips end-of-day (it may be dark); `extended_exhale` and `body_scan` are
+down-regulating and only earn their place once there is something to down-regulate from. Every
+other tag is "all four", because no real reason to exclude one was available — which is the
+standard the two fixed tags below are held to as well.
+
+Resulting medium cells: **morning 8, midday 8, afternoon 10, end of day 8**, spanning 4–6
+categories each. Simulated back-to-back repetition drops from 100% / 43% / 43% / n-a to **0% in
+every cell**, and no single activity exceeds a 19% share.
+
+A ninth candidate, a medium hip-flexor stretch, was **dropped**: `hip_flexor_stretch` sits in the
+`removedIDs` regression guard in `ActivitySelectorTests`, so an earlier pass deliberately removed
+it. The squashed bootstrap commit means the reasoning is lost, but re-adding the same activity
+under a different id would route around a decision this repo made on purpose. If the reason turns
+out to be forgettable, add it back deliberately and delete the guard entry.
 
 Two curation notes carried from the research:
 
@@ -103,9 +113,13 @@ daylight and distance viewing, which is 4 of 26 activities today and is the best
 socially awkward recovery available to an office worker
 ([Lee et al. 2015](https://www.sciencedirect.com/science/article/abs/pii/S0272494415000328)).
 
-**Also in this change:** fix two time-of-day tags that have no stated rationale and shrink pools for
-free — `window_stand` excludes `midday` (when the light is best) and `short_walk` excludes
-`morning` and `end_of_day`.
+**Also in this change:** two time-of-day tags with no stated rationale, shrinking pools for free,
+are now "all four" — `window_stand` excluded `midday` (when the light is best) and `short_walk`
+excluded `morning` and `end_of_day`. `stairs` keeps its end-of-day exclusion: declining to send
+someone up a stairwell at 17:30 is a defensible opinion, unlike the other two.
+
+**Also in this change:** the dead `energy` field is deleted from all 26 existing entries and absent
+from the 8 new ones (§9.1).
 
 ---
 
@@ -219,16 +233,18 @@ provenance changes.
 
 ## §5 File map
 
-| File | Change |
-|---|---|
-| `Resources/activities.json` | +8 medium activities; `settle` on entries that need one; two time-of-day fixes; `energy` resolved (§9.1) |
-| `Models/Activity.swift` | `settle: String?` + `CodingKeys` |
-| `Logic/Messages.swift` | `ReminderMessage` struct, category tags, `line(for:date:breakOrdinalToday:)`, two deletions, backfill |
-| `Views/BreakOverlayView.swift` | render `settle` |
-| `Core/PomodoroCore.swift` | pass activity + break ordinal when building `BreakCaption.reminder` |
-| `Tests/…/MessagesTests.swift` | rewrite for the new selector |
-| `Tests/…/ActivitySelectorTests.swift` | add the §6.1 invariant |
-| `README.md` | Open Q #2 and the §4.5 note are both now wrong — rewrite both |
+| File | Change | Status |
+|---|---|---|
+| `Resources/activities.json` | +8 medium activities; two time-of-day fixes; `energy` deleted | **done** (§2) |
+| `Tests/…/ActivitySelectorTests.swift` | §6.1 pool-floor invariant, §6.2 no-repeat walk | **done** |
+| `README.md` | Open Q #2 was falsified by the measurement | **done** |
+| `Resources/activities.json` | `settle` on entries that need one | §3 |
+| `Models/Activity.swift` | `settle: String?` + `CodingKeys` | §3 |
+| `Views/BreakOverlayView.swift` | render `settle` | §3 |
+| `Logic/Messages.swift` | `ReminderMessage` struct, category tags, `line(for:date:breakOrdinalToday:)`, two deletions, backfill | §4 |
+| `Core/PomodoroCore.swift` | pass activity + break ordinal when building `BreakCaption.reminder` | §4 |
+| `Tests/…/MessagesTests.swift` | rewrite for the new selector | §4 |
+| `README.md` | the §4.5 message-frequency note goes stale when §4 lands | §4 |
 
 `ActivitySelector` itself is **not** changed. Its soft rules are correct; they were starved of a
 pool. Widening the recency window past 3 is deliberately deferred until §2's library has run for a
@@ -240,16 +256,20 @@ few weeks — fixing the input and the algorithm at once would make the result u
 
 swift-testing, in `Tests/DynamicPomodoroTests/`.
 
-### §6.1 Library invariant (the regression guard for §2)
+### §6.1 Library invariant (the regression guard for §2) — **implemented**
 
-For every `(band, time_of_day)` pair: pool size ≥ 6 and distinct categories ≥ 3. This is the test
-that would have caught the original defect, and it fails today. Assert medium/end-of-day is
-non-empty explicitly — a zero there is currently invisible because the band relaxation hides it.
+`bundledLibraryMeetsPoolFloorInEveryCell`: for every `(band, time_of_day)` pair, pool size ≥ 6 and
+distinct categories ≥ 3. This is the test that would have caught the original defect; it failed on
+the shipped library at 1 and 0. A zero in medium/end-of-day was previously invisible because the
+band relaxation in `select` hides it.
 
-### §6.2 Selector, with the real library
+### §6.2 Selector, with the real library — **implemented**
 
-Draw 200 sequential selections per `(band, time_of_day)` feeding recency and last-category forward,
-and assert zero back-to-back repeats and no single activity above ~35% share. Deterministic seed.
+`bundledLibraryNeverRepeatsBackToBack`: 200 sequential selections per time-of-day and band, feeding
+recency and last-category forward, asserting no back-to-back repeat. Not flaky despite the
+unseedable `SystemRandomNumberGenerator` — above the §6.1 floor a repeat is structurally impossible,
+which is exactly the property being locked in. Share-of-draws is left to the offline simulation
+rather than asserted, since that *would* need a seed.
 
 ### §6.3 Messages
 
@@ -358,17 +378,14 @@ Deferred, not rejected — see §8.
 
 ## §9 Open questions for the implementing PR
 
-1. **The dead `energy` field.** `activities.json` authors `energy` on all 26 entries (24 `gentle`,
-   1 `moderate`, 1 `active`); `Activity` never declares it, so it is silently discarded.
-   Recommendation: **delete it from the JSON.** Matching effort to the curve is a real idea, but
-   `gentle` on 24 of 26 means the data carries no signal, and a field nothing reads is a lie in the
-   file. Re-add it deliberately if the curve-matching feature ever earns its way in.
+1. ~~**The dead `energy` field.**~~ **Decided 2026-08-07: deleted.** `gentle` on 24 of 26 entries
+   carried no signal, and a field nothing reads is a lie in the data file. Re-add it deliberately
+   if curve-matched effort ever earns its way in.
 2. **Should `settle` be required rather than optional?** Recommendation: optional. Two activities
    genuinely fill their own duration, and forcing a second beat on them would produce filler — the
    exact thing §3 exists to remove.
-3. **Should §2 land as its own PR, ahead of §3 and §4?** Recommendation: yes. It is the only change
-   with a measurable before/after, it needs no code review, and it fixes the reported complaint on
-   its own.
+3. ~~**Should §2 land as its own PR, ahead of §3 and §4?**~~ **Decided 2026-08-07: yes**, and it
+   has. §3 and §4 are unstarted; let §2 run for a few weeks first so its effect is attributable.
 4. **Retire `history_*` / `wisdom_*` items after one read?** An anecdote has no reread value the way
    a stretch does. Recommendation: not now — it needs per-activity persistence, and §7.1's skip
    data should decide whether `inspiration` shrinks instead.
@@ -406,3 +423,6 @@ Deferred, not rejected — see §8.
 | Deleted two reminder lines | Principle 2 calls this pool the scientific argument; lines that fail a literature check are not that |
 | Swap-per-break parked, not rejected | Best-evidenced of the rejected ideas, but it contradicts principle 3 and needs §7.1's skip data first |
 | Chore/errand activities permanently excluded | They deplete rather than restore; recorded so the idea is not rediscovered |
+| `energy` deleted rather than wired up | 24 of 26 entries were `gentle`; the field carried no signal and nothing read it |
+| Medium hip-flexor stretch dropped from §2 | `hip_flexor_stretch` is in the `removedIDs` guard; a new id for the same activity would route around a deliberate removal |
+| `stairs` keeps its end-of-day exclusion | Unlike the two tags that were fixed, "no stair intervals at 17:30" is a real opinion, not an oversight |

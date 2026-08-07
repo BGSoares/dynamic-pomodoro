@@ -142,4 +142,49 @@ final class ActivitySelectorTests {
         #expect(library.contains { $0.category == .inspiration },
                 "Bundled library should include at least one inspiration activity")
     }
+
+    /// Every soft rule in `select` is a deliberate no-op when it would empty the pool, so a
+    /// thin cell disables the very rules meant to keep breaks distinct. Six is the floor at
+    /// which `prefix(3)` recency still leaves a real choice; three categories is what stops
+    /// the category rule from being structurally dead. Shipped at 1 activity for
+    /// medium/morning and 0 for medium/end-of-day — see `SPEC_RECOVERY_MESSAGING.md` §1.1.
+    @Test func bundledLibraryMeetsPoolFloorInEveryCell() {
+        let library = ActivityLibrary.load()
+        #expect(!library.isEmpty, "Bundled activities.json should load")
+
+        for band in Activity.DurationBand.allCases {
+            for tod in Activity.TimeOfDay.allCases {
+                let pool = library.filter { $0.band == band && $0.suitableTimes.contains(tod) }
+                let categories = Set(pool.map(\.category))
+                #expect(pool.count >= 6,
+                        "\(band.rawValue)/\(tod.rawValue) holds \(pool.count) activities; below 6 the recency rule disables itself")
+                #expect(categories.count >= 3,
+                        "\(band.rawValue)/\(tod.rawValue) spans \(categories.count) categories; below 3 the category rule can never fire")
+            }
+        }
+    }
+
+    /// The user-visible property the floor above exists to buy: walking a day's worth of
+    /// breaks through the real library never serves the same activity twice running.
+    @Test func bundledLibraryNeverRepeatsBackToBack() {
+        let library = ActivityLibrary.load()
+        // One hour inside each time-of-day bucket for a 09:00–18:00 workday.
+        for hour in [10, 12, 15, 17] {
+            for breakMinutes in [5, 8] {
+                var recent: [String] = []
+                var lastCategory: Activity.Category?
+                for _ in 0..<200 {
+                    let pick = select(breakMinutes: breakMinutes, hour: hour,
+                                      recent: recent, lastCategory: lastCategory,
+                                      from: library)
+                    #expect(pick != nil)
+                    guard let pick else { break }
+                    #expect(pick.id != recent.first,
+                            "\(pick.id) served twice running at \(hour):00, \(breakMinutes)-min break")
+                    recent.insert(pick.id, at: 0)
+                    lastCategory = pick.category
+                }
+            }
+        }
+    }
 }
