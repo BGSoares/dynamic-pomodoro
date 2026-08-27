@@ -208,9 +208,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Reacts to every phase change: the full-screen break overlay, the
-    /// "Start break now" menu item's visibility, and the idle-only title
-    /// ticker are all level-triggered off the current phase rather than
-    /// edge-triggered off a specific transition.
+    /// visibility of the two phase-specific menu items ("Start break now",
+    /// "Abandon session"), and the idle-only title ticker are all
+    /// level-triggered off the current phase rather than edge-triggered off
+    /// a specific transition.
     private func handlePhaseChange(_ phase: PomodoroState.Phase) {
         if case .breakRunning = phase { overlayManager.show() } else { overlayManager.hide() }
 
