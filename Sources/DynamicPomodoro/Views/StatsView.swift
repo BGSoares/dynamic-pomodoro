@@ -116,9 +116,18 @@ struct StatsView: View {
 
     private func bar(for day: FocusDay) -> some View {
         ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Color.secondary.opacity(day.isFuture ? 0.05 : 0.12))
-                .frame(width: Metrics.barWidth, height: Metrics.plotHeight)
+            // A day that happened gets a faint full-height slot, so a zero
+            // reads as an empty column rather than as nothing at all. A day
+            // that hasn't happened yet gets no slot: the week is genuinely
+            // unfinished, and the gap says so more plainly than a third
+            // shade of grey would. Kept light — at any weight where the
+            // slots read as bars in their own right they also swallow the
+            // gridlines behind them.
+            if !day.isFuture {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(Color.secondary.opacity(0.07))
+                    .frame(width: Metrics.barWidth, height: Metrics.plotHeight)
+            }
             if !day.isFuture, day.focusSeconds > 0 {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(isToday(day) ? Color.accentColor : Color.accentColor.opacity(0.75))
