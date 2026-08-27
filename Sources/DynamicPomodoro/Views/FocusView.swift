@@ -18,20 +18,20 @@ struct FocusView: View {
             Button(role: .destructive) {
                 confirmingAbandon = true
             } label: {
-                Text("Abandon session")
+                Text(AbandonPrompt.menuTitle)
                     .padding(.horizontal, 12)
             }
             .buttonStyle(.bordered)
             .controlSize(.regular)
             .confirmationDialog(
-                "Abandon this session?",
+                AbandonPrompt.title,
                 isPresented: $confirmingAbandon,
                 titleVisibility: .visible
             ) {
-                Button("Abandon", role: .destructive) { timer.abandonFocus() }
-                Button("Continue", role: .cancel) {}
+                Button(AbandonPrompt.confirm, role: .destructive) { timer.abandonFocus() }
+                Button(AbandonPrompt.cancel, role: .cancel) {}
             } message: {
-                Text("Interrupted sessions are discarded — you'll start fresh next time.")
+                Text(AbandonPrompt.message)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -62,4 +62,21 @@ struct TimerRing: View {
                 .monospacedDigit()
         }
     }
+}
+
+/// The abandon confirmation, worded once. Both surfaces that offer the
+/// action read from here — the in-window button and the menu-bar item —
+/// so the two can't drift into saying different things about the same
+/// irreversible decision.
+///
+/// It *is* confirmed from the menu bar too. Abandoning is not a break
+/// skip, so PURPOSE principle 4's deliberate friction doesn't apply; the
+/// dialog is here only because the session is discarded outright (§3.5)
+/// with nothing to undo it, and a menu is an easy place to mis-click.
+enum AbandonPrompt {
+    static let menuTitle = "Abandon session"
+    static let title = "Abandon this session?"
+    static let message = "Interrupted sessions are discarded — you'll start fresh next time."
+    static let confirm = "Abandon"
+    static let cancel = "Continue"
 }

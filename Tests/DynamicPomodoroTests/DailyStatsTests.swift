@@ -79,12 +79,24 @@ struct DailyStatsTests {
 
     @Test func abandonedBeyondPlannedCapsAtOnePomo() {
         // Defensive: if elapsed somehow exceeds planned we cap the pomo
-        // contribution at 1.0 (no over-credit).
+        // contribution at 1.0 (no over-credit) — and the seconds with it,
+        // so the two numbers can't tell different stories.
         let entries = [
             entry(.focusAbandoned, start: date(hour: 9), plannedMinutes: 20, elapsedSeconds: 30 * 60),
         ]
         let stats = DailyStats.compute(from: entries, now: date(hour: 14))
         #expect(abs(stats.pomoCount - 1.0) < 0.0001)
+        #expect(stats.focusSeconds == 20 * 60)
+    }
+
+    @Test func totalsAreTheSumOfEachEntrysContribution() {
+        let entries = [
+            entry(.focusCompleted, start: date(hour: 9), plannedMinutes: 25),
+            entry(.breakCompleted, start: date(hour: 9, minute: 25), plannedMinutes: 5),
+            entry(.focusAbandoned, start: date(hour: 10), plannedMinutes: 30, elapsedSeconds: 12 * 60),
+        ]
+        let folded = entries.reduce(DailyStats.empty) { $0 + DailyStats.contribution(of: $1) }
+        #expect(DailyStats.compute(from: entries, now: date(hour: 14)) == folded)
     }
 
     @Test func skippedBreakIsExcluded() {
