@@ -37,8 +37,10 @@ jobs:
 
   test-linux:
     runs-on: ubuntu-latest
-    # Pinned by digest, same discipline as the SHA-pinned actions.
-    container: swift:6.1.2-noble@sha256:19337d1abe5ab39c94b7a23f5b76b2a0d5c80b28c3e58209c867725479b8d876
+    # Pinned by digest, same discipline as the SHA-pinned actions. This is
+    # the manifest-list digest Docker Hub reports for the tag (the
+    # docker-content-digest header on /v2/library/swift/manifests/6.1.2-noble).
+    container: swift:6.1.2-noble@sha256:9096456b6dd5f3dcb1f64152601de3d96f40e48ac98354fefa9ffa9abf2dd6bf
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
