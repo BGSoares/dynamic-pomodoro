@@ -443,9 +443,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         alert.addButton(withTitle: AbandonPrompt.cancel)
         alert.addButton(withTitle: AbandonPrompt.confirm)
         alert.buttons.last?.hasDestructiveAction = true
-        // An .accessory app isn't frontmost once the menu closes, so without
-        // this the alert opens behind whatever the user is looking at.
+
+        // Order the alert front ourselves rather than trusting activation to
+        // do it. An .accessory app is not frontmost when a status-menu action
+        // fires, and since macOS 14 `activate(ignoringOtherApps:)` is a
+        // cooperative request the system is free to refuse — in which case
+        // `runModal()` below spins its modal loop behind whatever the user is
+        // actually looking at. From the menu bar that is indistinguishable
+        // from the item doing nothing, and it leaves the app wedged in a
+        // modal session with nothing on screen to dismiss.
+        //
+        // This is the posture the rest of the app already takes for the same
+        // reason: `AutoStartService`'s countdown HUD and the panels in
+        // `BreakOverlayManager` both order front regardless and raise their
+        // window level instead of relying on being the active app.
+        // `.fullScreenAuxiliary` matters because a focus session is exactly
+        // when the user is likely to be in a full-screen editor.
+        let window = alert.window
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         NSApp.activate(ignoringOtherApps: true)
+        window.orderFrontRegardless()
+        window.makeKey()
+
         guard alert.runModal() == .alertSecondButtonReturn else { return }
         guard case .focus = timer.state.phase else { return }
         timer.abandonFocus()
