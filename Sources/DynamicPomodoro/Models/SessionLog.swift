@@ -60,31 +60,52 @@ struct DailyStats: Equatable {
 
     static let empty = DailyStats(pomoCount: 0, focusSeconds: 0, breakSeconds: 0)
 
+    static func + (lhs: DailyStats, rhs: DailyStats) -> DailyStats {
+        DailyStats(
+            pomoCount: lhs.pomoCount + rhs.pomoCount,
+            focusSeconds: lhs.focusSeconds + rhs.focusSeconds,
+            breakSeconds: lhs.breakSeconds + rhs.breakSeconds
+        )
+    }
+
+    /// What one entry contributes to the totals of the day it started on.
+    /// Split out from `compute` so the idle footer's "today" and the stats
+    /// window's per-day bars can never disagree about what a session was
+    /// worth — there is one rule, in one place.
+    static func contribution(of e: SessionLogEntry) -> DailyStats {
+        switch e.kind {
+        case .focusCompleted:
+            return DailyStats(pomoCount: 1, focusSeconds: e.plannedMinutes * 60, breakSeconds: 0)
+        case .focusAbandoned:
+            let planned = Double(e.plannedMinutes * 60)
+            // Clamped to the planned span. An abandon happens *during* the
+            // session and the slept-through path logs exactly the deadline,
+            // so elapsed can only exceed planned if the file was hand-edited
+            // or the clock jumped. Clamping keeps focusSeconds agreeing with
+            // pomoCount (always capped at one pomo) and keeps the `Int(...)`
+            // below total, which matters now that FocusHistory folds the
+            // whole log rather than just today's entries.
+            let elapsed = min(max(0, e.endedAt.timeIntervalSince(e.startedAt)), planned)
+            return DailyStats(
+                pomoCount: planned > 0 ? elapsed / planned : 0,
+                focusSeconds: Int(elapsed),
+                breakSeconds: 0
+            )
+        case .breakCompleted:
+            return DailyStats(pomoCount: 0, focusSeconds: 0, breakSeconds: e.plannedMinutes * 60)
+        case .breakSkipped:
+            return .empty
+        }
+    }
+
     static func compute(
         from entries: [SessionLogEntry],
         calendar: Calendar = .current,
         now: Date = Date()
     ) -> DailyStats {
-        var pomoCount = 0.0
-        var focusSeconds = 0
-        var breakSeconds = 0
-        for e in entries where calendar.isDate(e.startedAt, inSameDayAs: now) {
-            switch e.kind {
-            case .focusCompleted:
-                pomoCount += 1
-                focusSeconds += e.plannedMinutes * 60
-            case .focusAbandoned:
-                let elapsed = max(0, e.endedAt.timeIntervalSince(e.startedAt))
-                let planned = Double(e.plannedMinutes * 60)
-                pomoCount += planned > 0 ? min(elapsed / planned, 1.0) : 0
-                focusSeconds += Int(elapsed)
-            case .breakCompleted:
-                breakSeconds += e.plannedMinutes * 60
-            case .breakSkipped:
-                break
-            }
-        }
-        return DailyStats(pomoCount: pomoCount, focusSeconds: focusSeconds, breakSeconds: breakSeconds)
+        entries
+            .filter { calendar.isDate($0.startedAt, inSameDayAs: now) }
+            .reduce(DailyStats.empty) { $0 + DailyStats.contribution(of: $1) }
     }
 }
 
@@ -194,6 +215,15 @@ final class SessionLogStore {
     /// Aggregate completed focus + break time for the given day.
     func dailyStats(calendar: Calendar = .current, now: Date = Date()) -> DailyStats {
         DailyStats.compute(from: entries, calendar: calendar, now: now)
+    }
+
+    /// The trailing calendar weeks the stats window draws, oldest first.
+    func focusWeeks(
+        weekCount: Int = FocusHistory.defaultWeekCount,
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> [FocusWeek] {
+        FocusHistory.weeks(from: entries, weekCount: weekCount, calendar: calendar, now: now)
     }
 
     /// The moment the most recent break ended (completed or skipped) — but

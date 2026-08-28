@@ -80,6 +80,14 @@ enum TimeFormat {
         return String(format: "%02d:%02d", h, m)
     }
 
+    /// Compact hours + minutes: "0m", "45m", "2h", "2h 15m". Shared by the
+    /// idle footer and the stats window so the two never phrase the same
+    /// number differently.
+    static func duration(_ seconds: Int) -> String {
+        let h = seconds / 3600, m = (seconds % 3600) / 60
+        return h == 0 ? "\(m)m" : m == 0 ? "\(h)h" : "\(h)h \(m)m"
+    }
+
     static func minutesSinceMidnight(from date: Date, calendar: Calendar = .current) -> Int {
         let comps = calendar.dateComponents([.hour, .minute], from: date)
         return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)

@@ -22,8 +22,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusMenu: NSMenu!
     /// Hidden except during `.breakPending` (SPEC_LOOP_CONTINUITY.md §4.3).
     private var startBreakNowItem: NSMenuItem!
+    /// Hidden except during `.focus` — same level-triggered treatment as
+    /// `startBreakNowItem`, for the same reason: an action with no meaning
+    /// in the current phase shouldn't be sitting there greyed out.
+    private var abandonItem: NSMenuItem!
     private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var statsWindow: NSWindow?
     private lazy var overlayManager = BreakOverlayManager(timer: timer)
     private lazy var autoStart = AutoStartService(timer: timer)
     private lazy var screenLockMonitor = ScreenLockMonitor()
@@ -186,8 +191,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         addItem("Open", to: menu, action: #selector(openMainWindow), key: "o")
+        addItem("Stats", to: menu, action: #selector(openStats), key: "")
         menu.addItem(.separator())
         addItem("Start focus", to: menu, action: #selector(menuStartFocus), key: "s")
+        abandonItem = addItem(AbandonPrompt.menuTitle, to: menu, action: #selector(menuAbandonFocus))
+        abandonItem.isHidden = true
         startBreakNowItem = addItem("Start break now", to: menu, action: #selector(menuStartBreakNow))
         startBreakNowItem.isHidden = true
         menu.addItem(.separator())
@@ -200,9 +208,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Reacts to every phase change: the full-screen break overlay, the
-    /// "Start break now" menu item's visibility, and the idle-only title
-    /// ticker are all level-triggered off the current phase rather than
-    /// edge-triggered off a specific transition.
+    /// visibility of the two phase-specific menu items ("Start break now",
+    /// "Abandon session"), and the idle-only title ticker are all
+    /// level-triggered off the current phase rather than edge-triggered off
+    /// a specific transition.
     private func handlePhaseChange(_ phase: PomodoroState.Phase) {
         if case .breakRunning = phase { overlayManager.show() } else { overlayManager.hide() }
 
@@ -210,6 +219,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             startBreakNowItem.isHidden = false
         } else {
             startBreakNowItem.isHidden = true
+        }
+
+        if case .focus = phase {
+            abandonItem.isHidden = false
+        } else {
+            abandonItem.isHidden = true
         }
 
         if case .idle = phase {
@@ -353,6 +368,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         mainWindow?.orderOut(nil)
     }
 
+    /// Its own window, not a phase in the main one: the main window hides
+    /// itself during focus (§4.2) and a read-out that disappears the moment
+    /// you start working would be useless.
+    @objc private func openStats() {
+        open(window: &statsWindow,
+             title: "Stats",
+             size: NSSize(width: 620, height: 460),
+             styleMask: [.titled, .closable, .miniaturizable]) {
+            NSHostingController(rootView: StatsView(log: SessionLogStore.shared))
+        }
+    }
+
     @objc private func openSettings() {
         open(window: &settingsWindow,
              title: "Settings",
@@ -394,6 +421,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func menuStartBreakNow() {
         timer.startPendingBreak()
+    }
+
+    /// The same discard the in-window button performs, reachable without
+    /// opening a window — which matters because §4.2 keeps the main window
+    /// hidden for the whole of a focus session, so until now the only way
+    /// to abandon one was to go and open it.
+    ///
+    /// Confirmed, for the reason spelled out on `AbandonPrompt`. Guarded on
+    /// both sides of the modal: the session can hit its own deadline while
+    /// the alert is up, and abandoning a break that has since started would
+    /// be a silent, unlogged break skip.
+    @objc private func menuAbandonFocus() {
+        guard case .focus = timer.state.phase else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = AbandonPrompt.title
+        alert.informativeText = AbandonPrompt.message
+        // "Continue" first, so it takes the default (rightmost, Return) slot:
+        // a stray Return on this alert must not discard the session.
+        alert.addButton(withTitle: AbandonPrompt.cancel)
+        alert.addButton(withTitle: AbandonPrompt.confirm)
+        alert.buttons.last?.hasDestructiveAction = true
+        // An .accessory app isn't frontmost once the menu closes, so without
+        // this the alert opens behind whatever the user is looking at.
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
+        guard case .focus = timer.state.phase else { return }
+        timer.abandonFocus()
     }
 
     #if DEBUG

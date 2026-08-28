@@ -56,20 +56,15 @@ private struct DailyStatsFooter: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Text("\(formatDuration(stats.totalSeconds)) today")
+            Text("\(TimeFormat.duration(stats.totalSeconds)) today")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
-            Text("\(formatPomos(stats.pomoCount)) · \(formatDuration(stats.focusSeconds)) focus")
+            Text("\(formatPomos(stats.pomoCount)) · \(TimeFormat.duration(stats.focusSeconds)) focus")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .monospacedDigit()
         }
-    }
-
-    private func formatDuration(_ seconds: Int) -> String {
-        let h = seconds / 3600, m = (seconds % 3600) / 60
-        return h == 0 ? "\(m)m" : m == 0 ? "\(h)h" : "\(h)h \(m)m"
     }
 
     private func formatPomos(_ count: Double) -> String {
