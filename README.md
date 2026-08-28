@@ -13,6 +13,32 @@ swift run
 
 The app launches into the menu bar (no Dock icon). Look for the timer icon in the upper-right of the screen. No onboarding — first launch lands on Idle with sensible defaults.
 
+## Validation
+
+Nothing ships unrehearsed (PURPOSE principle 9). The pure core — every decision the user can
+see — also builds on Linux (same module name, same tests; `Package.swift` selects targets by
+host OS), so agents validate changes end to end without a Mac:
+
+```bash
+swift test                        # unit suite + rehearsed-day invariants + golden transcripts
+swift run rehearse all --quiet    # both scripted days + a 20-seed sweep of randomized days
+swift run rehearse canonical      # one full day, printed as a transcript of what the user sees
+```
+
+(on macOS the rehearsal entry point is `swift run DynamicPomodoro rehearse …`.)
+
+A rehearsal plays a whole simulated workday through the real reducer, selector, curve and
+content, prints everything the user would have seen — menu bar, notifications, break cards,
+chimes, screen locks — and checks the invariants PURPOSE promises (no sound during a live call,
+one lock per break at +30s, nudges once a day, picks from the right pool, …). Two days are
+frozen as golden transcripts under `Tests/DynamicPomodoroTests/Fixtures/`; a change to anything
+user-visible fails the golden test and is re-recorded deliberately
+(`DP_REHEARSAL_RECORD=1 swift test --filter GoldenDayTests`), so the PR diff shows the user's
+day changing, line by line. To watch one loop for real on a Mac, debug builds compress time:
+`DP_SECONDS_PER_MINUTE=2 swift run` runs a 20-minute session in 40 seconds (persistence
+auto-redirects to a scratch directory). CI runs the macOS build plus the Linux suite and sweep
+on every push and PR.
+
 ## Auto-update
 
 The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Installed clients fetch the appcast from `https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml` — GitHub transparently redirects this URL to the latest published release's `appcast.xml` asset, so there's no copy of the manifest committed to `main` and no GitHub Pages needed. This matches the pattern used by [Lede](https://github.com/BGSoares/lede). Clients check once every 24 hours and via the menu bar's "Check for Updates…" item.
@@ -74,7 +100,15 @@ Sources/DynamicPomodoro/
 │   ├── Nudges.swift                   # Task nudges on the break card (PURPOSE principle 8)
 │   ├── FocusHistory.swift             # Session log → focus per day, by calendar week
 │   ├── UnlockGate.swift               # Unlock auto-start gate (see SPEC_UNLOCK_AUTOSTART.md)
-│   └── ScreenLockState.swift          # unknown/locked/unlocked (see SPEC_LOOP_CONTINUITY.md §3.1)
+│   ├── ScreenLockState.swift          # unknown/locked/unlocked (see SPEC_LOOP_CONTINUITY.md §3.1)
+│   ├── MenuBarTitle.swift             # The status-item title string (rendered by main.swift)
+│   └── TimeScale.swift                # DP_SECONDS_PER_MINUTE time compression (debug-only)
+├── Rehearsal/                         # Plays whole simulated days; checks PURPOSE's promises
+│   ├── DayRehearsal.swift             # The engine: real logic, synthetic clock, invariant checks
+│   ├── RehearsalScript.swift          # The scripted + seeded days
+│   ├── Transcript.swift               # Event model + rendering
+│   ├── RehearsalCLI.swift             # `rehearse` command-line entry
+│   └── SeededRNG.swift                # SplitMix64, for deterministic replay
 ├── Services/
 │   ├── TimerEngine.swift              # Drives PomodoroCore, owns the ticker
 │   ├── NotificationService.swift      # UNUserNotificationCenter
@@ -96,7 +130,7 @@ Sources/DynamicPomodoro/
 │   ├── StatsView.swift                # Focus hours per day, last four calendar weeks
 │   └── CountdownHUDView.swift         # Auto-start countdown card (unlock and skip triggers)
 └── Resources/
-    └── activities.json                # 26 built-in activities
+    └── activities.json                # The curated activity library
 ```
 
 Data persisted locally:

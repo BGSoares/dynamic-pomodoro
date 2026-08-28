@@ -18,15 +18,46 @@ population to generalise for.
 swift run                      # launches into the menu bar, no Dock icon
 ~/.swiftly/bin/swift test      # bare Command Line Tools ship no testing runtime; use a full toolchain
 ./build-app.sh <version> <build>
+
+# Validation (PURPOSE principle 9) — all of this also works on Linux:
+swift test                               # unit suite + rehearsed-day invariants + golden transcripts
+swift run rehearse all --quiet           # pre-ship sweep (macOS: swift run DynamicPomodoro rehearse all --quiet)
+swift run rehearse canonical             # print one full day as a transcript and read it
+DP_SECONDS_PER_MINUTE=2 swift run        # watch a real loop compressed: 1 min ≈ 2s (debug-only, scratch log)
+DP_REHEARSAL_RECORD=1 swift test --filter GoldenDayTests   # re-record goldens after an intentional visible change
 ```
 
-CI runs the suite on every push and PR (`.github/workflows/ci.yml`).
+CI runs the suite on every push and PR (`.github/workflows/ci.yml`) — macOS builds the whole
+app; a Linux job builds the pure core, runs the same tests, and rehearses the sweep.
+
+## Validating changes (do this before shipping)
+
+Run `/validate` — or by hand: `swift test`, then `swift run rehearse all --quiet`, and if the
+change touches anything user-visible, print a day's transcript and *read it* before re-recording
+the goldens; the fixture diff is the review artifact and ships in the PR. You are the last person
+to see the change before the user does — a rehearsal finding is a bug they would have met, and
+"I don't want to have to debug myself" is the operative constraint.
+
+Two structural rules keep the rehearsal honest:
+
+- **Decisions go in the pure layer** (`Core/`, `Logic/`, `Models/`) — that's what the Linux
+  target builds and what a rehearsed day can replay. On a non-Mac host, `Package.swift` builds
+  those layers (same module name, so tests are identical) plus the `rehearse` executable;
+  Views/ and Services/ compile only on macOS, so a green Linux run is necessary but not
+  sufficient — push and let macOS CI have the last word.
+- **The AppKit glue is mirrored, not simulated away.** `Rehearsal/DayRehearsal.swift` mirrors
+  the effect interpretation in `TimerEngine`, the phase handling in `main.swift`, the countdown
+  in `AutoStartService`, and the lock state in `ScreenLockMonitor` — each mirror is labeled.
+  If you change the glue, change its mirror in the same commit, or the rehearsal vouches for
+  an app that no longer exists.
 
 ## Shape of the code
 
 `Core/PomodoroCore.swift` is a pure state machine (idle → focus → break). Everything in `Logic/`
 is pure and unit-tested — put decisions there, not in views or services. `Services/` owns the
 impure edges (timers, CoreAudio, screen lock, notifications). `Views/` renders and does not decide.
+`Rehearsal/` plays whole simulated days through the pure layers and checks PURPOSE's promises —
+it is how a change gets user-tested without a user (see "Validating changes" above).
 
 The break card is the product. `Resources/activities.json` and the string pools in
 `Logic/Messages.swift` and `Logic/Nudges.swift` are **content, curated in source** — no editor, no
