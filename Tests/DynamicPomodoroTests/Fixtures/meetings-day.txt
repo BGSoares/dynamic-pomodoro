@@ -1,0 +1,288 @@
+# dynamic-pomodoro rehearsal — script: meetings, seed 1
+# calls everywhere — a manual override, a deferred break, a capped-out break
+# 2026-01-14 · workday 09:00–18:00 · focus 20–40 min · library: 34 activities
+
+09:00:00  env:  you sit down and unlock the machine — the workday starts
+09:00:00  [menu bar] Start 20m
+09:02:00  you:  you click the dolphin — Start focus
+09:02:00  [notification] Focus started — 20 min.
+09:02:00  [menu] “Abandon session” appears in the dolphin menu
+09:02:00  [menu bar] F 20:00
+09:22:00  [log] focusCompleted 09:02:00–09:22:00 · 20 min
+09:22:00  ♪ Glass — the focus-complete chime
+09:22:00  [notification] Focus complete — Step away. The next session needs you fresh.
+09:22:00  [overlay ON] every display blacks out — the 5-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | 5-4-3-2-1 — Land back in the room? Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.
+          | ring 05:00 · Hold to skip
+09:22:00  [menu bar] B 05:00
+09:22:30  [screen locks] 30s into the break — every display goes to the login window
+09:26:00  you:  you come back and unlock the screen
+09:27:00  [log] breakCompleted 09:22:00–09:27:00 · 5 min · five_senses
+09:27:00  ♪ Ping — the break-over chime
+09:27:00  [notification] Break complete — Ready when you are.
+09:27:00  [window] the main window comes forward — Ready
+          | Next session: 20 min · [Start focus]
+          | footer: 25m today · 1 pomo · 20m focus
+09:27:00  [overlay OFF] the screens come back
+09:27:00  [menu bar] Start 20m
+09:28:00  [menu bar] Start 21m
+09:29:00  you:  you click the dolphin — Start focus
+09:29:00  [notification] Focus started — 21 min.
+09:29:00  [window] the main window hides — focus is for working
+09:29:00  [menu] “Abandon session” appears in the dolphin menu
+09:29:00  [menu bar] F 21:00
+09:50:00  [log] focusCompleted 09:29:00–09:50:00 · 21 min
+09:50:00  ♪ Glass — the focus-complete chime
+09:50:00  [notification] Focus complete — Step away. The next session needs you fresh.
+09:50:00  [overlay ON] every display blacks out — the 5-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | 8 SECONDS, 1989 — 1989 Tour de France, final time trial — LeMond starts 50 seconds down on Fignon. He wins the Tour by 8. Closest in history. Sit with that for the break.
+          | ring 05:00 · Hold to skip
+09:50:00  [menu bar] B 05:00
+09:50:30  [screen locks] 30s into the break — every display goes to the login window
+09:54:00  you:  you come back and unlock the screen
+09:55:00  [log] breakCompleted 09:50:00–09:55:00 · 5 min · history_lemond_fignon_89
+09:55:00  ♪ Ping — the break-over chime
+09:55:00  [notification] Break complete — Ready when you are.
+09:55:00  [window] the main window comes forward — Ready
+          | Next session: 22 min · [Start focus]
+          | footer: 51m today · 2 pomos · 41m focus
+09:55:00  [overlay OFF] the screens come back
+09:55:00  [menu bar] Start 22m
+09:57:00  you:  you click the dolphin — Start focus
+09:57:00  [notification] Focus started — 22 min.
+09:57:00  [window] the main window hides — focus is for working
+09:57:00  [menu] “Abandon session” appears in the dolphin menu
+09:57:00  [menu bar] F 22:00
+10:19:00  [log] focusCompleted 09:57:00–10:19:00 · 22 min
+10:19:00  ♪ Glass — the focus-complete chime
+10:19:00  [notification] Focus complete — Step away. The next session needs you fresh.
+10:19:00  [overlay ON] every display blacks out — the 5-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | MINDFUL TEA OR COFFEE — Make a slow tea or coffee? Don't multitask. Notice the smell, the warmth of the cup, the first sip. The whole break is the ritual.
+          | ring 05:00 · Hold to skip
+10:19:00  [menu bar] B 05:00
+10:19:30  [screen locks] 30s into the break — every display goes to the login window
+10:23:00  you:  you come back and unlock the screen
+10:24:00  [log] breakCompleted 10:19:00–10:24:00 · 5 min · mindful_drink
+10:24:00  ♪ Ping — the break-over chime
+10:24:00  [notification] Break complete — Ready when you are.
+10:24:00  [window] the main window comes forward — Ready
+          | Next session: 24 min · [Start focus]
+          | footer: 1h 18m today · 3 pomos · 1h 3m focus
+10:24:00  [overlay OFF] the screens come back
+10:24:00  [menu bar] Start 24m
+10:25:00  [menu bar] Start 25m
+10:26:00  you:  you click the dolphin — Start focus
+10:26:00  [notification] Focus started — 25 min.
+10:26:00  [window] the main window hides — focus is for working
+10:26:00  [menu] “Abandon session” appears in the dolphin menu
+10:26:00  [menu bar] F 25:00
+10:51:00  [log] focusCompleted 10:26:00–10:51:00 · 25 min
+10:51:00  ♪ Glass — the focus-complete chime
+10:51:00  [notification] Focus complete — Step away. The next session needs you fresh.
+10:51:00  [overlay ON] every display blacks out — the 5-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | 20-20-20 — Reset the eyes? Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break.
+          | ring 05:00 · Hold to skip
+10:51:00  [menu bar] B 05:00
+10:51:30  [screen locks] 30s into the break — every display goes to the login window
+10:55:00  you:  you come back and unlock the screen
+10:56:00  [log] breakCompleted 10:51:00–10:56:00 · 5 min · twenty_twenty_twenty
+10:56:00  ♪ Ping — the break-over chime
+10:56:00  [notification] Break complete — Ready when you are.
+10:56:00  [window] the main window comes forward — Ready
+          | Next session: 28 min · [Start focus]
+          | footer: 1h 48m today · 4 pomos · 1h 28m focus
+10:56:00  [overlay OFF] the screens come back
+10:56:00  [menu bar] Start 28m
+10:58:00  you:  you click the dolphin — Start focus
+10:58:00  [notification] Focus started — 28 min.
+10:58:00  [window] the main window hides — focus is for working
+10:58:00  [menu] “Abandon session” appears in the dolphin menu
+10:58:00  [menu bar] F 28:00
+11:05:00  env:  a call starts — the mic is live
+11:26:00  [log] focusCompleted 10:58:00–11:26:00 · 28 min
+11:26:00  [notification] Focus complete — Break starts when your call ends.  (silent)
+11:26:00  [menu] “Start break now” appears in the dolphin menu
+11:26:00  [window] nothing opens — a break owed behind a call stays off the screen
+11:26:00  [menu bar] B …
+11:28:00  you:  you pick “Start break now” from the dolphin menu — overriding the call signal
+11:28:00  ♪ Glass — the focus-complete chime
+11:28:00  [notification] Focus complete — Step away. The next session needs you fresh.
+11:28:00  [overlay ON] every display blacks out — the 6-minute break card (started by you):
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | 5-4-3-2-1 — Land back in the room? Name 5 things you can see, 4 you can hear, 3 you can feel, 2 you can smell, 1 you can taste. Pulls you out of your head, into the room.
+          | ring 06:00 · Hold to skip
+11:28:00  [menu bar] B 06:00
+11:28:30  [screen locks] 30s into the break — every display goes to the login window
+11:33:00  you:  you come back and unlock the screen
+11:34:00  [log] breakCompleted 11:28:00–11:34:00 · 6 min · five_senses
+11:34:00  [notification] Break complete — Ready when you are.  (silent)
+11:34:00  [overlay OFF] the screens come back
+11:34:00  [menu bar] Start 32m
+11:37:00  [menu bar] Start 33m
+11:46:00  env:  the call ends — the mic goes quiet
+11:46:00  you:  you click the dolphin — Start focus
+11:46:00  [notification] Focus started — 34 min.
+11:46:00  [menu] “Abandon session” appears in the dolphin menu
+11:46:00  [menu bar] F 34:00
+12:10:00  env:  a call starts — the mic is live
+12:20:00  [log] focusCompleted 11:46:00–12:20:00 · 34 min
+12:20:00  [notification] Focus complete — Break starts when your call ends.  (silent)
+12:20:00  [menu] “Start break now” appears in the dolphin menu
+12:20:00  [window] nothing opens — a break owed behind a call stays off the screen
+12:20:00  [menu bar] B …
+12:36:00  env:  the call ends — the mic goes quiet
+12:36:00  ♪ Glass — the focus-complete chime
+12:36:00  [notification] Focus complete — Step away. The next session needs you fresh.
+12:36:00  [overlay ON] every display blacks out — the 7-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | PALMING — Cup your palms over closed eyes — no pressure on the eyeball. Full darkness for two minutes, then look at the furthest thing in the room.
+          | ring 07:00 · Hold to skip
+12:36:00  [menu bar] B 07:00
+12:36:30  [screen locks] 30s into the break — every display goes to the login window
+12:42:00  you:  you come back and unlock the screen
+12:43:00  [log] breakCompleted 12:36:00–12:43:00 · 7 min · palming
+12:43:00  ♪ Ping — the break-over chime
+12:43:00  [notification] Break complete — Ready when you are.
+12:43:00  [window] the main window comes forward — Ready
+          | Next session: 39 min · [Start focus]
+          | footer: 3h 3m today · 6 pomos · 2h 30m focus
+12:43:00  [overlay OFF] the screens come back
+12:43:00  [menu bar] Start 39m
+12:45:00  you:  you click the dolphin — Start focus
+12:45:00  [notification] Focus started — 39 min.
+12:45:00  [window] the main window hides — focus is for working
+12:45:00  [menu] “Abandon session” appears in the dolphin menu
+12:45:00  [menu bar] F 39:00
+13:24:00  [log] focusCompleted 12:45:00–13:24:00 · 39 min
+13:24:00  ♪ Glass — the focus-complete chime
+13:24:00  [notification] Focus complete — Step away. The next session needs you fresh.
+13:24:00  [overlay ON] every display blacks out — the 8-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | KETTLE AND WINDOW — Put the kettle on. While it boils, stand at the window and find the furthest thing you can see. Drink it there, not at your desk.
+          | ring 08:00 · Hold to skip
+13:24:00  [menu bar] B 08:00
+13:24:30  [screen locks] 30s into the break — every display goes to the login window
+13:31:00  you:  you come back and unlock the screen
+13:32:00  [log] breakCompleted 13:24:00–13:32:00 · 8 min · kettle_and_window
+13:32:00  ♪ Ping — the break-over chime
+13:32:00  [notification] Break complete — Ready when you are.
+13:32:00  [window] the main window comes forward — Ready
+          | Next session: 40 min · [Start focus]
+          | footer: 3h 50m today · 7 pomos · 3h 9m focus
+13:32:00  [overlay OFF] the screens come back
+13:32:00  [menu bar] Start 40m
+13:34:00  you:  you click the dolphin — Start focus
+13:34:00  [notification] Focus started — 40 min.
+13:34:00  [window] the main window hides — focus is for working
+13:34:00  [menu] “Abandon session” appears in the dolphin menu
+13:34:00  [menu bar] F 40:00
+14:14:00  [log] focusCompleted 13:34:00–14:14:00 · 40 min
+14:14:00  ♪ Glass — the focus-complete chime
+14:14:00  [notification] Focus complete — Step away. The next session needs you fresh.
+14:14:00  [overlay ON] every display blacks out — the 8-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | INDOOR LOOP — Weather bad? Walk it indoors. Corridors, another floor, the long way to the kitchen and back. Keep moving until the chime.
+          | ring 08:00 · Hold to skip
+14:14:00  [menu bar] B 08:00
+14:14:30  [screen locks] 30s into the break — every display goes to the login window
+14:21:00  you:  you come back and unlock the screen
+14:22:00  [log] breakCompleted 14:14:00–14:22:00 · 8 min · corridor_loop
+14:22:00  ♪ Ping — the break-over chime
+14:22:00  [notification] Break complete — Ready when you are.
+14:22:00  [window] the main window comes forward — Ready
+          | Next session: 38 min · [Start focus]
+          | footer: 4h 38m today · 8 pomos · 3h 49m focus
+14:22:00  [overlay OFF] the screens come back
+14:22:00  [menu bar] Start 38m
+14:24:00  you:  you click the dolphin — Start focus
+14:24:00  [notification] Focus started — 38 min.
+14:24:00  [window] the main window hides — focus is for working
+14:24:00  [menu] “Abandon session” appears in the dolphin menu
+14:24:00  [menu bar] F 38:00
+15:02:00  [log] focusCompleted 14:24:00–15:02:00 · 38 min
+15:02:00  ♪ Glass — the focus-complete chime
+15:02:00  [notification] Focus complete — Step away. The next session needs you fresh.
+15:02:00  [overlay ON] every display blacks out — the 8-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | MOBILITY ROUND — Find some floor. Hips, then upper back, then hamstrings — a minute in each, slow, breathing through the nose. Start the round again if there's time.
+          | ring 08:00 · Hold to skip
+15:02:00  [menu bar] B 08:00
+15:02:30  [screen locks] 30s into the break — every display goes to the login window
+15:09:00  you:  you come back and unlock the screen
+15:10:00  [log] breakCompleted 15:02:00–15:10:00 · 8 min · mobility_flow
+15:10:00  ♪ Ping — the break-over chime
+15:10:00  [notification] Break complete — Ready when you are.
+15:10:00  [window] the main window comes forward — Ready
+          | Next session: 34 min · [Start focus]
+          | footer: 5h 24m today · 9 pomos · 4h 27m focus
+15:10:00  [overlay OFF] the screens come back
+15:10:00  [menu bar] Start 34m
+15:12:00  you:  you click the dolphin — Start focus
+15:12:00  [notification] Focus started — 34 min.
+15:12:00  [window] the main window hides — focus is for working
+15:12:00  [menu] “Abandon session” appears in the dolphin menu
+15:12:00  [menu bar] F 34:00
+15:46:00  [log] focusCompleted 15:12:00–15:46:00 · 34 min
+15:46:00  ♪ Glass — the focus-complete chime
+15:46:00  [notification] Focus complete — Step away. The next session needs you fresh.
+15:46:00  [overlay ON] every display blacks out — the 7-minute break card:
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
+          | BODY SCAN — Lie down, or sit back with your eyes closed. Move your attention from your feet to your head, one part at a time. Start again if you reach the top.
+          | ring 07:00 · Hold to skip
+15:46:00  [menu bar] B 07:00
+15:46:30  [screen locks] 30s into the break — every display goes to the login window
+15:52:00  you:  you come back and unlock the screen
+15:53:00  [log] breakCompleted 15:46:00–15:53:00 · 7 min · body_scan
+15:53:00  ♪ Ping — the break-over chime
+15:53:00  [notification] Break complete — Ready when you are.
+15:53:00  [window] the main window comes forward — Ready
+          | Next session: 29 min · [Start focus]
+          | footer: 6h 5m today · 10 pomos · 5h 1m focus
+15:53:00  [overlay OFF] the screens come back
+15:53:00  [menu bar] Start 29m
+15:55:00  you:  you click the dolphin — Start focus
+15:55:00  [notification] Focus started — 29 min.
+15:55:00  [window] the main window hides — focus is for working
+15:55:00  [menu] “Abandon session” appears in the dolphin menu
+15:55:00  [menu bar] F 29:00
+16:15:00  env:  a call starts — the mic is live
+16:24:00  [log] focusCompleted 15:55:00–16:24:00 · 29 min
+16:24:00  [notification] Focus complete — Break starts when your call ends.  (silent)
+16:24:00  [menu] “Start break now” appears in the dolphin menu
+16:24:00  [window] nothing opens — a break owed behind a call stays off the screen
+16:24:00  [menu bar] B …
+16:54:01  [log] breakSkipped 16:24:00–16:54:01 · 6 min
+16:54:01  [menu bar] Start 23m
+16:58:00  [menu bar] Start 22m
+17:13:00  [menu bar] Start 21m
+17:26:00  env:  the call ends — the mic goes quiet
+17:26:00  you:  you click the dolphin — Start focus
+17:26:00  [notification] Focus started — 21 min.
+17:26:00  [menu] “Abandon session” appears in the dolphin menu
+17:26:00  [menu bar] F 21:00
+17:47:00  [log] focusCompleted 17:26:00–17:47:00 · 21 min
+17:47:00  ♪ Glass — the focus-complete chime
+17:47:00  [notification] Focus complete — Step away. The next session needs you fresh.
+17:47:00  [overlay ON] every display blacks out — the 5-minute break card:
+          | nudge: Three spoons of muesli, if you haven't already.
+          |        Getting home not hungry is what keeps dinner something you cook, instead of something you graze past.
+          | 20-20-20 — Reset the eyes? Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break.
+          | ring 05:00 · Hold to skip
+17:47:00  [menu bar] B 05:00
+17:47:30  [screen locks] 30s into the break — every display goes to the login window
+17:51:00  you:  you come back and unlock the screen
+17:52:00  [log] breakCompleted 17:47:00–17:52:00 · 5 min · twenty_twenty_twenty
+17:52:00  ♪ Ping — the break-over chime
+17:52:00  [notification] Break complete — Ready when you are.
+17:52:00  [window] the main window comes forward — Ready
+          | Next session: 20 min · [Start focus]
+          | footer: 7h today · 12 pomos · 5h 51m focus
+17:52:00  [overlay OFF] the screens come back
+17:52:00  [menu bar] Start 20m
+18:00:00  env:  end of workday — you close the laptop
+18:00:00  [day] footer: 7h today · 12 pomos · 5h 51m focus
+18:00:00  [day] 12 focus completed · 0 abandoned · 11 breaks taken · 1 skipped

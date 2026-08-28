@@ -47,6 +47,23 @@ enum ReminderMessages {
     }
 }
 
+/// The abandon confirmation, worded once. Both surfaces that offer the
+/// action read from here — the in-window button and the menu-bar item —
+/// so the two can't drift into saying different things about the same
+/// irreversible decision.
+///
+/// It *is* confirmed from the menu bar too. Abandoning is not a break
+/// skip, so PURPOSE principle 4's deliberate friction doesn't apply; the
+/// dialog is here only because the session is discarded outright (§3.5)
+/// with nothing to undo it, and a menu is an easy place to mis-click.
+enum AbandonPrompt {
+    static let menuTitle = "Abandon session"
+    static let title = "Abandon this session?"
+    static let message = "Interrupted sessions are discarded — you'll start fresh next time."
+    static let confirm = "Abandon"
+    static let cancel = "Continue"
+}
+
 /// Short, sharper one-liners shown under the hold-to-skip button while the user
 /// is mid-hold. Goal: one final beat of resistance before the skip commits.
 enum SkipNudgeMessages {

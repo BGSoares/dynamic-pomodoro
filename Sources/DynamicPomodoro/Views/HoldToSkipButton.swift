@@ -3,7 +3,7 @@ import SwiftUI
 /// Circular button that fills a progress ring as the user holds it.
 /// Triggers onComplete after the full hold duration; cancels smoothly on early release.
 struct HoldToSkipButton: View {
-    private static let holdDuration: TimeInterval = 15.0
+    private static let holdDuration: TimeInterval = BreakLogic.skipHoldSeconds
     var onComplete: () -> Void
     /// Called with `true` the moment the hold begins, and `false` when an
     /// in-progress hold is released early. Not called when the hold completes

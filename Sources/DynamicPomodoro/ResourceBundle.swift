@@ -35,6 +35,7 @@ enum BundleResource {
 
     private static let spmBundleName = "DynamicPomodoro_DynamicPomodoro.bundle"
 
+#if canImport(AppKit)
     private static let candidates: [Bundle] = {
         let anchor = Bundle(for: Anchor.self)
         let spmBundles = [Bundle.main.bundleURL, anchor.bundleURL].flatMap { base in
@@ -44,4 +45,12 @@ enum BundleResource {
         var seen = Set<String>()
         return ([Bundle.main, anchor] + spmBundles).filter { seen.insert($0.bundlePath).inserted }
     }()
+#else
+    /// Off macOS the process is always SPM-built (there is no installed-.app
+    /// layout whose missing paths make `Bundle.module` trap), and the bundle
+    /// directory is named `….resources` rather than `….bundle`, which the
+    /// manual probing above would miss — so the generated accessor is both
+    /// safe and the only correct answer here.
+    private static let candidates: [Bundle] = [Bundle.module]
+#endif
 }

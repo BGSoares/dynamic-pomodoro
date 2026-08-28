@@ -28,12 +28,14 @@ final class NotificationService {
         }
     }
 
-    func notify(title: String, body: String) {
+    /// `silent` posts the banner with no sound — principle 7's requirement
+    /// for anything the app says while a call is live.
+    func notify(title: String, body: String, silent: Bool = false) {
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        content.sound = silent ? nil : .default
         let req = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,

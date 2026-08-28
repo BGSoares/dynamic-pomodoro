@@ -1,5 +1,10 @@
 import Foundation
-import SwiftUI
+// ObservableObject/@Published come from Combine (shimmed on Linux, where
+// nothing observes — see CombineShim.swift). SwiftUI itself is never needed
+// in the models layer.
+#if canImport(Combine)
+import Combine
+#endif
 
 /// User-configurable settings, persisted in UserDefaults.
 /// Four values shown in `SettingsView` — that's the whole personalisation
@@ -91,5 +96,14 @@ enum TimeFormat {
     static func minutesSinceMidnight(from date: Date, calendar: Calendar = .current) -> Int {
         let comps = calendar.dateComponents([.hour, .minute], from: date)
         return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+    }
+
+    /// "0 pomos", "1 pomo", "3.5 pomos" — one decimal at most, dropped when
+    /// whole. Shared by the idle footer and the rehearsal transcript so the
+    /// rehearsed day reads exactly what the window would say.
+    static func pomos(_ count: Double) -> String {
+        let v = (count * 10).rounded() / 10
+        let n = v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
+        return "\(n) pomo\(v == 1 ? "" : "s")"
     }
 }
