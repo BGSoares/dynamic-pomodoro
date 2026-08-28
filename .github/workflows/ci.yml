@@ -4,6 +4,13 @@ name: CI
 # broken for weeks on a newer local toolchain with nothing to catch it:
 # the release workflow only runs on tags, and the test suite needs a
 # toolchain with a testing runtime (local machines may have bare CLT).
+#
+# Two jobs, two halves of the validation story (PURPOSE principle 9):
+#  - macOS builds the whole app — the only place Views/ and Services/
+#    compile at all.
+#  - Linux builds the pure core the way an agent's environment does, runs
+#    the same test suite (rehearsal invariants and golden days included),
+#    and then rehearses a sweep of full days end to end.
 
 on:
   push:
@@ -27,3 +34,16 @@ jobs:
 
       - name: Test
         run: swift test
+
+  test-linux:
+    runs-on: ubuntu-latest
+    # Pinned by digest, same discipline as the SHA-pinned actions.
+    container: swift:6.1.2-noble@sha256:19337d1abe5ab39c94b7a23f5b76b2a0d5c80b28c3e58209c867725479b8d876
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Test
+        run: swift test
+
+      - name: Rehearse
+        run: swift run rehearse all --quiet
