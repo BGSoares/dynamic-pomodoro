@@ -9,6 +9,13 @@ enum AppSupport {
         if let override = ProcessInfo.processInfo.environment["DP_APP_SUPPORT_DIR"] {
             return URL(fileURLWithPath: override, isDirectory: true)
         }
+        // A compressed-time run (DP_SECONDS_PER_MINUTE) plays fabricated
+        // sessions; they must never land in the real log, so persistence
+        // auto-redirects to a scratch directory unless one was chosen above.
+        if TimeScale.isCompressed {
+            return FileManager.default.temporaryDirectory
+                .appendingPathComponent("DynamicPomodoro-compressed", isDirectory: true)
+        }
         #endif
         let fm = FileManager.default
         let base = (try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true))

@@ -14,9 +14,33 @@ enum ActivitySelector {
         lastCategory: Activity.Category?,
         settings: Settings,
         calendar: Calendar = .current,
-        rng: inout SystemRandomNumberGenerator
+        rng: inout some RandomNumberGenerator
     ) -> Activity? {
-        guard !library.isEmpty else { return nil }
+        candidatePool(
+            from: library,
+            breakMinutes: breakMinutes,
+            now: now,
+            recentActivityIDs: recentActivityIDs,
+            lastCategory: lastCategory,
+            settings: settings,
+            calendar: calendar
+        ).randomElement(using: &rng)
+    }
+
+    /// The exact pool `select` draws from, separated from the draw itself so
+    /// the rehearsal's invariant checker can assert a pick came from the
+    /// right pool — same cascade, one implementation — rather than
+    /// re-deriving the filter rules and drifting from them.
+    static func candidatePool(
+        from library: [Activity],
+        breakMinutes: Int,
+        now: Date,
+        recentActivityIDs: [String],
+        lastCategory: Activity.Category?,
+        settings: Settings,
+        calendar: Calendar = .current
+    ) -> [Activity] {
+        guard !library.isEmpty else { return [] }
 
         let band = BreakLogic.durationBand(forBreakMinutes: breakMinutes)
         let nowMin = TimeFormat.minutesSinceMidnight(from: now, calendar: calendar)
@@ -47,6 +71,6 @@ enum ActivitySelector {
         soft { !recencyWindow.contains($0.id) }
         if let lastCat = lastCategory { soft { $0.category != lastCat } }
 
-        return pool.randomElement(using: &rng)
+        return pool
     }
 }

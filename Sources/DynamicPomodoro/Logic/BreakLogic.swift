@@ -4,6 +4,11 @@ import Foundation
 enum BreakLogic {
     static let floorMinutes: Int = 5
 
+    /// How long the skip button must be held (PURPOSE principle 4's
+    /// deliberate friction). Lives here rather than in `HoldToSkipButton` so
+    /// the rehearsal models the same hold the view enforces.
+    static let skipHoldSeconds: TimeInterval = 15.0
+
     static func breakDuration(forFocusMinutes focus: Int) -> Int {
         max(Int((Double(focus) * 0.2).rounded()), floorMinutes)
     }

@@ -60,16 +60,10 @@ private struct DailyStatsFooter: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
-            Text("\(formatPomos(stats.pomoCount)) · \(TimeFormat.duration(stats.focusSeconds)) focus")
+            Text("\(TimeFormat.pomos(stats.pomoCount)) · \(TimeFormat.duration(stats.focusSeconds)) focus")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .monospacedDigit()
         }
-    }
-
-    private func formatPomos(_ count: Double) -> String {
-        let v = (count * 10).rounded() / 10
-        let n = v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
-        return "\(n) pomo\(v == 1 ? "" : "s")"
     }
 }

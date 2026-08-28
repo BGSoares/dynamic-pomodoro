@@ -308,12 +308,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateStatusItemTitle(for state: PomodoroState) {
         guard let button = statusItem?.button else { return }
-        let text = switch state.phase {
-        case .idle: " Start \(timer.suggestedFocusMinutes())m"
-        case .focus: " F \(state.remainingFormatted)"
-        case .breakPending: " B …"
-        case .breakRunning: " B \(state.remainingFormatted)"
-        }
+        let text = MenuBarTitle.text(for: state, suggestedMinutes: timer.suggestedFocusMinutes())
         // Tabular (monospaced) digits so each tick doesn't change the title's
         // width — otherwise the variable-length status item resizes and the
         // dolphin icon visibly shifts left/right in the menu bar.
@@ -490,6 +485,17 @@ final class MainWindowDelegate: NSObject, NSWindowDelegate {
 }
 
 // MARK: - Bootstrap
+
+#if DEBUG
+// `swift run DynamicPomodoro rehearse [...]` prints a rehearsal transcript
+// and exits without ever touching AppKit — the same entry point Linux
+// reaches via its dedicated `swift run rehearse` executable (the app is the
+// only executable product on macOS so that plain `swift run` keeps working).
+// DEBUG-only, like every other test seam in this codebase.
+if CommandLine.arguments.dropFirst().first == "rehearse" {
+    exit(RehearsalCLI.run(arguments: Array(CommandLine.arguments.dropFirst(2))))
+}
+#endif
 
 @MainActor
 private func bootstrap() {

@@ -88,7 +88,10 @@ enum PomodoroAction {
 // MARK: - Effect
 
 enum PomodoroEffect: Equatable {
-    case notify(title: String, body: String)
+    /// `silent` exists for principle 7: a notification posted because of a
+    /// live call must not put a sound in the room the call is happening in.
+    /// Every other notification keeps the default sound.
+    case notify(title: String, body: String, silent: Bool)
     case logSession(SessionLogEntry)
     case playFocusCompleteChime
     case playBreakCompleteChime
@@ -137,7 +140,8 @@ enum PomodoroReducer {
         log: SessionLogStore,
         library: [Activity],
         isOnCall: Bool,
-        rng: inout SystemRandomNumberGenerator
+        rng: inout some RandomNumberGenerator,
+        calendar: Calendar = .current
     ) -> [PomodoroEffect] {
         switch action {
         case .startFocus(let now):
@@ -145,15 +149,16 @@ enum PomodoroReducer {
             guard case .idle = state.phase else { return [] }
             let minutes = DurationCurve.focusDuration(
                 now: now,
-                isFirstSessionOfDay: !log.hasCompletedFocusToday(now: now),
-                settings: settings
+                isFirstSessionOfDay: !log.hasCompletedFocusToday(calendar: calendar, now: now),
+                settings: settings,
+                calendar: calendar
             )
-            let sessionSeconds = minutes * 60
+            let sessionSeconds = TimeScale.seconds(ofMinutes: minutes)
             let deadline = now.addingTimeInterval(TimeInterval(sessionSeconds))
             beginPhase(&state, .focus(deadline: deadline, startedAt: now, planned: minutes), seconds: sessionSeconds)
             return [
                 .startTicker,
-                .notify(title: "Focus started", body: "\(minutes) min."),
+                .notify(title: "Focus started", body: "\(minutes) min.", silent: false),
                 .hideMainWindow,
             ]
 
@@ -183,7 +188,7 @@ enum PomodoroReducer {
                 return [.stopTicker]
 
             case .focus(let deadline, let startedAt, let planned):
-                if now.timeIntervalSince(deadline) > Self.missedDeadlineGraceSeconds {
+                if now.timeIntervalSince(deadline) > TimeScale.seconds(Self.missedDeadlineGraceSeconds) {
                     // Slept across the deadline. The ticker died before the
                     // deadline, so actual focus was < planned; log it as
                     // abandoned at the deadline (upper bound) and go idle.
@@ -204,15 +209,18 @@ enum PomodoroReducer {
                         beginPhase(&state, .breakPending(planned: planned, since: deadline), seconds: 0)
                         return [
                             .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: deadline, minutes: planned)),
-                            .notify(title: "Focus complete", body: "Break starts when your call ends."),
+                            // Silent for the same reason the chime is withheld
+                            // (principle 7): a notification ping bleeds into a
+                            // call exactly like a chime does.
+                            .notify(title: "Focus complete", body: "Break starts when your call ends.", silent: true),
                         ]
                     }
-                    return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng)
+                    return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
                 }
                 return []
 
             case .breakPending(let planned, let since):
-                if now.timeIntervalSince(since) > Self.breakPendingCapSeconds {
+                if now.timeIntervalSince(since) > TimeScale.seconds(Self.breakPendingCapSeconds) {
                     // The call outlasted the break's moment. Go idle; the
                     // absent recovery is logged honestly as a skipped break.
                     let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: planned)
@@ -223,7 +231,7 @@ enum PomodoroReducer {
                     ]
                 }
                 if !isOnCall {
-                    return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
+                    return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
                 }
                 return []
 
@@ -231,10 +239,10 @@ enum PomodoroReducer {
                 let remaining = max(0, Int(ceil(deadline.timeIntervalSince(now))))
                 state.remainingSeconds = remaining
                 if remaining == 0 {
-                    return completeBreak(state: &state, now: now)
+                    return completeBreak(state: &state, now: now, isOnCall: isOnCall)
                 }
                 if !state.breakLockFired,
-                   now.timeIntervalSince(startedAt) >= breakLockDelaySeconds {
+                   now.timeIntervalSince(startedAt) >= TimeScale.seconds(breakLockDelaySeconds) {
                     state.breakLockFired = true
                     return [.lockScreen]
                 }
@@ -243,7 +251,7 @@ enum PomodoroReducer {
 
         case .startPendingBreak(let now):
             guard case .breakPending(let planned, _) = state.phase else { return [] }
-            return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
+            return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
 
         case .fastForward(let now):
             switch state.phase {
@@ -255,14 +263,14 @@ enum PomodoroReducer {
                     beginPhase(&state, .breakPending(planned: planned, since: now), seconds: 0)
                     return [
                         .logSession(SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)),
-                        .notify(title: "Focus complete", body: "Break starts when your call ends."),
+                        .notify(title: "Focus complete", body: "Break starts when your call ends.", silent: true),
                     ]
                 }
-                return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng)
+                return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
             case .breakPending(let planned, _):
-                return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
+                return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
             case .breakRunning:
-                return completeBreak(state: &state, now: now)
+                return completeBreak(state: &state, now: now, isOnCall: isOnCall)
             case .idle:
                 return []
             }
@@ -277,13 +285,14 @@ enum PomodoroReducer {
         settings: Settings,
         log: SessionLogStore,
         library: [Activity],
-        rng: inout SystemRandomNumberGenerator
+        rng: inout some RandomNumberGenerator,
+        calendar: Calendar
     ) -> [PomodoroEffect] {
         guard case .focus(_, let startedAt, let planned) = state.phase else { return [] }
         let focusLog = PomodoroEffect.logSession(
             SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)
         )
-        return [focusLog] + startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng)
+        return [focusLog] + startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
     }
 
     /// Enter `.breakRunning` for a completed focus of `planned` minutes.
@@ -296,10 +305,11 @@ enum PomodoroReducer {
         settings: Settings,
         log: SessionLogStore,
         library: [Activity],
-        rng: inout SystemRandomNumberGenerator
+        rng: inout some RandomNumberGenerator,
+        calendar: Calendar
     ) -> [PomodoroEffect] {
         let breakMinutes = BreakLogic.breakDuration(forFocusMinutes: planned)
-        let breakSeconds = breakMinutes * 60
+        let breakSeconds = TimeScale.seconds(ofMinutes: breakMinutes)
         let activity = ActivitySelector.select(
             from: library,
             breakMinutes: breakMinutes,
@@ -307,6 +317,7 @@ enum PomodoroReducer {
             recentActivityIDs: log.recentBreakActivityIDs(),
             lastCategory: log.lastBreakCategory(library: library),
             settings: settings,
+            calendar: calendar,
             rng: &rng
         ) ?? Self.fallbackActivity
 
@@ -316,12 +327,12 @@ enum PomodoroReducer {
             startedAt: now,
             planned: breakMinutes,
             activity: activity,
-            caption: breakCaption(now: now, log: log)
+            caption: breakCaption(now: now, log: log, calendar: calendar)
         ), seconds: breakSeconds)
 
         return [
             .playFocusCompleteChime,
-            .notify(title: "Focus complete", body: "Step away. The next session needs you fresh."),
+            .notify(title: "Focus complete", body: "Step away. The next session needs you fresh.", silent: false),
         ]
     }
 
@@ -329,26 +340,36 @@ enum PomodoroReducer {
     /// otherwise the day's rest-argument (PURPOSE principle 8). Never both.
     /// Swapping costs nothing — the reminder line rotates daily and has already
     /// been read on every earlier break by the time a late nudge comes due.
-    private static func breakCaption(now: Date, log: SessionLogStore) -> BreakCaption? {
+    private static func breakCaption(now: Date, log: SessionLogStore, calendar: Calendar) -> BreakCaption? {
         if let nudge = Nudges.forBreak(
             startingAt: now,
-            shownBreakStartsToday: log.shownBreakStartsToday(now: now)
+            shownBreakStartsToday: log.shownBreakStartsToday(calendar: calendar, now: now),
+            calendar: calendar
         ) {
             return .nudge(nudge)
         }
-        return ReminderMessages.lineFor(date: now).map(BreakCaption.reminder)
+        return ReminderMessages.lineFor(date: now, calendar: calendar).map(BreakCaption.reminder)
     }
 
-    private static func completeBreak(state: inout PomodoroState, now: Date) -> [PomodoroEffect] {
+    /// A call can begin *during* a break (answered mid-break, or the break
+    /// was started manually over one) and still be live when the break ends.
+    /// Principle 7 applies to the ending, not just the start: no chime and a
+    /// silent notification while the mic is hot. The break still completes
+    /// and logs normally; `.presentMainWindow`'s own call gate already
+    /// suppresses the window.
+    private static func completeBreak(state: inout PomodoroState, now: Date, isOnCall: Bool) -> [PomodoroEffect] {
         guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
         resetToIdle(&state)
-        return [
+        var effects: [PomodoroEffect] = [
             .stopTicker,
             .logSession(SessionLogEntry(kind: .breakCompleted, from: startedAt, to: now, minutes: planned, activity: activity.id)),
-            .playBreakCompleteChime,
-            .notify(title: "Break complete", body: "Ready when you are."),
-            .presentMainWindow,
         ]
+        if !isOnCall {
+            effects.append(.playBreakCompleteChime)
+        }
+        effects.append(.notify(title: "Break complete", body: "Ready when you are.", silent: isOnCall))
+        effects.append(.presentMainWindow)
+        return effects
     }
 
     private static func resetToIdle(_ state: inout PomodoroState) {

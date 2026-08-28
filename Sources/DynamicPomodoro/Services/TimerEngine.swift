@@ -106,8 +106,8 @@ final class TimerEngine: ObservableObject {
 
     private func run(_ effect: PomodoroEffect) {
         switch effect {
-        case .notify(let title, let body):
-            notifications.notify(title: title, body: body)
+        case .notify(let title, let body, let silent):
+            notifications.notify(title: title, body: body, silent: silent)
         case .logSession(let entry):
             log.append(entry)
         case .playFocusCompleteChime:

@@ -56,7 +56,7 @@ final class PomodoroCoreTests {
     }
 
     private func contains(_ effects: [PomodoroEffect], notificationTitled title: String) -> Bool {
-        effects.contains { if case .notify(let t, _) = $0 { return t == title }; return false }
+        effects.contains { if case .notify(let t, _, _) = $0 { return t == title }; return false }
     }
 
     private func contains(_ effects: [PomodoroEffect], logOfKind kind: SessionLogEntry.Kind) -> Bool {

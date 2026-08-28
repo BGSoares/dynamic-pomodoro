@@ -64,7 +64,12 @@ final class SessionLogStoreTests {
 
     /// An unreadable-but-present file is treated like a corrupt one: moved
     /// aside, never clobbered by the next save.
-    @Test func loadOfUnreadableFilePreservesItAsBackup() throws {
+    ///
+    /// Disabled under root (agent containers, Linux CI): root reads straight
+    /// through a 000 permission mask, so the unreadable case can't be
+    /// constructed there at all.
+    @Test(.enabled(if: getuid() != 0))
+    func loadOfUnreadableFilePreservesItAsBackup() throws {
         let fileURL = tempDir.appendingPathComponent("sessions.json")
         try Data("[]".utf8).write(to: fileURL)
         try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: fileURL.path)
