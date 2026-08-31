@@ -1,5 +1,29 @@
 import Foundation
 
+/// What the stats window plots: focus alone, or focus with the break time
+/// that sat between the sessions.
+///
+/// A named pair rather than a `Bool` in the view, because five things read
+/// it — the bars, the axis ceiling, the window total, the week footers and
+/// the header line — and they must all mean the same thing by it. Pure, so
+/// both read-outs are checkable without a window.
+enum StatsMeasure: Equatable {
+    /// Focus only.
+    case focus
+    /// Focus plus the breaks that were actually taken — the time the day
+    /// spent at the desk, which is what a working day compares against.
+    case focusAndBreak
+
+    /// Header line. Lives here rather than in the view so the chart cannot
+    /// be titled one thing while it plots another.
+    var title: String {
+        switch self {
+        case .focus: return "Focus per day"
+        case .focusAndBreak: return "Focus + break per day"
+        }
+    }
+}
+
 /// One calendar day in the stats window.
 struct FocusDay: Equatable, Identifiable {
     /// Start of the day, user-local.
@@ -11,7 +35,17 @@ struct FocusDay: Equatable, Identifiable {
     let isFuture: Bool
 
     var id: Date { date }
-    var focusSeconds: Int { stats.focusSeconds }
+    var focusSeconds: Int { seconds(.focus) }
+
+    /// What this day contributes under the given read-out. A skipped break
+    /// adds nothing under either — `DailyStats.contribution` drops it, since
+    /// the break never happened — so break time here is time a break took.
+    func seconds(_ measure: StatsMeasure) -> Int {
+        switch measure {
+        case .focus: return stats.focusSeconds
+        case .focusAndBreak: return stats.totalSeconds
+        }
+    }
 }
 
 /// Seven days, aligned to the locale's first weekday.
@@ -21,7 +55,11 @@ struct FocusWeek: Equatable, Identifiable {
     var id: Date { start }
     var start: Date { days.first?.date ?? .distantPast }
     var end: Date { days.last?.date ?? .distantPast }
-    var focusSeconds: Int { days.reduce(0) { $0 + $1.focusSeconds } }
+    var focusSeconds: Int { seconds(.focus) }
+
+    func seconds(_ measure: StatsMeasure) -> Int {
+        days.reduce(0) { $0 + $1.seconds(measure) }
+    }
 }
 
 /// Folds the session log into a trailing run of whole calendar weeks — the

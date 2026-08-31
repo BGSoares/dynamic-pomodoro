@@ -83,8 +83,17 @@ struct FocusHistoryTests {
     }
 
     @Test func breaksCountAsBreakTimeNotFocus() {
+        let day = weeks(dayWithABreak()).flatMap(\.days).first { $0.date == date(6, 10, hour: 0) }
+        #expect(day?.focusSeconds == 25 * 60)
+        #expect(day?.stats.breakSeconds == 5 * 60)
+    }
+
+    // MARK: - Read-outs (the stats window's break-time button)
+
+    /// A day with 25m focus and a 5m break taken, plus a break skipped.
+    private func dayWithABreak() -> [SessionLogEntry] {
         let start = date(6, 10)
-        let entries = [
+        return [
             focus(6, 10, minutes: 25),
             SessionLogEntry(kind: .breakCompleted, startedAt: start.addingTimeInterval(25 * 60),
                             endedAt: start.addingTimeInterval(30 * 60),
@@ -93,10 +102,57 @@ struct FocusHistoryTests {
                             endedAt: start.addingTimeInterval(60 * 60 + 20),
                             plannedMinutes: 5, activityID: "stairs"),
         ]
-        let day = weeks(entries).flatMap(\.days).first { $0.date == date(6, 10, hour: 0) }
-        #expect(day?.focusSeconds == 25 * 60)
-        #expect(day?.stats.breakSeconds == 5 * 60)
     }
+
+    @Test func breakTimeIsAddedOnlyUnderTheCombinedMeasure() {
+        let day = weeks(dayWithABreak()).flatMap(\.days).first { $0.date == date(6, 10, hour: 0) }
+        #expect(day?.seconds(.focus) == 25 * 60)
+        #expect(day?.seconds(.focusAndBreak) == 30 * 60)
+    }
+
+    /// The button adds time the user actually spent on a break — a skipped
+    /// break is not desk time, and `DailyStats.contribution` already drops it.
+    @Test func skippedBreaksAddNothingUnderEitherMeasure() {
+        let withSkipOnly = [
+            focus(6, 10, minutes: 25),
+            SessionLogEntry(kind: .breakSkipped, startedAt: date(6, 10).addingTimeInterval(25 * 60),
+                            endedAt: date(6, 10).addingTimeInterval(25 * 60 + 20),
+                            plannedMinutes: 5, activityID: "stairs"),
+        ]
+        let day = weeks(withSkipOnly).flatMap(\.days).first { $0.date == date(6, 10, hour: 0) }
+        #expect(day?.seconds(.focus) == 25 * 60)
+        #expect(day?.seconds(.focusAndBreak) == 25 * 60)
+    }
+
+    @Test func focusSecondsAgreesWithTheFocusMeasure() {
+        for day in weeks(dayWithABreak()).flatMap(\.days) {
+            #expect(day.focusSeconds == day.seconds(.focus))
+        }
+    }
+
+    @Test func weekTotalsSumTheirDaysUnderEitherMeasure() {
+        let entries = dayWithABreak() + [focus(6, 12, minutes: 40)]
+        // Mon 9 → Sun 15 June is the third week of the window.
+        let week = weeks(entries)[2]
+        #expect(week.seconds(.focus) == (25 + 40) * 60)
+        #expect(week.seconds(.focusAndBreak) == (25 + 5 + 40) * 60)
+        #expect(week.focusSeconds == week.seconds(.focus))
+    }
+
+    /// Empty days and the unhappened tail of the current week stay at zero
+    /// under both read-outs, so turning the button on can't invent a bar.
+    @Test func daysWithNothingLoggedStayZeroUnderEitherMeasure() {
+        let days = weeks(dayWithABreak()).flatMap(\.days).filter { $0.date != date(6, 10, hour: 0) }
+        #expect(days.count == 27)
+        #expect(days.allSatisfy { $0.seconds(.focus) == 0 && $0.seconds(.focusAndBreak) == 0 })
+    }
+
+    @Test func measuresTitleWhatTheyPlot() {
+        #expect(StatsMeasure.focus.title == "Focus per day")
+        #expect(StatsMeasure.focusAndBreak.title == "Focus + break per day")
+    }
+
+    // MARK: - Window shape
 
     @Test func daysAfterTodayAreMarkedFuture() {
         let all = weeks([]).flatMap(\.days)
