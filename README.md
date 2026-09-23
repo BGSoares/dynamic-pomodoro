@@ -5,13 +5,42 @@ macOS menu-bar pomodoro timer with session durations that follow a bell curve ac
 Built to a v0.2 product spec kept outside this repo. Native Swift / SwiftUI + AppKit.
 Only runtime dependency is [Sparkle](https://sparkle-project.org) (auto-update).
 
-## Build & run
+This started as one person's personal tool — see [`PURPOSE.md`](PURPOSE.md) for the philosophy
+behind that (opinionated, no settings pane, no accounts). Forking it means it becomes *your*
+personal tool: the curve, the activity library, and the reminder copy are all yours to rewrite.
+
+## Requirements
+
+- macOS 13+ to run the app itself (menu-bar extras, screen lock, CoreAudio call detection).
+- Xcode Command Line Tools (`xcode-select --install`) to build and run.
+- A full Swift toolchain to run the test suite — see [Tests](#tests) below; bare Command Line
+  Tools ship no testing runtime.
+- The pure core (`Core/`, `Logic/`, `Models/`, and the `rehearse` executable) also builds and
+  tests on Linux, so you can validate logic changes without a Mac — see
+  [Validation](#validation).
+
+## Quick start
 
 ```bash
+git clone <your-fork-url>
+cd dynamic-pomodoro
 swift run
 ```
 
-The app launches into the menu bar (no Dock icon). Look for the timer icon in the upper-right of the screen. No onboarding — first launch lands on Idle with sensible defaults.
+The app launches into the menu bar (no Dock icon). Look for the timer icon in the upper-right of the screen. No onboarding — first launch lands on Idle with sensible defaults. Click the icon to start a focus session; open Settings from the menu to set your workday start/end and focus-duration bounds (the only four settings there are — see [`PURPOSE.md`](PURPOSE.md) principle 5).
+
+## Make it yours
+
+Everything below is either a placeholder or curated content the previous owner wrote for
+themselves. None of it is required to build or run the app — only to publish releases under
+your own name or to make the break-card content reflect you instead of a stranger:
+
+- **Break activity library** — [`Sources/DynamicPomodoro/Resources/activities.json`](Sources/DynamicPomodoro/Resources/activities.json). Curated in source, no editor UI (PURPOSE principle 5). Swap in activities you'd actually do.
+- **Reminder and skip-nudge copy** — [`Logic/Messages.swift`](Sources/DynamicPomodoro/Logic/Messages.swift). The argument-for-a-break lines shown on every break card.
+- **Break-card nudges** — [`Logic/Nudges.swift`](Sources/DynamicPomodoro/Logic/Nudges.swift). Small standing reminders (a placeholder water-bottle nudge ships by default) that ride a break at a time you choose — see PURPOSE principle 8.
+- **Bundle identifier** — `BUNDLE_ID` near the top of [`build-app.sh`](build-app.sh).
+- **GitHub repo for auto-update** — `REPO` near the top of `build-app.sh` and `release.sh` (or set the `DP_GITHUB_REPO` env var), used to build the Sparkle appcast URL. Only matters if you intend to publish releases and want Sparkle auto-update to work; irrelevant for `swift run`.
+- **Sparkle signing key** — `SU_PUBLIC_ED_KEY` in `build-app.sh`, paired with a private key you generate yourself. See [Auto-update](#auto-update) below — only needed if you're shipping signed releases.
 
 ## Validation
 
@@ -41,7 +70,7 @@ on every push and PR.
 
 ## Auto-update
 
-The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Installed clients fetch the appcast from `https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml` — GitHub transparently redirects this URL to the latest published release's `appcast.xml` asset, so there's no copy of the manifest committed to `main` and no GitHub Pages needed. This matches the pattern used by [Lede](https://github.com/BGSoares/lede). Clients check once every 24 hours and via the menu bar's "Check for Updates…" item.
+The app uses [Sparkle](https://sparkle-project.org) to check for new versions, prompt the user, download the new build, and relaunch. Installed clients fetch the appcast from `https://github.com/<your-repo>/releases/latest/download/appcast.xml` (the `REPO` variable in `build-app.sh`/`release.sh` — see [Make it yours](#make-it-yours)) — GitHub transparently redirects this URL to the latest published release's `appcast.xml` asset, so there's no copy of the manifest committed to `main` and no GitHub Pages needed. Clients check once every 24 hours and via the menu bar's "Check for Updates…" item.
 
 The redirect requires the repo to be public — `releases/latest/download/<file>` returns 404 to authenticated requests on private repos.
 
@@ -65,7 +94,7 @@ git tag -a v1.0.1 -m "Release v1.0.1"
 git push origin v1.0.1
 ```
 
-The workflow uses the `SPARKLE_ED_PRIVATE_KEY` repository secret to sign the zip, so no Sparkle install or local Keychain key is needed for releases. Mirrors Lede's `tauri-action` setup.
+The workflow uses the `SPARKLE_ED_PRIVATE_KEY` repository secret to sign the zip, so no Sparkle install or local Keychain key is needed for releases.
 
 Fallback (local): `./release.sh 1.0.1` does the same thing on your machine — builds, signs (with the Keychain key from `generate_keys`), tags, and creates the release with all three assets attached. Useful if CI is broken or you want to ship a build without pushing the tag through CI. The workflow is idempotent: if it fires on a tag that release.sh already published, it just re-uploads the assets with `--clobber`.
 
@@ -144,7 +173,7 @@ Data persisted locally:
 - **§3.5 interruption handling.** Abandon discards the session entirely — no pause state, per spec. A confirmation dialog guards the abandon button.
 - **§4.3 selection filter relaxation.** If the hard filter (band + time-of-day) produces an empty pool, the selector relaxes the duration-band constraint first (keeping time-of-day), then falls back to the full library, to guarantee the break always has *something*. Documented inline in `ActivitySelector.swift`.
 - **§4.5 message frequency.** Reminder line rotates once per calendar day (deterministic by date) and is shown on every break that day. Logic lives in `Logic/Messages.swift`.
-- **Break-card nudges.** A nudge is one line ("Three spoons of muesli, if you haven't already.") plus the reason it matters, with a time attached; it rides the earliest break that starts at or after that time, at most once a day, and takes the same slot the daily reminder line occupies rather than adding a surface (PURPOSE principle 8). No notification, no chime, no completion state, no log entry. Delivery is *derived*, not persisted: `Nudges.assign` re-folds today's break start times (`SessionLogStore.shownBreakStartsToday` — only breaks that actually put a card on screen, so a break capped out by a long call can't spend one) and hands each break the most recently due nudge still unspent, so a second due nudge falls to the next break instead of being dropped. If no break starts after a nudge's time that day, the nudge simply doesn't fire — deliberately, since anything louder is the reminders app this exists to avoid. To add or edit one: `Logic/Nudges.swift`, same as the activity library. This is not the task-manager integration ruled out in §8 — nothing syncs, and the app never learns whether the thing got done.
+- **Break-card nudges.** A nudge is one line ("Top up your water bottle, if you haven't already.") plus the reason it matters, with a time attached; it rides the earliest break that starts at or after that time, at most once a day, and takes the same slot the daily reminder line occupies rather than adding a surface (PURPOSE principle 8). No notification, no chime, no completion state, no log entry. Delivery is *derived*, not persisted: `Nudges.assign` re-folds today's break start times (`SessionLogStore.shownBreakStartsToday` — only breaks that actually put a card on screen, so a break capped out by a long call can't spend one) and hands each break the most recently due nudge still unspent, so a second due nudge falls to the next break instead of being dropped. If no break starts after a nudge's time that day, the nudge simply doesn't fire — deliberately, since anything louder is the reminders app this exists to avoid. To add or edit one: `Logic/Nudges.swift`, same as the activity library. This is not the task-manager integration ruled out in §8 — nothing syncs, and the app never learns whether the thing got done.
 - **Unlock and skip auto-start countdown.** On a macOS unlock, or on a completed hold-to-skip, if the app is idle and (for the unlock trigger) a break ended within the last 20 minutes (tunable, not shown in `SettingsView`), a floating HUD counts down from 15s (also tunable) and auto-starts the next focus session via the same `startFocus()` path a manual start uses. Esc (captured locally by the HUD panel — no global monitor, no Input Monitoring prompt) or a click on the menu-bar item cancels it — which also opens the main window, since the cancel is a decision to not start now. Both triggers are call-gated: a live call drops the offer entirely, with no suppression written. Full design in `SPEC_UNLOCK_AUTOSTART.md` and `SPEC_LOOP_CONTINUITY.md` §2.
 - **Breaks defer during calls.** If the mic is in use when a focus session ends (any meeting app — Meet, Zoom, FaceTime… — holds the input stream open even while muted), the break waits in a `breakPending` state and starts on its own when the call ends. Bounded by a 30-minute cap (then logged as `breakSkipped`, and never auto-starts the next session). "Start break now" overrides the wait and lives in the status menu (shown only during `breakPending`) rather than a window, since principle 7 forbids opening a window while a call is live. Detection is `CallDetectionService` (CoreAudio device state; no capture, no permission prompt).
 - **Window discipline.** The main window opens only when it has a decision to offer: a break that completed while the screen was known unlocked (`ScreenLockMonitor`, tracking `.unknown`/`.locked`/`.unlocked` — launch counts as `.unknown`, never treated as unlocked), or a cancelled countdown. It never opens at launch or during a focus session, and closing it just hides it, same as before. The menu bar carries the rest: the status item reads `Start 32m` while idle (recomputed on a 60s idle-only coalesced timer, plus Settings/wake/activate), and one click starts that session; right-click (or a click while a countdown is running) opens the menu or cancels it respectively. Full design in `SPEC_LOOP_CONTINUITY.md`.

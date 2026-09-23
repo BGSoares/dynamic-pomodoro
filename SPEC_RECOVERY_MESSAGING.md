@@ -296,8 +296,8 @@ screen lock, which is the whole reason for the one-clause rule in §3.2.
 
 ### §7.1 On-machine data — blocked, needs the user
 
-`sessions.json` is not readable from a review container, and usage has been paused since 2026-05-24
-pending a work-laptop install decision. None of the following can be answered until it resumes:
+`sessions.json` is not readable from a review container, and this repo has no real usage history
+yet to draw on. None of the following can be answered until some accumulates:
 
 1. **Per-activity skip rate.** `SessionLogEntry` already carries `activityID` on break entries and
    a `breakSkipped` kind, so "which activities get skipped" is answerable *today* with a notebook

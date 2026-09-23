@@ -35,9 +35,9 @@ enum BreakCaption: Equatable {
 enum Nudges {
     static let all: [Nudge] = [
         Nudge(
-            id: "muesli",
-            ask: "Three spoons of muesli, if you haven't already.",
-            because: "Getting home not hungry is what keeps dinner something you cook, instead of something you graze past.",
+            id: "water",
+            ask: "Top up your water bottle, if you haven't already.",
+            because: "A quick refill now beats trying to catch up on hydration once the afternoon dip hits.",
             afterMinutes: 16 * 60 + 20
         ),
     ]

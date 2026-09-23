@@ -30,14 +30,18 @@ done
 VERSION="${POSITIONAL[0]:-1.0}"
 BUILD="${POSITIONAL[1]:-$(git -C "$SCRIPT_DIR" rev-list --count HEAD 2>/dev/null || echo 1)}"
 
+# Your GitHub repo, as "owner/repo" — edit this once you've forked/renamed.
+# Override per-invocation with DP_GITHUB_REPO instead, if you'd rather not
+# edit the script.
+REPO="${DP_GITHUB_REPO:-your-username/dynamic-pomodoro}"
+
 # Sparkle appcast URL — Sparkle fetches this at startup (and on demand) to
 # discover new versions. GitHub transparently redirects this URL to the
 # `appcast.xml` asset of the latest published release, so we ship a fresh
 # appcast.xml as a release asset with each release and never commit one
-# to source. Same pattern Lede uses. Requires the repo to be public —
-# `releases/latest/download/` returns 404 to authenticated requests on
-# private repos.
-FEED_URL="https://github.com/BGSoares/dynamic-pomodoro/releases/latest/download/appcast.xml"
+# to source. Requires the repo to be public — `releases/latest/download/`
+# returns 404 to authenticated requests on private repos.
+FEED_URL="https://github.com/${REPO}/releases/latest/download/appcast.xml"
 
 # Sparkle EdDSA public key. Generated once via `generate_keys`; the
 # private half lives in the release maintainer's macOS Keychain (for
