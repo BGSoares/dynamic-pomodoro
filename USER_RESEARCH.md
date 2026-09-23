@@ -2,22 +2,29 @@
 
 _Single user. Personal tool. Mac only._
 
+This file is where the owner records real dogfood findings against their own `sessions.json` —
+not a template to fill in once, but a living log that gets appended to and pruned the way
+`CLAUDE.md`'s research notes are: measurements first, decisions after, stale entries deleted once
+a spec section lands.
+
 ## Usage data
 
 Real data lives on the user's machine at `~/Library/Application Support/DynamicPomodoro/sessions.json` (not readable from remote review containers).
-Reviewed 2026-07-19 (consultant review, on-machine): Apr 22 – May 24 usage shows 89% focus completion (target >80%) and 94% break completion (target >60%).
-The loop works when used.
-54% of real session starts fell outside the configured 09:00–18:00 workday (large 06:00–07:00 and 21:00–22:00 blocks), so 65% of sessions ran at the minimum duration and the curve rarely engaged.
-Calibrating the workday settings to the real day is a user action, not a code change.
-Usage paused after 2026-05-24 for an external reason (work-laptop install policy), not product dissatisfaction.
+Nothing has been recorded here yet. When you have a few weeks of real use, capture: focus and
+break completion rates against the targets below, how much real usage falls inside vs. outside
+the configured workday window (a curve calibrated to the wrong hours won't engage), and any
+qualitative signal on what's hardest to sustain during the day.
 
 ## Retired probes
 
-- **Reminder-quotes thumbs probe** – resolved 👍 (read 2026-07-19 from the installed app's defaults, `reminderMsgThumb = up`).
-  The quotes stay; the probe was removed from `IdleView`.
-- **One-shot feedback survey** – fired its once-per-account prompt on 2026-05-14: satisfaction 5/5, Q2 (rev 1) "Which part of your workday feels hardest to focus through?" → "End of day".
-  The once-per-account gate made every later Q2 rotation a dead channel, so the whole apparatus (~400 LOC) was deleted on 2026-07-19 per PURPOSE principle 5.
-  `feedback.json` remains on disk as historical data.
+- **Reminder-quotes thumbs probe** – a one-bit 👍/👎 read from the installed app's defaults to
+  validate the reminder-message pool. Once it settled positive, the probe itself was removed from
+  `IdleView` — it had answered its question.
+- **One-shot feedback survey** – a once-per-account prompt that captured a satisfaction rating and
+  one open-ended question. The once-per-account gate made every later rotation of the question a
+  dead channel, so the whole apparatus (~400 LOC) was deleted per PURPOSE principle 5. This is the
+  shape a probe should take here: cheap, temporary, and deleted once it has an answer — see
+  `CLAUDE.md`'s research-note convention for the standard.
 
 ## Feature status
 
@@ -25,7 +32,7 @@ Usage paused after 2026-05-24 for an external reason (work-laptop install policy
 |---|---|
 | Dynamic focus curve | Load-bearing |
 | Break activity library | Load-bearing |
-| Full-screen overlay + screen lock | Load-bearing (overlay collapse on macOS 26 fixed 2026-07-19) |
+| Full-screen overlay + screen lock | Load-bearing |
 | Hold-to-skip friction | Load-bearing |
 | Skip nudge messages | Presumed load-bearing |
 | Reminder messages | Rated 👍 – keep |
@@ -33,5 +40,7 @@ Usage paused after 2026-05-24 for an external reason (work-laptop install policy
 
 ## Next
 
-- Validate skip rate and session frequency via `sessions.json` once usage resumes (work-laptop install decision pending).
-- "End of day" is the hardest-to-focus period (survey, 2026-05-14) and evening sessions clamp to minimum by design – revisit only if the data says otherwise.
+- Validate skip rate and session frequency via `sessions.json` once you have real usage to look at.
+- Revisit the workday settings (start, end, min/max focus minutes) against your actual day before
+  trusting the curve's shape — a misconfigured window is the most common reason the medium/long
+  bands never engage.

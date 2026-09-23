@@ -4,8 +4,8 @@
 # zip, a fresh appcast.xml, and the NoSparkle zip (zero-network variant,
 # installed manually) as assets. Sparkle clients discover the appcast via
 # the `releases/latest/download/appcast.xml` redirect, so there's no copy
-# on main and no GitHub Pages needed. Same pattern Lede uses. Requires the
-# repo to be public — `releases/latest/download/` 404s on private repos.
+# on main and no GitHub Pages needed. Requires the repo to be public —
+# `releases/latest/download/` 404s on private repos.
 #
 # Usage: ./release.sh <version> [build]
 #   version: e.g. 1.0.1 (CFBundleShortVersionString — what users see)
@@ -35,7 +35,7 @@ ZIP_PATH="${SCRIPT_DIR}/dist/${ZIP_NAME}"
 NOSPARKLE_ZIP_NAME="${APP_NAME}-NoSparkle-${VERSION}.zip"
 NOSPARKLE_ZIP_PATH="${SCRIPT_DIR}/dist/${NOSPARKLE_ZIP_NAME}"
 APPCAST_PATH="${SCRIPT_DIR}/dist/appcast.xml"
-REPO="BGSoares/dynamic-pomodoro"
+REPO="${DP_GITHUB_REPO:-your-username/dynamic-pomodoro}"
 FEED_URL="https://github.com/${REPO}/releases/latest/download/appcast.xml"
 
 # Locate sign_update — bundled inside Sparkle.framework when Sparkle is on
