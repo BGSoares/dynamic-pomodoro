@@ -13,8 +13,8 @@ struct NudgesTests {
         return Calendar.current.date(from: c)!
     }
 
-    private let muesli = Nudge(
-        id: "muesli", ask: "Three spoons of muesli.",
+    private let snack = Nudge(
+        id: "snack", ask: "Eat something before you leave.",
         because: "Get home not hungry.", afterMinutes: 16 * 60 + 20
     )
     private let bottle = Nudge(
@@ -24,7 +24,7 @@ struct NudgesTests {
 
     /// A break one minute early is still a break before the time — no nudge.
     @Test func silentBeforeTheNudgeIsDue() {
-        #expect(Nudges.forBreak(startingAt: at(16, 19), shownBreakStartsToday: [], from: [muesli]) == nil)
+        #expect(Nudges.forBreak(startingAt: at(16, 19), shownBreakStartsToday: [], from: [snack]) == nil)
     }
 
     @Test func ridesTheEarliestBreakAtOrAfterItsTime() {
@@ -32,8 +32,8 @@ struct NudgesTests {
             Nudges.forBreak(
                 startingAt: at(16, 20),
                 shownBreakStartsToday: [at(14, 10), at(15, 40)],
-                from: [muesli]
-            ) == muesli
+                from: [snack]
+            ) == snack
         )
     }
 
@@ -41,16 +41,16 @@ struct NudgesTests {
     /// ordinary reminder line.
     @Test func firesOnlyOnceADay() {
         let first = at(16, 30)
-        #expect(Nudges.forBreak(startingAt: first, shownBreakStartsToday: [], from: [muesli]) == muesli)
-        #expect(Nudges.forBreak(startingAt: at(17, 10), shownBreakStartsToday: [first], from: [muesli]) == nil)
+        #expect(Nudges.forBreak(startingAt: first, shownBreakStartsToday: [], from: [snack]) == snack)
+        #expect(Nudges.forBreak(startingAt: at(17, 10), shownBreakStartsToday: [first], from: [snack]) == nil)
     }
 
     /// Two nudges due at the same break: the fresher one goes first, the older
     /// falls through to the next break rather than being dropped.
     @Test func competingNudgesSpreadAcrossConsecutiveBreaks() {
-        let assigned = Nudges.assign(to: [at(16, 30), at(17, 0)], from: [bottle, muesli])
+        let assigned = Nudges.assign(to: [at(16, 30), at(17, 0)], from: [bottle, snack])
         #expect(assigned.count == 2)
-        #expect(assigned[0] == muesli)
+        #expect(assigned[0] == snack)
         #expect(assigned[1] == bottle)
     }
 
@@ -67,7 +67,7 @@ struct NudgesTests {
     /// A day whose breaks all land before the time simply doesn't get it. The
     /// nudge is worth one line on a card, not a fallback delivery channel.
     @Test func aNudgeWhoseBreakNeverCameIsNotDelivered() {
-        let assigned = Nudges.assign(to: [at(9, 30), at(11, 30), at(15, 0)], from: [muesli])
+        let assigned = Nudges.assign(to: [at(9, 30), at(11, 30), at(15, 0)], from: [snack])
         #expect(assigned.allSatisfy { $0 == nil })
     }
 

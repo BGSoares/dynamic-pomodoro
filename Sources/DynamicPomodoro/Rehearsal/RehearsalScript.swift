@@ -47,10 +47,11 @@ struct RehearsalScript {
     /// The rehearsed date (in the rehearsal's own fixed calendar).
     var year = 2026, month = 1, day = 14
 
-    // The four real settings, plus the two unexposed countdown timings.
+    // The five real settings, plus the two unexposed countdown timings.
     var workdayStartMinutes = 9 * 60
     var workdayEndMinutes = 18 * 60
-    var minFocusMinutes = 20
+    var minFocusStartMinutes = 20
+    var minFocusEndMinutes = 20
     var maxFocusMinutes = 40
     var autoStartCountdownSeconds = 15
     var autoStartWindowMinutes = 20
@@ -74,10 +75,15 @@ struct RehearsalScript {
 
     /// An ordinary good day: sessions all day, every break taken but one
     /// mid-afternoon skip (which offers the auto-start countdown and lets
-    /// it fire), back early from some breaks and late from others.
+    /// it fire), back early from some breaks and late from others. Runs on
+    /// the asymmetric curve the user actually works to – the afternoon
+    /// tapers to a 30-minute floor rather than back down to 20 – so the
+    /// golden transcript shows the late sessions at the length they really
+    /// get.
     static let canonical = RehearsalScript(
         name: "canonical",
         summary: "an ordinary day — every break taken, one afternoon skip, countdown fires",
+        minFocusEndMinutes: 30,
         ops: [
             TimedOp(trigger: .breakStarted(ordinal: 5), op: .holdSkip),
         ]
@@ -149,6 +155,10 @@ struct RehearsalScript {
                 op: .cancelCountdown
             ))
         }
+        // The end-of-day floor wanders either side of the start floor, so
+        // the sweep plays days that taper, days that don't, and days that
+        // end longer than they began.
+        script.minFocusEndMinutes = Int.random(in: 15...35, using: &rng)
         return script
     }
 }

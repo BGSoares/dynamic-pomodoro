@@ -30,6 +30,11 @@ struct PomodoroState: Equatable {
     /// Set once the 30s-into-break screen lock has fired for the current break.
     /// Resets when the phase leaves `.breakRunning`.
     var breakLockFired: Bool = false
+    /// The current break was started by hand over a live call ("Start break
+    /// now"). That break runs in full – overlay, lock and all – because the
+    /// user just asked for it; any other break defers to a call that begins
+    /// during it (principle 7). Resets with the phase, like `breakLockFired`.
+    var breakOverridesCall: Bool = false
 }
 
 extension PomodoroState.Phase {
@@ -231,7 +236,7 @@ enum PomodoroReducer {
                     ]
                 }
                 if !isOnCall {
-                    return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
+                    return startBreak(state: &state, planned: planned, now: now, overridingCall: false, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
                 }
                 return []
 
@@ -244,6 +249,14 @@ enum PomodoroReducer {
                 if !state.breakLockFired,
                    now.timeIntervalSince(startedAt) >= TimeScale.seconds(breakLockDelaySeconds) {
                     state.breakLockFired = true
+                    // A call that began inside the break's first half-minute
+                    // gets no login window thrown over it (principle 7). The
+                    // break still runs; only the lock is withheld, and for
+                    // good – a lock fired after the call would land on
+                    // whatever the call left behind. The break the user
+                    // started by hand over a call is the exception: they
+                    // asked for all of it.
+                    guard !isOnCall || state.breakOverridesCall else { return [] }
                     return [.lockScreen]
                 }
                 return []
@@ -251,7 +264,7 @@ enum PomodoroReducer {
 
         case .startPendingBreak(let now):
             guard case .breakPending(let planned, _) = state.phase else { return [] }
-            return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
+            return startBreak(state: &state, planned: planned, now: now, overridingCall: isOnCall, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
 
         case .fastForward(let now):
             switch state.phase {
@@ -268,7 +281,7 @@ enum PomodoroReducer {
                 }
                 return completeFocus(state: &state, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
             case .breakPending(let planned, _):
-                return startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
+                return startBreak(state: &state, planned: planned, now: now, overridingCall: isOnCall, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
             case .breakRunning:
                 return completeBreak(state: &state, now: now, isOnCall: isOnCall)
             case .idle:
@@ -292,16 +305,19 @@ enum PomodoroReducer {
         let focusLog = PomodoroEffect.logSession(
             SessionLogEntry(kind: .focusCompleted, from: startedAt, to: now, minutes: planned)
         )
-        return [focusLog] + startBreak(state: &state, planned: planned, now: now, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
+        return [focusLog] + startBreak(state: &state, planned: planned, now: now, overridingCall: false, settings: settings, log: log, library: library, rng: &rng, calendar: calendar)
     }
 
     /// Enter `.breakRunning` for a completed focus of `planned` minutes.
     /// Shared by the immediate path (focus deadline, no call) and the
     /// deferred path (`.breakPending` once the call ends or is overridden).
+    /// `overridingCall` is true only on the override: a break started by
+    /// hand while the mic is live.
     private static func startBreak(
         state: inout PomodoroState,
         planned: Int,
         now: Date,
+        overridingCall: Bool,
         settings: Settings,
         log: SessionLogStore,
         library: [Activity],
@@ -329,6 +345,7 @@ enum PomodoroReducer {
             activity: activity,
             caption: breakCaption(now: now, log: log, calendar: calendar)
         ), seconds: breakSeconds)
+        state.breakOverridesCall = overridingCall
 
         return [
             .playFocusCompleteChime,
@@ -381,6 +398,7 @@ enum PomodoroReducer {
         state.totalSeconds = seconds
         state.remainingSeconds = seconds
         state.breakLockFired = false
+        state.breakOverridesCall = false
     }
 
     /// Last-resort activity if the bundled library failed to load — the

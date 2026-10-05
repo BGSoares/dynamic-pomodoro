@@ -54,8 +54,6 @@ struct RehearsalTests {
                 "exactly one hold-to-skip of a running break")
         #expect(result.events.contains { $0.text.contains("the countdown fires") },
                 "the unlock auto-start countdown should fire at least once")
-        #expect(result.events.contains { $0.detail.contains(where: { $0.hasPrefix("nudge:") }) },
-                "the first card at/after 16:20 should carry the nudge")
     }
 
     @Test func meetingsDayCoversAllThreeCallOutcomes() {

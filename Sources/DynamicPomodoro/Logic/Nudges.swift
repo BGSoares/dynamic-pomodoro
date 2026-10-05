@@ -33,14 +33,11 @@ enum BreakCaption: Equatable {
 /// *derived* rather than stored — today's break start times are enough to
 /// recompute, deterministically, which nudge each break carried.
 enum Nudges {
-    static let all: [Nudge] = [
-        Nudge(
-            id: "muesli",
-            ask: "Three spoons of muesli, if you haven't already.",
-            because: "Getting home not hungry is what keeps dinner something you cook, instead of something you graze past.",
-            afterMinutes: 16 * 60 + 20
-        ),
-    ]
+    /// Empty since 2026-10-05. The first nudge – three spoons of muesli
+    /// after 16:20, shipped 2026-08 – didn't stick and was removed
+    /// (USER_RESEARCH.md). The rule below stays for the next line that
+    /// earns its place on the card.
+    static let all: [Nudge] = []
 
     /// The nudge a break starting at `now` should carry, if any.
     ///

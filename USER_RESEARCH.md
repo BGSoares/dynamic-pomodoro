@@ -13,6 +13,10 @@ Usage paused after 2026-05-24 for an external reason (work-laptop install policy
 
 ## Retired probes
 
+- **Muesli nudge** – one line on the first break card at or after 16:20 ("Three spoons of muesli, if you haven't already."), shipped 2026-08 (#104) as the first use of the break-card nudge (PURPOSE principle 8).
+  Removed 2026-10-05: it didn't stick.
+  The nudge mechanism stays in `Logic/Nudges.swift` with an empty library.
+
 - **Reminder-quotes thumbs probe** – resolved 👍 (read 2026-07-19 from the installed app's defaults, `reminderMsgThumb = up`).
   The quotes stay; the probe was removed from `IdleView`.
 - **One-shot feedback survey** – fired its once-per-account prompt on 2026-05-14: satisfaction 5/5, Q2 (rev 1) "Which part of your workday feels hardest to focus through?" → "End of day".

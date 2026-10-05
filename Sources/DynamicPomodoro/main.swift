@@ -369,16 +369,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openStats() {
         open(window: &statsWindow,
              title: "Stats",
-             size: NSSize(width: 620, height: 460),
+             size: NSSize(width: 620, height: 520),
              styleMask: [.titled, .closable, .miniaturizable]) {
-            NSHostingController(rootView: StatsView(log: SessionLogStore.shared))
+            NSHostingController(rootView: StatsView(log: SessionLogStore.shared, settings: self.settings))
         }
     }
 
     @objc private func openSettings() {
         open(window: &settingsWindow,
              title: "Settings",
-             size: NSSize(width: 380, height: 280),
+             size: NSSize(width: 380, height: 400),
              styleMask: [.titled, .closable]) {
             NSHostingController(rootView: SettingsView(settings: self.settings))
         }

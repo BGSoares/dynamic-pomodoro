@@ -109,7 +109,8 @@ final class DayRehearsal {
         let s = Settings(defaults: defaults)
         s.workdayStartMinutes = script.workdayStartMinutes
         s.workdayEndMinutes = script.workdayEndMinutes
-        s.minFocusMinutes = script.minFocusMinutes
+        s.minFocusStartMinutes = script.minFocusStartMinutes
+        s.minFocusEndMinutes = script.minFocusEndMinutes
         s.maxFocusMinutes = script.maxFocusMinutes
         s.autoStartCountdownSeconds = script.autoStartCountdownSeconds
         s.autoStartWindowMinutes = script.autoStartWindowMinutes
@@ -172,7 +173,7 @@ final class DayRehearsal {
             "dynamic-pomodoro rehearsal — script: \(script.name), seed \(seed)",
             script.summary,
             "\(date) · workday \(TimeFormat.hhmm(script.workdayStartMinutes))–\(TimeFormat.hhmm(script.workdayEndMinutes))"
-                + " · focus \(script.minFocusMinutes)–\(script.maxFocusMinutes) min"
+                + " · focus \(script.minFocusStartMinutes)–\(script.maxFocusMinutes)–\(script.minFocusEndMinutes) min (start–peak–end)"
                 + " · library: \(library.count) activities",
         ]
         return Result(script: script, seed: seed, header: header, events: events,

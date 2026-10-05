@@ -1,8 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// Focus hours per day over the last four calendar weeks, with break time
-/// optionally stacked on top.
+/// The stats window. Two pages behind one segmented control: the totals page
+/// below – focus hours per day over the last four calendar weeks, with break
+/// time optionally stacked on top – and `WeekTimelineView`, this week and
+/// last hour by hour.
 ///
 /// Deliberately a read-out and nothing else: no goal line, no streak, no
 /// target, no comparison against last week, no congratulation. PURPOSE is
@@ -21,11 +23,17 @@ import SwiftUI
 /// vanishes when you start working is no use.
 struct StatsView: View {
     let log: SessionLogStore
+    /// The timeline page frames its axis on the configured workday.
+    @ObservedObject var settings: Settings
 
+    /// Which page is on screen. Remembered across launches on the same
+    /// reasoning as the break-time button below.
+    @AppStorage("statsPage") private var page: StatsPage = .totals
     @State private var weeks: [FocusWeek] = []
+    @State private var timelineWeeks: [TimelineWeek] = []
     /// Which read-out is on screen. Remembered across launches — it is how
     /// the chart is read, not a preference about how the app behaves, so it
-    /// keeps its own key here rather than growing `Settings` or the four
+    /// keeps its own key here rather than growing `Settings` or the five
     /// values `SettingsView` exposes (PURPOSE principle 5).
     @AppStorage("statsIncludeBreakTime") private var includeBreakTime = false
     private let calendar = Calendar.current
@@ -36,15 +44,23 @@ struct StatsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            header
-            chart
-            Divider()
-            Text(footnote)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            pagePicker
+            switch page {
+            case .totals:
+                header
+                chart
+                Divider()
+                Text(footnote)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            case .timeline:
+                WeekTimelineView(weeks: timelineWeeks, axis: timelineAxis, calendar: calendar)
+            }
         }
         .padding(24)
-        .frame(minWidth: 600, minHeight: 420, alignment: .topLeading)
+        // Fills the window and pins both pages to the top-left corner, so
+        // a page shorter than the window doesn't float to its centre.
+        .frame(minWidth: 600, maxWidth: .infinity, minHeight: 480, maxHeight: .infinity, alignment: .topLeading)
         .onAppear { refreshData() }
         .onReceive(refresh) { _ in refreshData() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -54,6 +70,34 @@ struct StatsView: View {
 
     private func refreshData() {
         weeks = log.focusWeeks(calendar: calendar)
+        timelineWeeks = log.timelineWeeks(calendar: calendar)
+    }
+
+    private var timelineAxis: ClosedRange<Int> {
+        WeekTimeline.axis(
+            covering: timelineWeeks,
+            workdayStartMinutes: settings.workdayStartMinutes,
+            workdayEndMinutes: settings.workdayEndMinutes
+        )
+    }
+
+    // MARK: - Pages
+
+    enum StatsPage: String {
+        /// Hours per day, four weeks.
+        case totals
+        /// Each day's sessions at their hours, this week and last.
+        case timeline
+    }
+
+    private var pagePicker: some View {
+        Picker("Page", selection: $page) {
+            Text("Totals").tag(StatsPage.totals)
+            Text("Timeline").tag(StatsPage.timeline)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 180)
     }
 
     // MARK: - Header
@@ -308,8 +352,9 @@ struct StatsView: View {
 
     /// The band the bars grow when break time is included, and the swatch on
     /// the button that adds it — one constant so the legend cannot drift from
-    /// the thing it labels.
-    private static let breakFill = Color.accentColor.opacity(0.32)
+    /// the thing it labels. The timeline page draws its breaks in the same
+    /// band, so a break means one colour across the whole window.
+    static let breakFill = Color.accentColor.opacity(0.32)
 
     private func isToday(_ day: FocusDay) -> Bool {
         calendar.isDateInToday(day.date)

@@ -36,7 +36,7 @@ The app's exposure is narrow. Audit these surfaces, in priority order:
    - `build-app.sh`, `release.sh`, `generate-icon.swift`, `generate-toolbar-icon.swift` — unquoted variable expansions, `set -euo pipefail` discipline, `curl | sh` patterns, temp-file races, hard-coded paths under `/tmp`, anything that executes data as code.
 
 5. **What's stored in `UserDefaults`.**
-   - [`Sources/DynamicPomodoro/Models/Settings.swift`](../../Sources/DynamicPomodoro/Models/Settings.swift) — only the four documented settings should be there. Anything else (tokens, identifiers, paths) is a finding. UserDefaults is world-readable to any process running as the user; treat it as non-secret.
+   - [`Sources/DynamicPomodoro/Models/Settings.swift`](../../Sources/DynamicPomodoro/Models/Settings.swift) – only the five documented settings should be there. Anything else (tokens, identifiers, paths) is a finding. UserDefaults is world-readable to any process running as the user; treat it as non-secret.
 
 6. **Anything that opens a URL or runs a subprocess.**
    - `grep -rn "NSWorkspace\|Process(\|URL(string:" Sources/` — every external URL and every subprocess invocation is a question: is the input attacker-influenceable, and what's the worst case if it is.

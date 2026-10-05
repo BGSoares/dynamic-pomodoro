@@ -22,7 +22,8 @@ final class PomodoroCoreTests {
         settings = Settings(defaults: defaults)
         settings.workdayStartMinutes = 9 * 60
         settings.workdayEndMinutes = 18 * 60
-        settings.minFocusMinutes = 20
+        settings.minFocusStartMinutes = 20
+        settings.minFocusEndMinutes = 20
         settings.maxFocusMinutes = 40
         library = [
             Activity(id: "a", name: "Stretch A", instruction: "",
@@ -121,7 +122,7 @@ final class PomodoroCoreTests {
             return
         }
         // Peak time, but the log is empty — first session forces the minimum.
-        #expect(planned == settings.minFocusMinutes)
+        #expect(planned == settings.minFocusStartMinutes)
     }
 
     @Test func completedFocusTodayUnlocksTheCurve() {
@@ -147,7 +148,7 @@ final class PomodoroCoreTests {
             return
         }
         // A one-minute false start provides no warm-up: still the day's first.
-        #expect(planned == settings.minFocusMinutes)
+        #expect(planned == settings.minFocusStartMinutes)
     }
 
     // MARK: - abandonFocus
@@ -251,7 +252,7 @@ final class PomodoroCoreTests {
             return
         }
         #expect(since == deadline)
-        #expect(planned == settings.minFocusMinutes)
+        #expect(planned == settings.minFocusStartMinutes)
         // Focus still completed, honestly, at its deadline.
         #expect(contains(effects, logOfKind: .focusCompleted))
         #expect(loggedEntry(in: effects)?.endedAt == deadline)
@@ -287,7 +288,7 @@ final class PomodoroCoreTests {
             return
         }
         #expect(startedAt == callEnd)
-        #expect(breakPlanned == BreakLogic.breakDuration(forFocusMinutes: settings.minFocusMinutes))
+        #expect(breakPlanned == BreakLogic.breakDuration(forFocusMinutes: settings.minFocusStartMinutes))
         #expect(caption != nil)
         #expect(effects.contains(.playFocusCompleteChime))
         // focusCompleted was already logged when the deferral began.
@@ -429,6 +430,47 @@ final class PomodoroCoreTests {
         #expect(state.phase == .idle)
     }
 
+    /// Principle 7: a call that begins inside the break's first half-minute
+    /// gets no login window thrown over it – and none after the call either.
+    /// The break itself still runs.
+    @Test func breakLockIsWithheldWhenACallBeganDuringTheBreak() {
+        var state = PomodoroState()
+        _ = reduce(&state, .startFocus(now: date(hour: 13)))
+        guard case .focus(let focusDeadline, _, _) = state.phase else {
+            Issue.record("Expected .focus")
+            return
+        }
+        _ = reduce(&state, .tick(now: focusDeadline)) // break starts, no call
+        let breakStart = focusDeadline
+        #expect(!state.breakOverridesCall)
+
+        let e30 = reduce(&state, .tick(now: breakStart.addingTimeInterval(30)), isOnCall: true)
+        #expect(!e30.contains(.lockScreen))
+        #expect(state.breakLockFired, "withheld for good, not deferred")
+        guard case .breakRunning = state.phase else {
+            Issue.record("the break itself still runs")
+            return
+        }
+
+        let e60 = reduce(&state, .tick(now: breakStart.addingTimeInterval(60)), isOnCall: false)
+        #expect(!e60.contains(.lockScreen))
+    }
+
+    /// The override is the exception: a break the user started by hand over a
+    /// live call runs in full, lock included.
+    @Test func handStartedBreakOverACallStillLocks() {
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true) // owed, waiting
+        let manual = deadline.addingTimeInterval(120)
+        _ = reduce(&state, .startPendingBreak(now: manual), isOnCall: true)
+        #expect(state.breakOverridesCall)
+
+        let e30 = reduce(&state, .tick(now: manual.addingTimeInterval(30)), isOnCall: true)
+        #expect(e30.contains(.lockScreen))
+        #expect(state.breakLockFired)
+    }
+
     // MARK: - skipBreak / completeBreak
 
     @Test func skipBreakLogsAndReturnsToIdle() {
@@ -549,8 +591,10 @@ final class PomodoroCoreTests {
     /// until a nudge comes due, then the nudge, then the rest-argument again —
     /// the nudge is spent for the day.
     /// Times are derived from the shipped pool so editing it can't rot this.
-    @Test func breakCaptionYieldsTheSlotToADueNudgeExactlyOnce() throws {
-        let due = try #require(Nudges.all.map(\.afterMinutes).min())
+    /// While the pool is empty (as it has been since 2026-10-05) the same
+    /// walk checks that the slot never leaves the rest-argument.
+    @Test func breakCaptionYieldsTheSlotToADueNudgeExactlyOnce() {
+        let due = Nudges.all.map(\.afterMinutes).min() ?? 16 * 60 + 20
         let before = max(0, due - 10)
         var state = PomodoroState()
 
@@ -568,7 +612,8 @@ final class PomodoroCoreTests {
         endBreak(atMinutes: before + 5)
 
         runBreak(atMinutes: due + 5)
-        #expect(isNudge(state.currentBreakCaption))
+        #expect(state.currentBreakCaption != nil)
+        #expect(isNudge(state.currentBreakCaption) == !Nudges.all.isEmpty)
         endBreak(atMinutes: due + 10)
 
         runBreak(atMinutes: due + 20)

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The entire settings surface: workday hours and focus duration range.
-/// No tabs, no sheets, no conditional sub-options.
+/// The entire settings surface: workday hours and the focus-duration curve's
+/// three anchors. No tabs, no sheets, no conditional sub-options.
 struct SettingsView: View {
     @ObservedObject var settings: Settings
 
@@ -13,13 +13,17 @@ struct SettingsView: View {
         .init(get: { settings.workdayEndMinutes },
               set: { settings.workdayEndMinutes = max($0, settings.workdayStartMinutes + 60) })
     }
-    private var minFocusBinding: Binding<Int> {
-        .init(get: { settings.minFocusMinutes },
-              set: { settings.minFocusMinutes = min($0, settings.maxFocusMinutes - 5) })
+    private var minFocusStartBinding: Binding<Int> {
+        .init(get: { settings.minFocusStartMinutes },
+              set: { settings.minFocusStartMinutes = min($0, settings.maxFocusMinutes - 5) })
+    }
+    private var minFocusEndBinding: Binding<Int> {
+        .init(get: { settings.minFocusEndMinutes },
+              set: { settings.minFocusEndMinutes = min($0, settings.maxFocusMinutes - 5) })
     }
     private var maxFocusBinding: Binding<Int> {
         .init(get: { settings.maxFocusMinutes },
-              set: { settings.maxFocusMinutes = max($0, settings.minFocusMinutes + 5) })
+              set: { settings.maxFocusMinutes = max($0, max(settings.minFocusStartMinutes, settings.minFocusEndMinutes) + 5) })
     }
 
     var body: some View {
@@ -28,15 +32,23 @@ struct SettingsView: View {
                 TimePicker(label: "Start", minutes: workdayStartBinding)
                 TimePicker(label: "End", minutes: workdayEndBinding)
             }
-            Section("Focus duration") {
-                Stepper("Minimum: \(settings.minFocusMinutes) min",
-                        value: minFocusBinding, in: 5...60, step: 1)
+            // Listed in the order the day runs: the floor you start from, the
+            // peak in the middle, the floor you end on.
+            Section {
+                Stepper("Minimum at start: \(settings.minFocusStartMinutes) min",
+                        value: minFocusStartBinding, in: 5...60, step: 1)
                 Stepper("Maximum: \(settings.maxFocusMinutes) min",
                         value: maxFocusBinding, in: 10...90, step: 1)
+                Stepper("Minimum at end: \(settings.minFocusEndMinutes) min",
+                        value: minFocusEndBinding, in: 5...60, step: 1)
+            } header: {
+                Text("Focus duration")
+            } footer: {
+                Text("Sessions rise from the start minimum to the maximum at the middle of the workday, then fall to the end minimum.")
             }
         }
         .formStyle(.grouped)
-        .frame(minWidth: 360, minHeight: 260)
+        .frame(minWidth: 360, minHeight: 380)
         .padding(.bottom, 8)
     }
 }
