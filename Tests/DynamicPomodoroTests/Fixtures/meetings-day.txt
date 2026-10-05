@@ -1,6 +1,6 @@
 # dynamic-pomodoro rehearsal — script: meetings, seed 1
 # calls everywhere — a manual override, a deferred break, a capped-out break
-# 2026-01-14 · workday 09:00–18:00 · focus 20–40 min · library: 34 activities
+# 2026-01-14 · workday 09:00–18:00 · focus 20–40–20 min (start–peak–end) · library: 34 activities
 
 09:00:00  env:  you sit down and unlock the machine — the workday starts
 09:00:00  [menu bar] Start 20m
@@ -268,8 +268,7 @@
 17:47:00  ♪ Glass — the focus-complete chime
 17:47:00  [notification] Focus complete — Step away. The next session needs you fresh.
 17:47:00  [overlay ON] every display blacks out — the 5-minute break card:
-          | nudge: Three spoons of muesli, if you haven't already.
-          |        Getting home not hungry is what keeps dinner something you cook, instead of something you graze past.
+          | “Even 5 minutes of non-screen time meaningfully reduces eye strain.”
           | 20-20-20 — Reset the eyes? Look at something 6 metres away for 20 seconds. Then find another. Do this for the whole break.
           | ring 05:00 · Hold to skip
 17:47:00  [menu bar] B 05:00

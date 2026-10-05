@@ -224,13 +224,23 @@ final class SessionLogStore {
         DailyStats.compute(from: entries, calendar: calendar, now: now)
     }
 
-    /// The trailing calendar weeks the stats window draws, oldest first.
+    /// The trailing calendar weeks the stats window's totals page draws, oldest first.
     func focusWeeks(
         weekCount: Int = FocusHistory.defaultWeekCount,
         calendar: Calendar = .current,
         now: Date = Date()
     ) -> [FocusWeek] {
         FocusHistory.weeks(from: entries, weekCount: weekCount, calendar: calendar, now: now)
+    }
+
+    /// The weeks the stats window's timeline page draws (last week and this
+    /// week), oldest first.
+    func timelineWeeks(
+        weekCount: Int = WeekTimeline.defaultWeekCount,
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> [TimelineWeek] {
+        WeekTimeline.weeks(from: entries, weekCount: weekCount, calendar: calendar, now: now)
     }
 
     /// The moment the most recent break ended (completed or skipped) — but

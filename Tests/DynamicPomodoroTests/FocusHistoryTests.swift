@@ -180,12 +180,13 @@ struct FocusHistoryTests {
         #expect(week.focusSeconds == (25 + 30 + 20) * 60)
     }
 
-    @Test func weekBoundariesFollowTheCalendarsFirstWeekday() {
+    /// A week is Monday to Sunday here whatever the locale says – the
+    /// working week the user's hours are counted against.
+    @Test func weeksRunMondayToSundayWhateverTheCalendarsFirstWeekday() {
         let sundayFirst = FocusHistoryTests.calendar(firstWeekday: 1)
         let result = weeks([], calendar: sundayFirst)
-        // Same instant, Sunday-first weeks: the window opens a day earlier.
-        #expect(result.first?.start == date(5, 25, hour: 0, calendar: sundayFirst))
-        #expect(result.last?.end == date(6, 21, hour: 0, calendar: sundayFirst))
+        #expect(result.first?.start == date(5, 26, hour: 0, calendar: sundayFirst))
+        #expect(result.last?.end == date(6, 22, hour: 0, calendar: sundayFirst))
     }
 
     @Test func nonPositiveWeekCountYieldsNothing() {

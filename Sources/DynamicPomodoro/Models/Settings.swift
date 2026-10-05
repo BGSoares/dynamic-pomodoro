@@ -7,7 +7,7 @@ import Combine
 #endif
 
 /// User-configurable settings, persisted in UserDefaults.
-/// Four values shown in `SettingsView` — that's the whole personalisation
+/// Five values shown in `SettingsView` – that's the whole personalisation
 /// surface (PURPOSE principle 5). Two more live here unexposed: opinionated
 /// timings for the unlock auto-start countdown, tunable via `defaults write`
 /// but deliberately absent from the UI, same posture as the reducer's
@@ -18,7 +18,12 @@ final class Settings: ObservableObject {
     private enum Key {
         static let workdayStartMinutes = "workdayStartMinutes"
         static let workdayEndMinutes = "workdayEndMinutes"
-        static let minFocusMinutes = "minFocusMinutes"
+        static let minFocusStartMinutes = "minFocusStartMinutes"
+        static let minFocusEndMinutes = "minFocusEndMinutes"
+        /// The one minimum both ends of the day shared until 2026-10-05.
+        /// Read only as the default for the two keys that replaced it, so
+        /// an upgrade leaves the curve exactly where it was; never written.
+        static let legacyMinFocusMinutes = "minFocusMinutes"
         static let maxFocusMinutes = "maxFocusMinutes"
         static let autoStartCountdownSeconds = "autoStartCountdownSeconds"
         static let autoStartWindowMinutes = "autoStartWindowMinutes"
@@ -32,8 +37,16 @@ final class Settings: ObservableObject {
     @Published var workdayEndMinutes: Int {
         didSet { defaults.set(workdayEndMinutes, forKey: Key.workdayEndMinutes) }
     }
-    @Published var minFocusMinutes: Int {
-        didSet { defaults.set(minFocusMinutes, forKey: Key.minFocusMinutes) }
+    /// The curve's floor at the start of the workday – and the length of
+    /// the day's first session, which is the warm-up whatever the clock says.
+    @Published var minFocusStartMinutes: Int {
+        didSet { defaults.set(minFocusStartMinutes, forKey: Key.minFocusStartMinutes) }
+    }
+    /// The curve's floor at the end of the workday. Its own number so the
+    /// afternoon can taper gently while the morning still warms up from
+    /// short; one shared minimum forced the two ends to match.
+    @Published var minFocusEndMinutes: Int {
+        didSet { defaults.set(minFocusEndMinutes, forKey: Key.minFocusEndMinutes) }
     }
     @Published var maxFocusMinutes: Int {
         didSet { defaults.set(maxFocusMinutes, forKey: Key.maxFocusMinutes) }
@@ -57,18 +70,24 @@ final class Settings: ObservableObject {
         // write`, domain migration) and the curve math assumes sane ranges.
         let start = defaults.object(forKey: Key.workdayStartMinutes) as? Int ?? (9 * 60)
         let end = defaults.object(forKey: Key.workdayEndMinutes) as? Int ?? (18 * 60)
-        let minF = defaults.object(forKey: Key.minFocusMinutes) as? Int ?? 20
+        let legacyMin = defaults.object(forKey: Key.legacyMinFocusMinutes) as? Int
+        let minStart = defaults.object(forKey: Key.minFocusStartMinutes) as? Int ?? legacyMin ?? 20
+        let minEnd = defaults.object(forKey: Key.minFocusEndMinutes) as? Int ?? legacyMin ?? 20
         let maxF = defaults.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
         let countdown = defaults.object(forKey: Key.autoStartCountdownSeconds) as? Int ?? 15
         let window = defaults.object(forKey: Key.autoStartWindowMinutes) as? Int ?? 20
 
         let clampedStart = min(max(start, 0), 23 * 60 + 45)
         let clampedEnd = min(max(end, clampedStart + 60), 24 * 60)
-        let clampedMax = min(max(max(maxF, 10), min(max(minF, 5), 60) + 5), 90)
+        let clampedMinStart = min(max(minStart, 5), 60)
+        let clampedMinEnd = min(max(minEnd, 5), 60)
+        // The maximum stays above both floors, as the view's steppers keep it.
+        let clampedMax = min(max(max(maxF, 10), max(clampedMinStart, clampedMinEnd) + 5), 90)
 
         workdayStartMinutes = min(clampedStart, clampedEnd - 60)
         workdayEndMinutes = clampedEnd
-        minFocusMinutes = min(min(max(minF, 5), 60), clampedMax - 5)
+        minFocusStartMinutes = min(clampedMinStart, clampedMax - 5)
+        minFocusEndMinutes = min(clampedMinEnd, clampedMax - 5)
         maxFocusMinutes = clampedMax
         autoStartCountdownSeconds = min(max(countdown, 3), 120)
         autoStartWindowMinutes = min(max(window, 1), 180)
@@ -94,8 +113,15 @@ enum TimeFormat {
     }
 
     static func minutesSinceMidnight(from date: Date, calendar: Calendar = .current) -> Int {
-        let comps = calendar.dateComponents([.hour, .minute], from: date)
-        return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+        secondsSinceMidnight(from: date, calendar: calendar) / 60
+    }
+
+    /// Wall-clock seconds since midnight – by components, not by elapsed
+    /// time since midnight, so a DST day still reads at the hour the clock
+    /// on the wall showed.
+    static func secondsSinceMidnight(from date: Date, calendar: Calendar = .current) -> Int {
+        let c = calendar.dateComponents([.hour, .minute, .second], from: date)
+        return (c.hour ?? 0) * 3600 + (c.minute ?? 0) * 60 + (c.second ?? 0)
     }
 
     /// "0 pomos", "1 pomo", "3.5 pomos" — one decimal at most, dropped when

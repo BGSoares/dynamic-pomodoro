@@ -24,6 +24,7 @@ swift test                               # unit suite + rehearsed-day invariants
 swift run rehearse all --quiet           # pre-ship sweep (macOS: swift run DynamicPomodoro rehearse all --quiet)
 swift run rehearse canonical             # print one full day as a transcript and read it
 DP_SECONDS_PER_MINUTE=2 swift run        # watch a real loop compressed: 1 min ≈ 2s (debug-only, scratch log)
+DP_SNAPSHOT_DIR=/tmp/shots swift test --filter WindowSnapshotTests   # render the Stats pages + Settings to PNGs (macOS; add DP_SNAPSHOT_LOG_DIR=<dir with sessions.json> for real data)
 DP_REHEARSAL_RECORD=1 swift test --filter GoldenDayTests   # re-record goldens after an intentional visible change
 ```
 

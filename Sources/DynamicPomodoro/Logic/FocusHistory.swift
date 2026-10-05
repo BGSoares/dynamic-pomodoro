@@ -48,7 +48,7 @@ struct FocusDay: Equatable, Identifiable {
     }
 }
 
-/// Seven days, aligned to the locale's first weekday.
+/// Seven days, Monday to Sunday (`WeekGrid`).
 struct FocusWeek: Equatable, Identifiable {
     let days: [FocusDay]
 
@@ -62,10 +62,45 @@ struct FocusWeek: Equatable, Identifiable {
     }
 }
 
+/// The grid of days both stats pages draw on: whole weeks, Monday to
+/// Sunday, ending with the week `now` falls in.
+///
+/// Monday to Sunday by definition, not by locale: a week here is the
+/// working week the user's hours are counted against, and the two pages
+/// must agree with each other about which week a Sunday belongs to. The
+/// calendar still supplies the time zone and the day boundaries (so a DST
+/// day is still one day), only its first weekday is overruled.
+enum WeekGrid {
+    /// The trailing `weekCount` weeks, oldest first; each week is its seven
+    /// start-of-day dates in order. Every day is present, because a gap is
+    /// data (a day off, a day the tool went unused) and dropping it would
+    /// silently compress whatever is drawn on top.
+    static func days(weekCount: Int, calendar: Calendar, now: Date) -> [[Date]] {
+        guard weekCount > 0 else { return [] }
+        var weekCalendar = calendar
+        weekCalendar.firstWeekday = 2
+        let today = weekCalendar.startOfDay(for: now)
+        guard let thisWeek = weekCalendar.dateInterval(of: .weekOfYear, for: today),
+              let firstDay = weekCalendar.date(byAdding: .weekOfYear, value: -(weekCount - 1), to: thisWeek.start)
+        else { return [] }
+
+        return (0..<weekCount).compactMap { week -> [Date]? in
+            let days = (0..<7).compactMap { offset -> Date? in
+                guard let raw = weekCalendar.date(byAdding: .day, value: week * 7 + offset, to: firstDay)
+                else { return nil }
+                // Re-normalise: adding days lands on the same wall-clock
+                // time, which a DST transition can move off midnight, and
+                // callers bucket their entries by true starts-of-day.
+                return weekCalendar.startOfDay(for: raw)
+            }
+            return days.count == 7 ? days : nil
+        }
+    }
+}
+
 /// Folds the session log into a trailing run of whole calendar weeks — the
-/// data behind the stats window. Pure: the caller supplies `now` and the
-/// calendar, so tests need no clock and week boundaries are the locale's
-/// opinion rather than ours.
+/// data behind the stats window's totals page. Pure: the caller supplies
+/// `now` and the calendar, so tests need no clock.
 ///
 /// Whole weeks rather than a rolling 28 days: a rolling window slices weeks
 /// mid-stride, so a week total means "the seven days ending today", which is
@@ -87,11 +122,7 @@ enum FocusHistory {
         calendar: Calendar = .current,
         now: Date = Date()
     ) -> [FocusWeek] {
-        guard weekCount > 0 else { return [] }
         let today = calendar.startOfDay(for: now)
-        guard let thisWeek = calendar.dateInterval(of: .weekOfYear, for: today),
-              let firstDay = calendar.date(byAdding: .weekOfYear, value: -(weekCount - 1), to: thisWeek.start)
-        else { return [] }
 
         // Bucket the log once by day rather than re-filtering it per day:
         // the fold is O(entries), not O(entries × days).
@@ -101,18 +132,10 @@ enum FocusHistory {
             byDay[day] = (byDay[day] ?? .empty) + DailyStats.contribution(of: entry)
         }
 
-        return (0..<weekCount).compactMap { week -> FocusWeek? in
-            let days: [FocusDay] = (0..<7).compactMap { offset -> FocusDay? in
-                guard let raw = calendar.date(byAdding: .day, value: week * 7 + offset, to: firstDay)
-                else { return nil }
-                // Re-normalise: adding days lands on the same wall-clock
-                // time, which a DST transition can move off midnight, and
-                // the bucket keys above are true starts-of-day.
-                let day = calendar.startOfDay(for: raw)
-                return FocusDay(date: day, stats: byDay[day] ?? .empty, isFuture: day > today)
-            }
-            guard days.count == 7 else { return nil }
-            return FocusWeek(days: days)
+        return WeekGrid.days(weekCount: weekCount, calendar: calendar, now: now).map { days in
+            FocusWeek(days: days.map { day in
+                FocusDay(date: day, stats: byDay[day] ?? .empty, isFuture: day > today)
+            })
         }
     }
 }
