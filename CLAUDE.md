@@ -61,7 +61,7 @@ impure edges (timers, CoreAudio, screen lock, notifications). `Views/` renders a
 it is how a change gets user-tested without a user (see "Validating changes" above).
 
 The break card is the product. `Resources/activities.json` and the string pools in
-`Logic/Messages.swift` and `Logic/Nudges.swift` are **content, curated in source** — no editor, no
+`Logic/Messages.swift` are **content, curated in source** – no editor, no
 settings pane, no per-user persistence. Editing them is a normal, expected change; adding UI to
 edit them is not.
 

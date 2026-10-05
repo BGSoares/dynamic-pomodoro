@@ -54,7 +54,7 @@ struct WindowSnapshotTests {
         let thisWeek = calendar.dateInterval(of: .weekOfYear, for: sunday)!
         let now = calendar.date(byAdding: .hour, value: 23, to: thisWeek.start)!
             .addingTimeInterval(TimeInterval(6 * 86_400))
-        let weeks = log.timelineWeeks(calendar: calendar, now: now)
+        let weeks = WeekTimeline.weeks(from: log.entries, calendar: calendar, now: now)
         let axis = WeekTimeline.axis(covering: weeks,
                                      workdayStartMinutes: settings.workdayStartMinutes,
                                      workdayEndMinutes: settings.workdayEndMinutes)

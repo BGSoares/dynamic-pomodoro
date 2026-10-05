@@ -1,5 +1,7 @@
 # Feature spec — Recovery messaging
 
+_Note (2026-10-05): the break-card nudge mechanism this spec refers to (`Nudges.assign`, `Nudges.forBreak`, nudge precedence in §4.3) was removed; the caption slot is the daily reminder line only._
+
 **Status:** §2 (Change 1) **implemented**. §3 and §4 proposed, not started.
 Research complete — [`CLAUDE.md`](CLAUDE.md), research note 2026-08-07.
 **Scope:** Three changes to the break card — one pure content change, one optional schema field plus

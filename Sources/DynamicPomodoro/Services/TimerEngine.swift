@@ -86,7 +86,7 @@ final class TimerEngine: ObservableObject {
     }
 
     func dailyStats(now: Date = Date()) -> DailyStats {
-        log.dailyStats(now: now)
+        DailyStats.compute(from: log.entries, now: now)
     }
 
     // MARK: - Dispatch + effect interpretation

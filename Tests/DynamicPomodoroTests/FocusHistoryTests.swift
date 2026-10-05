@@ -136,7 +136,6 @@ struct FocusHistoryTests {
         let week = weeks(entries)[2]
         #expect(week.seconds(.focus) == (25 + 40) * 60)
         #expect(week.seconds(.focusAndBreak) == (25 + 5 + 40) * 60)
-        #expect(week.focusSeconds == week.seconds(.focus))
     }
 
     /// Empty days and the unhappened tail of the current week stay at zero
@@ -169,7 +168,7 @@ struct FocusHistoryTests {
     @Test func sessionsOlderThanTheWindowAreExcluded() {
         // 25 May is the Sunday before the window opens.
         let result = weeks([focus(5, 25, minutes: 50), focus(6, 10, minutes: 25)])
-        #expect(result.reduce(0) { $0 + $1.focusSeconds } == 25 * 60)
+        #expect(result.reduce(0) { $0 + $1.seconds(.focus) } == 25 * 60)
     }
 
     @Test func weekTotalSumsItsDays() {
@@ -177,7 +176,7 @@ struct FocusHistoryTests {
         // Mon 9 → Sun 15 June is the third week of the window.
         let week = result[2]
         #expect(week.start == date(6, 9, hour: 0))
-        #expect(week.focusSeconds == (25 + 30 + 20) * 60)
+        #expect(week.seconds(.focus) == (25 + 30 + 20) * 60)
     }
 
     /// A week is Monday to Sunday here whatever the locale says – the

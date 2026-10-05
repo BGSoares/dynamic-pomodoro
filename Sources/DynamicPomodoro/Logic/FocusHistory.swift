@@ -55,7 +55,6 @@ struct FocusWeek: Equatable, Identifiable {
     var id: Date { start }
     var start: Date { days.first?.date ?? .distantPast }
     var end: Date { days.last?.date ?? .distantPast }
-    var focusSeconds: Int { seconds(.focus) }
 
     func seconds(_ measure: StatsMeasure) -> Int {
         days.reduce(0) { $0 + $1.seconds(measure) }
