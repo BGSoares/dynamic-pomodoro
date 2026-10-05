@@ -166,8 +166,10 @@ final class JSONArrayStore<Element: Codable> {
     }
 }
 
-/// Persists session log + recent-activity recency window.
+/// Persists the session log and answers the reducer's questions about it.
 /// Reads are synchronous; the data volume is small (one user, one machine).
+/// Readouts (today's stats, the stats window's weeks) are folds over
+/// `entries` in `DailyStats`, `FocusHistory` and `WeekTimeline`.
 final class SessionLogStore {
     static let shared = SessionLogStore()
     private let store: JSONArrayStore<SessionLogEntry>
@@ -197,50 +199,10 @@ final class SessionLogStore {
         Array(entries.reversed().compactMap(\.activityID).prefix(limit))
     }
 
-    /// Start times of today's breaks that actually put a card on screen,
-    /// chronological — the input to nudge assignment (`Nudges.assign`).
-    ///
-    /// A break capped out by a long call is logged as skipped with no activity
-    /// because nothing was ever displayed, so `activityID` is the discriminator
-    /// for "the user saw this break" — the same signal `recentBreakActivityIDs`
-    /// leans on. Without that filter an unseen break would silently spend the
-    /// day's nudge.
-    func shownBreakStartsToday(calendar: Calendar = .current, now: Date = Date()) -> [Date] {
-        entries.filter {
-            $0.activityID != nil
-                && ($0.kind == .breakCompleted || $0.kind == .breakSkipped)
-                && calendar.isDate($0.startedAt, inSameDayAs: now)
-        }.map(\.startedAt)
-    }
-
     /// Category of the most recent break activity, if any.
     func lastBreakCategory(library: [Activity]) -> Activity.Category? {
         guard let lastID = entries.last(where: { $0.activityID != nil })?.activityID else { return nil }
         return library.first(where: { $0.id == lastID })?.category
-    }
-
-    /// Aggregate completed focus + break time for the given day.
-    func dailyStats(calendar: Calendar = .current, now: Date = Date()) -> DailyStats {
-        DailyStats.compute(from: entries, calendar: calendar, now: now)
-    }
-
-    /// The trailing calendar weeks the stats window's totals page draws, oldest first.
-    func focusWeeks(
-        weekCount: Int = FocusHistory.defaultWeekCount,
-        calendar: Calendar = .current,
-        now: Date = Date()
-    ) -> [FocusWeek] {
-        FocusHistory.weeks(from: entries, weekCount: weekCount, calendar: calendar, now: now)
-    }
-
-    /// The weeks the stats window's timeline page draws (last week and this
-    /// week), oldest first.
-    func timelineWeeks(
-        weekCount: Int = WeekTimeline.defaultWeekCount,
-        calendar: Calendar = .current,
-        now: Date = Date()
-    ) -> [TimelineWeek] {
-        WeekTimeline.weeks(from: entries, weekCount: weekCount, calendar: calendar, now: now)
     }
 
     /// The moment the most recent break ended (completed or skipped) — but

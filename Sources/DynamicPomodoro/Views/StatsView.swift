@@ -69,8 +69,8 @@ struct StatsView: View {
     }
 
     private func refreshData() {
-        weeks = log.focusWeeks(calendar: calendar)
-        timelineWeeks = log.timelineWeeks(calendar: calendar)
+        weeks = FocusHistory.weeks(from: log.entries, calendar: calendar)
+        timelineWeeks = WeekTimeline.weeks(from: log.entries, calendar: calendar)
     }
 
     private var timelineAxis: ClosedRange<Int> {

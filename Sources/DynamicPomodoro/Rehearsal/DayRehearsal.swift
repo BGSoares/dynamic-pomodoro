@@ -1,7 +1,7 @@
 import Foundation
 
 /// Plays one full simulated workday through the real production logic —
-/// `PomodoroReducer`, `ActivitySelector`, `DurationCurve`, `Nudges`,
+/// `PomodoroReducer`, `ActivitySelector`, `DurationCurve`,
 /// `ReminderMessages`, `UnlockGate`, the real `activities.json` — with a
 /// synthetic clock, a scripted user, and a seeded RNG, and writes down
 /// everything that user would have seen or heard.
@@ -91,7 +91,6 @@ final class DayRehearsal {
     private var breakStartedManuallyAt: Date?
     private var breakLockedAt: Date?
     private var lastUserActionAt: Date?
-    private var nudgeIDsShownToday: [String] = []
     private var events: [TranscriptEvent] = []
     private var findings: [String] = []
 
@@ -452,17 +451,9 @@ final class DayRehearsal {
 
         case .breakRunning(let deadline, _, let plannedMinutes, let activity, let caption):
             breakOrdinal += 1
-            checkBreakStart(activity: activity, caption: caption, plannedMinutes: plannedMinutes)
+            checkBreakStart(activity: activity, plannedMinutes: plannedMinutes)
             var card: [String] = []
-            switch caption {
-            case .reminder(let line):
-                card.append("“\(line)”")
-            case .nudge(let nudge):
-                card.append("nudge: \(nudge.ask)")
-                card.append("       \(nudge.because)")
-            case nil:
-                break
-            }
+            if let line = caption { card.append("“\(line)”") }
             card.append("\(activity.name.uppercased()) — \(activity.instruction)")
             let ringSeconds = max(0, Int(deadline.timeIntervalSince(clock)))
             card.append(String(format: "ring %02d:%02d · Hold to skip", ringSeconds / 60, ringSeconds % 60))
@@ -479,7 +470,7 @@ final class DayRehearsal {
             settings: settings,
             calendar: calendar
         )
-        let stats = store.dailyStats(calendar: calendar, now: clock)
+        let stats = DailyStats.compute(from: store.entries, calendar: calendar, now: clock)
         app("[window] the main window comes forward — Ready",
             detail: ["Next session: \(suggested) min · [Start focus]",
                      footerText(stats: stats)])
@@ -630,7 +621,7 @@ final class DayRehearsal {
         }
     }
 
-    private func checkBreakStart(activity: Activity, caption: BreakCaption?, plannedMinutes: Int) {
+    private func checkBreakStart(activity: Activity, plannedMinutes: Int) {
         if onCall && breakStartedManuallyAt == nil {
             finding("\(stamp()) the break overlay appeared during a call the user didn't override — principle 7")
         }
@@ -649,27 +640,6 @@ final class DayRehearsal {
             )
             if !pool.contains(activity) {
                 finding("\(stamp()) break card shows “\(activity.name)” which the selection rules exclude right now")
-            }
-        }
-
-        // Nudges: at most once per day each, never before their time, and
-        // never missing from the first qualifying card once due.
-        let nowMin = minuteOfDay()
-        switch caption {
-        case .nudge(let nudge):
-            if nudgeIDsShownToday.contains(nudge.id) {
-                finding("\(stamp()) nudge “\(nudge.id)” delivered twice in one day")
-            }
-            if nowMin < nudge.afterMinutes {
-                finding("\(stamp()) nudge “\(nudge.id)” arrived at \(TimeFormat.hhmm(nowMin)), before its \(TimeFormat.hhmm(nudge.afterMinutes))")
-            }
-            nudgeIDsShownToday.append(nudge.id)
-        case .reminder, nil:
-            let missed = Nudges.all.first {
-                $0.afterMinutes <= nowMin && !nudgeIDsShownToday.contains($0.id)
-            }
-            if let missed {
-                finding("\(stamp()) a card went up at \(TimeFormat.hhmm(nowMin)) without the due nudge “\(missed.id)”")
             }
         }
     }
@@ -718,7 +688,7 @@ final class DayRehearsal {
     }
 
     private func appendDayFooter() {
-        let stats = store.dailyStats(calendar: calendar, now: clock)
+        let stats = DailyStats.compute(from: store.entries, calendar: calendar, now: clock)
         let focus = store.entries.filter { $0.kind == .focusCompleted }.count
         let abandoned = store.entries.filter { $0.kind == .focusAbandoned }.count
         let breaks = store.entries.filter { $0.kind == .breakCompleted }.count

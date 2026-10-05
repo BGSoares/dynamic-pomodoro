@@ -36,10 +36,9 @@ struct TimelineDay: Equatable, Identifiable {
 }
 
 /// Seven days, Monday to Sunday (`WeekGrid`).
-struct TimelineWeek: Equatable, Identifiable {
+struct TimelineWeek: Equatable {
     let days: [TimelineDay]
 
-    var id: Date { start }
     var start: Date { days.first?.date ?? .distantPast }
     var end: Date { days.last?.date ?? .distantPast }
     var isEmpty: Bool { days.allSatisfy { $0.blocks.isEmpty } }

@@ -18,7 +18,8 @@ struct PomodoroState: Equatable {
             startedAt: Date,
             planned: Int,
             activity: Activity,
-            caption: BreakCaption?
+            /// The day's reminder line (§4.5), shown above the activity.
+            caption: String?
         )
     }
 
@@ -55,7 +56,7 @@ extension PomodoroState {
         if case .breakRunning(_, _, _, let a, _) = phase { return a }
         return nil
     }
-    var currentBreakCaption: BreakCaption? {
+    var currentBreakCaption: String? {
         if case .breakRunning(_, _, _, _, let c) = phase { return c }
         return nil
     }
@@ -343,7 +344,7 @@ enum PomodoroReducer {
             startedAt: now,
             planned: breakMinutes,
             activity: activity,
-            caption: breakCaption(now: now, log: log, calendar: calendar)
+            caption: ReminderMessages.lineFor(date: now, calendar: calendar)
         ), seconds: breakSeconds)
         state.breakOverridesCall = overridingCall
 
@@ -351,21 +352,6 @@ enum PomodoroReducer {
             .playFocusCompleteChime,
             .notify(title: "Focus complete", body: "Step away. The next session needs you fresh.", silent: false),
         ]
-    }
-
-    /// The break card's one quiet line: a due nudge if the day still owes one,
-    /// otherwise the day's rest-argument (PURPOSE principle 8). Never both.
-    /// Swapping costs nothing — the reminder line rotates daily and has already
-    /// been read on every earlier break by the time a late nudge comes due.
-    private static func breakCaption(now: Date, log: SessionLogStore, calendar: Calendar) -> BreakCaption? {
-        if let nudge = Nudges.forBreak(
-            startingAt: now,
-            shownBreakStartsToday: log.shownBreakStartsToday(calendar: calendar, now: now),
-            calendar: calendar
-        ) {
-            return .nudge(nudge)
-        }
-        return ReminderMessages.lineFor(date: now, calendar: calendar).map(BreakCaption.reminder)
     }
 
     /// A call can begin *during* a break (answered mid-break, or the break
