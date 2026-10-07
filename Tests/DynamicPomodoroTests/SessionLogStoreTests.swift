@@ -121,39 +121,4 @@ final class SessionLogStoreTests {
         store.append(entry(kind: .focusCompleted, day: 15, hour: 10))
         #expect(store.hasCompletedFocusToday(now: today))
     }
-
-    // MARK: - lastBreakEnd
-
-    @Test func lastBreakEndIsNilForAnEmptyLog() {
-        let store = SessionLogStore(directory: tempDir)
-        #expect(store.lastBreakEnd() == nil)
-    }
-
-    @Test func lastBreakEndIsNilWhenTheLogEndsMidFocus() {
-        let store = SessionLogStore(directory: tempDir)
-        store.append(entry(kind: .breakCompleted, day: 15, hour: 10, activity: "neck_rolls"))
-        store.append(entry(kind: .focusCompleted, day: 15, hour: 11))
-        #expect(store.lastBreakEnd() == nil, "a focus logged after the break means something already started")
-    }
-
-    @Test func lastBreakEndIsNilAfterAnAbandonedFocus() {
-        let store = SessionLogStore(directory: tempDir)
-        store.append(entry(kind: .breakCompleted, day: 15, hour: 10, activity: "neck_rolls"))
-        store.append(entry(kind: .focusAbandoned, day: 15, hour: 11))
-        #expect(store.lastBreakEnd() == nil)
-    }
-
-    @Test func lastBreakEndReturnsTheEndOfACompletedBreak() {
-        let store = SessionLogStore(directory: tempDir)
-        let breakEntry = entry(kind: .breakCompleted, day: 15, hour: 10, activity: "neck_rolls")
-        store.append(breakEntry)
-        #expect(store.lastBreakEnd() == breakEntry.endedAt)
-    }
-
-    @Test func lastBreakEndReturnsTheEndOfASkippedBreak() {
-        let store = SessionLogStore(directory: tempDir)
-        let breakEntry = entry(kind: .breakSkipped, day: 15, hour: 10, activity: "neck_rolls")
-        store.append(breakEntry)
-        #expect(store.lastBreakEnd() == breakEntry.endedAt)
-    }
 }

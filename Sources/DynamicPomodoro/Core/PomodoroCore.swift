@@ -180,7 +180,7 @@ enum PomodoroReducer {
             guard case .breakRunning(_, let startedAt, let planned, let activity, _) = state.phase else { return [] }
             resetToIdle(&state)
             // .logSession must precede .offerAutoStart: the offer reads
-            // SessionLogStore.lastBreakEnd(), which is this entry
+            // the log's latest entry, which must already be this one
             // (SPEC_LOOP_CONTINUITY.md §2.4). Effects run in array order.
             return [
                 .stopTicker,

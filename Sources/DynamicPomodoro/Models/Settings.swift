@@ -55,7 +55,8 @@ final class Settings: ObservableObject {
     @Published var autoStartCountdownSeconds: Int {
         didSet { defaults.set(autoStartCountdownSeconds, forKey: Key.autoStartCountdownSeconds) }
     }
-    /// How long after a break ends an unlock still counts as "just back" (§3, G3).
+    /// How long after the loop last turned (the latest log entry's end) an
+    /// unlock still counts as a return to it (§3, G3).
     @Published var autoStartWindowMinutes: Int {
         didSet { defaults.set(autoStartWindowMinutes, forKey: Key.autoStartWindowMinutes) }
     }
@@ -75,7 +76,7 @@ final class Settings: ObservableObject {
         let minEnd = defaults.object(forKey: Key.minFocusEndMinutes) as? Int ?? legacyMin ?? 20
         let maxF = defaults.object(forKey: Key.maxFocusMinutes) as? Int ?? 40
         let countdown = defaults.object(forKey: Key.autoStartCountdownSeconds) as? Int ?? 15
-        let window = defaults.object(forKey: Key.autoStartWindowMinutes) as? Int ?? 20
+        let window = defaults.object(forKey: Key.autoStartWindowMinutes) as? Int ?? 120
 
         let clampedStart = min(max(start, 0), 23 * 60 + 45)
         let clampedEnd = min(max(end, clampedStart + 60), 24 * 60)

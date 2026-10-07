@@ -47,7 +47,7 @@
 09:55:00  [overlay OFF] the screens come back
 09:55:00  [menu bar] Start 22m
 09:56:30  you:  you come back and unlock the screen
-09:56:30  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+09:56:30  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 09:56:45  [HUD] the countdown fires
 09:56:45  [notification] Focus started — 22 min.
 09:56:45  [menu] “Abandon session” appears in the dolphin menu
@@ -91,7 +91,7 @@
 10:55:45  [overlay OFF] the screens come back
 10:55:45  [menu bar] Start 28m
 10:57:15  you:  you come back and unlock the screen
-10:57:15  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+10:57:15  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 10:57:30  [HUD] the countdown fires
 10:57:30  [notification] Focus started — 28 min.
 10:57:30  [menu] “Abandon session” appears in the dolphin menu
@@ -109,7 +109,7 @@
 11:26:00  [screen locks] 30s into the break — every display goes to the login window
 11:26:05  you:  the hold completes — break skipped
 11:26:05  [log] breakSkipped 11:25:30–11:26:05 · 6 min · five_senses
-11:26:05  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+11:26:05  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 11:26:05  [overlay OFF] the screens come back
 11:26:05  [menu bar] Start 31m
 11:26:20  [HUD] the countdown fires
@@ -132,7 +132,7 @@
 12:03:20  [overlay OFF] the screens come back
 12:03:20  [menu bar] Start 35m
 12:04:50  you:  you come back and unlock the screen
-12:04:50  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+12:04:50  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 12:05:05  [HUD] the countdown fires
 12:05:05  [notification] Focus started — 35 min.
 12:05:05  [menu] “Abandon session” appears in the dolphin menu
@@ -175,7 +175,7 @@
 13:36:05  [overlay OFF] the screens come back
 13:36:05  [menu bar] Start 40m
 13:37:35  you:  you come back and unlock the screen
-13:37:35  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+13:37:35  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 13:37:50  [HUD] the countdown fires
 13:37:50  [notification] Focus started — 40 min.
 13:37:50  [menu] “Abandon session” appears in the dolphin menu
@@ -218,7 +218,7 @@
 15:14:50  [overlay OFF] the screens come back
 15:14:50  [menu bar] Start 37m
 15:16:20  you:  you come back and unlock the screen
-15:16:20  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+15:16:20  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 15:16:35  [HUD] the countdown fires
 15:16:35  [notification] Focus started — 37 min.
 15:16:35  [menu] “Abandon session” appears in the dolphin menu
@@ -261,7 +261,7 @@
 16:43:35  [overlay OFF] the screens come back
 16:43:35  [menu bar] Start 32m
 16:45:05  you:  you come back and unlock the screen
-16:45:05  [HUD] a floating card: “Focus starts in 15s — Esc or click the menu bar icon to cancel”
+16:45:05  [HUD] a floating card: “Focus starts in 15s — Click or press Esc to cancel”
 16:45:20  [HUD] the countdown fires
 16:45:20  [notification] Focus started — 32 min.
 16:45:20  [menu] “Abandon session” appears in the dolphin menu

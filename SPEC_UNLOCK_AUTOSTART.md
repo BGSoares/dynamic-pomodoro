@@ -1,6 +1,8 @@
 # Feature spec — Unlock auto-start countdown
 
 **Status:** Implemented, per the recommendations in §10's open questions.
+**Amended 2026-10-07:** the gate now offers on every idle unlock within 2 hours of the loop's last
+log entry (§3), and a click on the card cancels it (§4.1). See the notes inline.
 **Scope:** One new service, one new HUD view, one pure gate, one log query, two hidden tunables, one status-item hook.
 **Rename note:** `UnlockAutoStartService` (§7) was renamed to `AutoStartService` by
 [`SPEC_LOOP_CONTINUITY.md`](SPEC_LOOP_CONTINUITY.md) §8 once a second trigger (the skip countdown)
@@ -61,6 +63,13 @@ function (`Logic/UnlockGate.swift`, §7) so every clause is unit-testable with s
 | G4 | `lastBreakEnd != suppressedBreakEnd` (§5.3) | One offer per break end. A cancelled offer is not re-made on later unlocks in the same window. |
 | G5 | No countdown is already active | Unlock notifications can arrive in duplicate bursts; the offer is idempotent. (Service-level guard, not part of the pure gate.) |
 
+**Amended 2026-10-07:** G2–G4 are replaced by one clause – the log's latest entry, *of any
+kind*, ended within `autoStartWindowMinutes` (now 120) of the unlock. Suppression (G4) is gone:
+every qualifying unlock offers, because a cancel means "not now", not "not again", and costs one
+click. An unlock after an abandoned or slept-through session now offers too. The first unlock of
+a day still doesn't (the log's latest entry is from the day before). The original reasoning
+follows, kept as the record.
+
 Both `breakCompleted` and `breakSkipped` count as a break end: each marks the boundary where a
 focus→break cycle concluded, and the window (G3) plus one-keypress cancel bound the cost of offering
 after a skip. Deliberate mid-focus abandons do *not* re-arm the offer — after `focusAbandoned` is
@@ -95,6 +104,12 @@ philosophy as `PomodoroReducer.missedDeadlineGraceSeconds`: never start a sessio
 someone who provably wasn't there for the decision.
 
 ### §4.1 Cancel paths (exactly two)
+
+**Amended 2026-10-07:** three – a click anywhere on the card cancels too, and the card's hint now
+reads "Click or press Esc to cancel". In use, Esc often never reached the panel (unlocking hands
+key status back to the app that had it), so the card's own surface was where the user reached
+first and found nothing. The hosting view accepts first mouse, so the click works on a panel
+that isn't key.
 
 - **Esc**, captured *locally* by the HUD panel. The panel is key-able (`canBecomeKey` override, as
   `BreakOverlayManager.KeyablePanel` does) and made key on show, so Esc arrives through the normal
@@ -162,6 +177,8 @@ one visual surface.
 
 ### §5.3 Suppression state
 
+**Removed 2026-10-07** with G4 (§3). Original text:
+
 `suppressedBreakEnd: Date?`, held in memory by the service, compared by equality against the log's
 `lastBreakEnd()`. Not persisted: an app relaunch inside the 20-minute window may re-offer once after
 a cancel, which costs one Esc and keeps the state surface at zero files. (§10 lists persisting it as
@@ -173,7 +190,8 @@ a rejected-for-now option.)
   panels don't fight for it). The countdown keeps running — the user is present and engaging with
   work, which is exactly when a session should start — but Esc no longer reaches the HUD; the
   status-item click remains. Accepted.
-- The HUD card itself is not interactive; clicks on it do nothing (§10 revisits).
+- ~~The HUD card itself is not interactive; clicks on it do nothing (§10 revisits).~~ A click
+  on the card cancels it (amended 2026-10-07, §4.1).
 - Machine sleeps mid-countdown without locking → overshoot guard dismisses on wake (§4).
 - If the user's lock settings never require a password (or they only ever display-sleep without
   locking), `com.apple.screenIsUnlocked` never fires and the feature is simply inert. Accepted: the
@@ -290,7 +308,7 @@ offer (§6); undocumented notification names (§2).
 **Open questions for the implementing PR:**
 
 1. Should the two tunables ever surface in `SettingsView`? Recommendation: no, per §8.
-2. Click-on-HUD as a third cancel path? Recommendation: no — two deliberate paths, and a stray
+2. ~~Click-on-HUD as a third cancel path? Recommendation: no~~ Adopted 2026-10-07 (§4.1). Original recommendation: no — two deliberate paths, and a stray
    click on a just-unlocked desktop shouldn't silently eat the offer. Revisit if Esc discovery
    fails in practice.
 3. Persist `suppressedBreakEnd` (e.g. a UserDefaults date)? Recommendation: no until a relaunch
