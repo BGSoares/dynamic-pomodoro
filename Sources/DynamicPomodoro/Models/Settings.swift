@@ -7,7 +7,7 @@ import Combine
 #endif
 
 /// User-configurable settings, persisted in UserDefaults.
-/// Five values shown in `SettingsView` – that's the whole personalisation
+/// Six values shown in `SettingsView` – that's the whole personalisation
 /// surface (PURPOSE principle 5). Two more live here unexposed: opinionated
 /// timings for the unlock auto-start countdown, tunable via `defaults write`
 /// but deliberately absent from the UI, same posture as the reducer's
@@ -25,6 +25,7 @@ final class Settings: ObservableObject {
         /// an upgrade leaves the curve exactly where it was; never written.
         static let legacyMinFocusMinutes = "minFocusMinutes"
         static let maxFocusMinutes = "maxFocusMinutes"
+        static let pauseMediaOnBreak = "pauseMediaOnBreak"
         static let autoStartCountdownSeconds = "autoStartCountdownSeconds"
         static let autoStartWindowMinutes = "autoStartWindowMinutes"
     }
@@ -50,6 +51,12 @@ final class Settings: ObservableObject {
     }
     @Published var maxFocusMinutes: Int {
         didSet { defaults.set(maxFocusMinutes, forKey: Key.maxFocusMinutes) }
+    }
+    /// Pause whatever is playing (Spotify, a YouTube tab…) as a break starts.
+    /// Off until ticked: an update shouldn't start reaching into other apps
+    /// on its own.
+    @Published var pauseMediaOnBreak: Bool {
+        didSet { defaults.set(pauseMediaOnBreak, forKey: Key.pauseMediaOnBreak) }
     }
     /// HUD countdown length before an owed-nothing unlock auto-starts focus.
     @Published var autoStartCountdownSeconds: Int {
@@ -90,6 +97,7 @@ final class Settings: ObservableObject {
         minFocusStartMinutes = min(clampedMinStart, clampedMax - 5)
         minFocusEndMinutes = min(clampedMinEnd, clampedMax - 5)
         maxFocusMinutes = clampedMax
+        pauseMediaOnBreak = defaults.object(forKey: Key.pauseMediaOnBreak) as? Bool ?? false
         autoStartCountdownSeconds = min(max(countdown, 3), 120)
         autoStartWindowMinutes = min(max(window, 1), 180)
     }

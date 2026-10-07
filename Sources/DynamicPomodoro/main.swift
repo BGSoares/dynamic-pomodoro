@@ -378,7 +378,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openSettings() {
         open(window: &settingsWindow,
              title: "Settings",
-             size: NSSize(width: 380, height: 400),
+             size: NSSize(width: 380, height: 474),
              styleMask: [.titled, .closable]) {
             NSHostingController(rootView: SettingsView(settings: self.settings))
         }
