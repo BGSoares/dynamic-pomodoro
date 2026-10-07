@@ -666,7 +666,7 @@ final class DayRehearsal {
         switch state.phase {
         case .idle: ok = text.hasPrefix(" Start ") && text.hasSuffix("m")
         case .focus: ok = text.hasPrefix(" F ") && text.count == 8
-        case .breakPending: ok = text == " B …"
+        case .breakPending: ok = text == " Calls over"
         case .breakRunning: ok = text.hasPrefix(" B ") && text.count == 8
         }
         if !ok {

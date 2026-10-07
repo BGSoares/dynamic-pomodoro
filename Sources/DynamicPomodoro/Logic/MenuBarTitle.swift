@@ -9,7 +9,9 @@ enum MenuBarTitle {
         switch state.phase {
         case .idle: " Start \(suggestedMinutes())m"
         case .focus: " F \(state.remainingFormatted)"
-        case .breakPending: " B …"
+        // Words, not a glyph: the ellipsis this used to be read as a
+        // title macOS had cut short.
+        case .breakPending: " Calls over"
         case .breakRunning: " B \(state.remainingFormatted)"
         }
     }
