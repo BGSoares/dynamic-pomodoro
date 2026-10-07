@@ -28,11 +28,6 @@ final class AutoStartService: ObservableObject {
     private var panel: NSPanel?
     private var countdownTimer: Timer?
     private var deadline: Date?
-    /// The break end this countdown was offered for — recorded at start so
-    /// a cancel suppresses exactly that break end, not whatever the log
-    /// happens to say when the cancel arrives.
-    private var offeredBreakEnd: Date?
-    private var suppressedBreakEnd: Date?
 
     init(
         timer: TimerEngine,
@@ -65,39 +60,34 @@ final class AutoStartService: ObservableObject {
     }
 
     /// Shared gate for both triggers. `UnlockGate`'s date-based clauses
-    /// (G1–G4) are unaffected by principle 7; the call check sits here,
-    /// beside the `isCountingDown` guard, because it's a live environment
-    /// query rather than a decision about dates (§6.5).
+    /// are unaffected by principle 7; the call check sits here, beside the
+    /// `isCountingDown` guard, because it's a live environment query rather
+    /// than a decision about dates (§6.5).
     private func offer(now: Date) {
         guard !isCountingDown else { return }
-        // A call suppresses the offer outright: no HUD, no session, and no
-        // suppression flag written, so a later unlock inside the window can
-        // still offer once the call ends (§6.2, §6.3).
+        // A call suppresses the offer outright: no HUD, no session — a later
+        // unlock inside the window still offers once the call ends.
         guard !callProbe() else { return }
-        guard let breakEnd = log.lastBreakEnd() else { return }
         guard UnlockGate.shouldOffer(
             phase: timer.state.phase,
-            lastBreakEnd: breakEnd,
-            suppressedBreakEnd: suppressedBreakEnd,
+            lastActivityEnd: log.entries.last?.endedAt,
             now: now,
             windowMinutes: settings.autoStartWindowMinutes
         ) else { return }
-        startCountdown(now: now, breakEnd: breakEnd)
+        startCountdown(now: now)
     }
 
     /// A lock while the countdown is up means the user saw the HUD, locked
-    /// again, and left — dismiss without suppressing, so a later unlock in
-    /// the window still gets offered. This also rules out the worst outcome:
-    /// a session auto-starting into a locked, empty room.
+    /// again, and left — dismiss quietly; the next unlock offers again. This
+    /// also rules out the worst outcome: a session auto-starting into a
+    /// locked, empty room.
     func handleLock() {
-        guard isCountingDown else { return }
-        dismiss(suppress: false)
+        cancelCountdown(byUser: false)
     }
 
     // MARK: - Countdown
 
-    private func startCountdown(now: Date, breakEnd: Date) {
-        offeredBreakEnd = breakEnd
+    private func startCountdown(now: Date) {
         totalSeconds = settings.autoStartCountdownSeconds
         secondsRemaining = totalSeconds
         deadline = now.addingTimeInterval(TimeInterval(totalSeconds))
@@ -123,7 +113,7 @@ final class AutoStartService: ObservableObject {
         guard UnlockGate.shouldStillFire(deadline: deadline, now: now) else {
             // Overslept the deadline (sleep, stalled run loop) — nobody was
             // there to see it end; don't fabricate a start on their behalf.
-            dismiss(suppress: false)
+            cancelCountdown(byUser: false)
             return
         }
 
@@ -137,23 +127,18 @@ final class AutoStartService: ObservableObject {
         timer.startFocus(now: now)
     }
 
-    /// Cancel the active countdown. `suppress: true` (Esc, status-item click)
-    /// records the break end so the offer doesn't repeat, and opens the main
-    /// window (§4.2); `suppress: false` (locked again, deadline overshoot)
-    /// leaves it re-offerable and opens nothing — nobody asked for a window.
-    func cancelCountdown(suppress: Bool) {
+    /// Cancel the active countdown. `byUser: true` (a click on the card, Esc,
+    /// the status-item click) opens the main window (§4.2) — the cancel is
+    /// proof someone is there; `byUser: false` (locked again, deadline
+    /// overshoot) opens nothing, because nobody asked for a window.
+    func cancelCountdown(byUser: Bool) {
         guard isCountingDown else { return }
-        dismiss(suppress: suppress)
-    }
-
-    private func dismiss(suppress: Bool) {
-        if suppress { suppressedBreakEnd = offeredBreakEnd }
         countdownTimer?.invalidate()
         countdownTimer = nil
         deadline = nil
         isCountingDown = false
         hidePanel()
-        if suppress { onCancelPresentsWindow() }
+        if byUser { onCancelPresentsWindow() }
     }
 
     // MARK: - Panel
@@ -190,7 +175,7 @@ final class AutoStartService: ObservableObject {
             backing: .buffered,
             defer: false
         )
-        panel.onCancel = { [weak self] in self?.cancelCountdown(suppress: true) }
+        panel.onCancel = { [weak self] in self?.cancelCountdown(byUser: true) }
         // `.nonactivatingPanel` + never calling NSApp.activate: the HUD can
         // become key (so Esc reaches it) without stealing foreground from
         // whatever app the user is actually looking at.
@@ -205,13 +190,10 @@ final class AutoStartService: ObservableObject {
         // panel at its initial state) — our own alpha fade is the only one.
         panel.animationBehavior = .none
 
-        // Assigning the hosting controller resizes the panel to the SwiftUI
-        // content's fitting size (this is the behaviour BreakOverlayManager
-        // has to fight for its full-screen panels; here it's exactly what we
-        // want for a small floating card), so read the frame back afterwards
-        // rather than sizing the panel ourselves.
-        let host = NSHostingController(rootView: CountdownHUDView(service: self))
-        panel.contentViewController = host
+        // Size the panel to the card; the panel is exactly as big as what it shows.
+        let host = FirstClickHostingView(rootView: CountdownHUDView(service: self))
+        panel.setContentSize(host.fittingSize)
+        panel.contentView = host
 
         if let screen = currentScreen() {
             let size = panel.frame.size
@@ -234,6 +216,14 @@ final class AutoStartService: ObservableObject {
             ?? NSScreen.main
             ?? NSScreen.screens.first
     }
+}
+
+/// The card is clicked to cancel, usually while the panel isn't key (the
+/// user unlocked into another app, or clicked one). Without first-mouse
+/// acceptance that click would only make the panel key and the card would
+/// seem dead; with it, the first click is the cancel.
+private final class FirstClickHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 /// Borderless, non-activating panel that still becomes key so Esc reaches it

@@ -501,7 +501,7 @@ final class PomodoroCoreTests {
 
         #expect(effects.contains(where: isOfferAutoStart))
         // Load-bearing per SPEC_LOOP_CONTINUITY.md §2.4: the offer reads
-        // SessionLogStore.lastBreakEnd(), which is this .logSession — so it
+        // the log's latest entry, which is this .logSession — so it
         // must run after the log write, not merely alongside it. Effects
         // are interpreted in array order.
         guard let logIndex = effects.firstIndex(where: isLogSession),

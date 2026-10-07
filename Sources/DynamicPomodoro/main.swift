@@ -261,7 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Both left and right click cancel a running countdown — there's only
     /// one meaning available in this mode.
     @objc private func statusItemCountdownClick() {
-        autoStart.cancelCountdown(suppress: true)
+        autoStart.cancelCountdown(byUser: true)
     }
 
     /// Left click starts the suggested session; right/control click opens

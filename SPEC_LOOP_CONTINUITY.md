@@ -103,6 +103,10 @@ if the machine sleeps mid-countdown, nothing starts on wake.
 
 ### §2.4 Cancel suppression, and why the effect order matters
 
+**Amended 2026-10-07:** suppression is gone (SPEC_UNLOCK_AUTOSTART.md §3) – a cancelled countdown
+is re-offered by the next qualifying unlock. The effect order still matters: the gate reads
+the session log's latest entry, which must already be the skip's. Original text:
+
 `AutoStartService` already records `offeredBreakEnd` when a countdown starts and, on a suppressing
 cancel, writes it to `suppressedBreakEnd` — which gate clause G4 checks on every subsequent unlock.
 Feeding the skip countdown through the same field gives the decided behaviour for free: cancelling
@@ -556,7 +560,7 @@ All answered by the owner before this spec was written.
 | How should the next session begin after a completed skip hold? | 15-second cancellable countdown. |
 | What is on screen behind the skip countdown? | Overlay fades at once; HUD over the desktop. |
 | What is on screen after the skip auto-start fires? | Nothing — menu bar only. |
-| Does cancelling the skip countdown suppress the unlock countdown for that break end? | Yes. |
+| Does cancelling the skip countdown suppress the unlock countdown for that break end? | ~~Yes.~~ No – amended 2026-10-07, every qualifying unlock offers. |
 | Does the 30-minute call-cap skip also auto-start? | No — hold-to-skip only. |
 | What comes forward when a break ends unlocked? | The main window, activated, on the idle screen. |
 | Does that consume the unlock countdown's offer for that break end? | No — the unlock countdown is unchanged. |

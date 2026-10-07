@@ -7,24 +7,25 @@ enum UnlockGate {
     ///
     /// - `phase` must be idle — never interrupt a running focus, a pending
     ///   break, or a running break.
-    /// - `lastBreakEnd` must exist — the log's last transition must be a
-    ///   break ending, i.e. nothing has run since.
-    /// - `lastBreakEnd` must differ from `suppressedBreakEnd` — one offer
-    ///   per break end; a cancelled offer doesn't recur for the same one.
-    /// - the gap to `now` must fall within `windowMinutes` — a stale
-    ///   break end is a new day-part, not a continuation, and a negative gap
-    ///   (clock skew) is never "just back".
+    /// - `lastActivityEnd` (the end of the log's latest entry, of any kind –
+    ///   entries are logged when a phase *ends*, so a running one hasn't
+    ///   logged yet and the phase check above is what says nothing is running)
+    ///   must exist and fall within `windowMinutes` of `now` — an unlock
+    ///   within a couple of hours of the loop last turning is a return to
+    ///   it; one after that is a new day-part, and a negative gap (clock
+    ///   skew) is never "just back".
+    ///
+    /// Every qualifying unlock offers: a cancelled countdown says "not now",
+    /// not "not again", and costs one click to repeat.
     static func shouldOffer(
         phase: PomodoroState.Phase,
-        lastBreakEnd: Date?,
-        suppressedBreakEnd: Date?,
+        lastActivityEnd: Date?,
         now: Date,
         windowMinutes: Int
     ) -> Bool {
         guard case .idle = phase else { return false }
-        guard let lastBreakEnd else { return false }
-        guard lastBreakEnd != suppressedBreakEnd else { return false }
-        let elapsed = now.timeIntervalSince(lastBreakEnd)
+        guard let lastActivityEnd else { return false }
+        let elapsed = now.timeIntervalSince(lastActivityEnd)
         guard elapsed >= 0 else { return false }
         return elapsed <= TimeInterval(windowMinutes * 60)
     }

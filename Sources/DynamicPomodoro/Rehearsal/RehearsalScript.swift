@@ -31,7 +31,7 @@ struct RehearsalScript {
             case startBreakNow
             /// Abandon the running focus session (confirming the dialog).
             case abandonFocus
-            /// Esc on the countdown HUD.
+            /// Esc, or a click on the countdown HUD (the same cancel).
             case cancelCountdown
             /// Close the lid; the machine sleeps until the given minute.
             case machineSleep(untilMinute: Int)
@@ -47,14 +47,13 @@ struct RehearsalScript {
     /// The rehearsed date (in the rehearsal's own fixed calendar).
     var year = 2026, month = 1, day = 14
 
-    // The five real settings, plus the two unexposed countdown timings.
+    // The five real settings. The two unexposed countdown timings are
+    // rehearsed at the defaults the app ships with.
     var workdayStartMinutes = 9 * 60
     var workdayEndMinutes = 18 * 60
     var minFocusStartMinutes = 20
     var minFocusEndMinutes = 20
     var maxFocusMinutes = 40
-    var autoStartCountdownSeconds = 15
-    var autoStartWindowMinutes = 20
 
     /// Call windows (mic live), minutes since midnight.
     var calls: [ClosedRange<Int>] = []

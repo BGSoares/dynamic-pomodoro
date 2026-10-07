@@ -64,6 +64,15 @@ enum AbandonPrompt {
     static let cancel = "Continue"
 }
 
+/// The auto-start countdown card's two lines, worded once so the HUD and
+/// the rehearsal transcript can't drift apart. The hint names the two
+/// cancels that work wherever the user is looking; the menu-bar icon
+/// cancels too but doesn't need advertising.
+enum CountdownHUDCopy {
+    static func title(secondsRemaining: Int) -> String { "Focus starts in \(secondsRemaining)s" }
+    static let cancelHint = "Click or press Esc to cancel"
+}
+
 /// Short, sharper one-liners shown under the hold-to-skip button while the user
 /// is mid-hold. Goal: one final beat of resistance before the skip commits.
 enum SkipNudgeMessages {

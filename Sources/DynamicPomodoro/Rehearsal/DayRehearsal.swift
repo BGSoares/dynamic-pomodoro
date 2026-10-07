@@ -65,8 +65,6 @@ final class DayRehearsal {
 
     // Countdown, mirroring AutoStartService.
     private var countdownDeadline: Date?
-    private var countdownBreakEnd: Date?
-    private var suppressedBreakEnd: Date?
     private var countdownOrdinal = 0
 
     // Persona intents.
@@ -111,8 +109,6 @@ final class DayRehearsal {
         s.minFocusStartMinutes = script.minFocusStartMinutes
         s.minFocusEndMinutes = script.minFocusEndMinutes
         s.maxFocusMinutes = script.maxFocusMinutes
-        s.autoStartCountdownSeconds = script.autoStartCountdownSeconds
-        s.autoStartWindowMinutes = script.autoStartWindowMinutes
         settings = s
 
         storeDir = FileManager.default.temporaryDirectory
@@ -282,8 +278,8 @@ final class DayRehearsal {
         case .cancelCountdown:
             guard countdownDeadline != nil else { return }
             userActed()
-            user("you press Esc — the countdown cancels")
-            dismissCountdown(suppress: true)
+            user("you click the card — the countdown cancels")
+            dismissCountdown(byUser: true)
 
         case .machineSleep(let untilMinute):
             env("you close the lid — the machine sleeps")
@@ -291,9 +287,9 @@ final class DayRehearsal {
             screen = .locked
             sleptDuringBreak = state.phase.isBreakRunning
             // Mirrors AutoStartService.handleLock: a lock during a live
-            // countdown dismisses it without suppressing.
+            // countdown dismisses it quietly.
             if countdownDeadline != nil {
-                dismissCountdown(suppress: false)
+                dismissCountdown(byUser: false)
                 app("[HUD] the countdown vanishes — the screen locked under it")
             }
         }
@@ -485,19 +481,16 @@ final class DayRehearsal {
         let now = now ?? clock
         guard countdownDeadline == nil else { return }
         guard !onCall else { return }
-        guard let breakEnd = store.lastBreakEnd() else { return }
         guard UnlockGate.shouldOffer(
             phase: state.phase,
-            lastBreakEnd: breakEnd,
-            suppressedBreakEnd: suppressedBreakEnd,
+            lastActivityEnd: store.entries.last?.endedAt,
             now: now,
             windowMinutes: settings.autoStartWindowMinutes
         ) else { return }
 
         countdownOrdinal += 1
-        countdownBreakEnd = breakEnd
         countdownDeadline = now.addingTimeInterval(TimeInterval(settings.autoStartCountdownSeconds))
-        app("[HUD] a floating card: “Focus starts in \(settings.autoStartCountdownSeconds)s — Esc or click the menu bar icon to cancel”")
+        app("[HUD] a floating card: “\(CountdownHUDCopy.title(secondsRemaining: settings.autoStartCountdownSeconds)) — \(CountdownHUDCopy.cancelHint)”")
     }
 
     private func countdownTick() {
@@ -505,12 +498,11 @@ final class DayRehearsal {
         let remaining = max(0, Int(ceil(deadline.timeIntervalSince(clock))))
         guard remaining == 0 else { return }
         guard UnlockGate.shouldStillFire(deadline: deadline, now: clock) else {
-            dismissCountdown(suppress: false)
+            dismissCountdown(byUser: false)
             app("[HUD] the countdown lapsed unseen (overslept its deadline) — no session starts")
             return
         }
         countdownDeadline = nil
-        countdownBreakEnd = nil
         app("[HUD] the countdown fires")
         dispatch(.startFocus(now: clock))
     }
@@ -520,18 +512,16 @@ final class DayRehearsal {
     private func countdownWakeCheck() {
         guard let deadline = countdownDeadline, clock > deadline else { return }
         if !UnlockGate.shouldStillFire(deadline: deadline, now: clock) {
-            dismissCountdown(suppress: false)
+            dismissCountdown(byUser: false)
             app("[HUD] the countdown lapsed while the machine slept — no session starts")
         }
     }
 
-    private func dismissCountdown(suppress: Bool) {
+    private func dismissCountdown(byUser: Bool) {
         let hadDeadline = countdownDeadline != nil
-        if suppress { suppressedBreakEnd = countdownBreakEnd }
         countdownDeadline = nil
-        countdownBreakEnd = nil
         guard hadDeadline else { return }
-        if suppress {
+        if byUser {
             // Mirrors AutoStartService.onCancelPresentsWindow →
             // presentMainWindow(requireUnlocked: false): the cancel is proof
             // of presence, so only the call gate applies.
