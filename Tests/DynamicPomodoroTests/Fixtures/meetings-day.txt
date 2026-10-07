@@ -107,7 +107,7 @@
 11:26:00  [notification] Focus complete — Break starts when your call ends.  (silent)
 11:26:00  [menu] “Start break now” appears in the dolphin menu
 11:26:00  [window] nothing opens — a break owed behind a call stays off the screen
-11:26:00  [menu bar] B …
+11:26:00  [menu bar] Calls over
 11:28:00  you:  you pick “Start break now” from the dolphin menu — overriding the call signal
 11:28:00  ♪ Glass — the focus-complete chime
 11:28:00  [notification] Focus complete — Step away. The next session needs you fresh.
@@ -133,7 +133,7 @@
 12:20:00  [notification] Focus complete — Break starts when your call ends.  (silent)
 12:20:00  [menu] “Start break now” appears in the dolphin menu
 12:20:00  [window] nothing opens — a break owed behind a call stays off the screen
-12:20:00  [menu bar] B …
+12:20:00  [menu bar] Calls over
 12:36:00  env:  the call ends — the mic goes quiet
 12:36:00  ♪ Glass — the focus-complete chime
 12:36:00  [notification] Focus complete — Step away. The next session needs you fresh.
@@ -254,7 +254,7 @@
 16:24:00  [notification] Focus complete — Break starts when your call ends.  (silent)
 16:24:00  [menu] “Start break now” appears in the dolphin menu
 16:24:00  [window] nothing opens — a break owed behind a call stays off the screen
-16:24:00  [menu bar] B …
+16:24:00  [menu bar] Calls over
 16:54:01  [log] breakSkipped 16:24:00–16:54:01 · 6 min
 16:54:01  [menu bar] Start 23m
 16:58:00  [menu bar] Start 22m

@@ -255,7 +255,7 @@ monospaced-digit menu-bar font; the `.idle` case is `""` today. It becomes:
 |---|---|
 | `.idle` | `Start 32m` — the integer from `TimerEngine.suggestedFocusMinutes()` |
 | `.focus` | `F 24:59` (unchanged) |
-| `.breakPending` | `B …` (unchanged) |
+| `.breakPending` | `Calls over` (amended 2026-10-07: was `B …`, whose literal ellipsis read as a truncated title) |
 | `.breakRunning` | `B 04:12` (unchanged) |
 
 Roughly the width of the running-session title, so the status item does not visibly resize as the
