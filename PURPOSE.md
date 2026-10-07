@@ -14,6 +14,8 @@ The other half of the problem is breaks. Most timers treat the gap between sessi
 
 This app fixes both. Focus durations follow a bell curve across the workday. Breaks come with a specific, prescribed activity — physical, sensory, or contemplative — that pulls you out of the chair and out of the screen.
 
+A note on vocabulary: "focus time" here means screen time, not work time. A session may well be spent on something personal, and the eyes, the spine and the attention are spent all the same. The app rations the screen, not the job.
+
 ---
 
 ## Core principles
