@@ -569,4 +569,50 @@ final class PomodoroCoreTests {
         #expect(state.phase == .idle)
         #expect(effects.isEmpty)
     }
+
+    // MARK: - Pause media on break
+
+    /// Every effect one whole loop emits – deadline, break, break end – so
+    /// the pause can be checked against all of it, not just the start.
+    private func effectsOfOneLoop(_ state: inout PomodoroState) -> (breakStart: [PomodoroEffect], rest: [PomodoroEffect]) {
+        var rest = reduce(&state, .startFocus(now: date(hour: 10)))
+        let breakStart = reduce(&state, .fastForward(now: date(hour: 10, minute: 20)))
+        rest += reduce(&state, .tick(now: date(hour: 10, minute: 21)))
+        rest += reduce(&state, .fastForward(now: date(hour: 10, minute: 24)))
+        return (breakStart, rest)
+    }
+
+    @Test func breakStartPausesMediaFirstWhenTheSettingIsOn() {
+        settings.pauseMediaOnBreak = true
+        var state = PomodoroState()
+        let (breakStart, rest) = effectsOfOneLoop(&state)
+        // Before the chime, so the chime lands in silence.
+        let pause = breakStart.firstIndex(of: .pauseMedia)
+        let chime = breakStart.firstIndex(of: .playFocusCompleteChime)
+        #expect(pause != nil && chime != nil && pause! < chime!)
+        #expect(!rest.contains(.pauseMedia), "nothing but a break start pauses media")
+    }
+
+    @Test func nothingPausesMediaWhenTheSettingIsOff() {
+        var state = PomodoroState()
+        let (breakStart, rest) = effectsOfOneLoop(&state)
+        #expect(!(breakStart + rest).contains(.pauseMedia))
+    }
+
+    @Test func aBreakOwedBehindACallPausesMediaWhenItStarts() {
+        settings.pauseMediaOnBreak = true
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        #expect(!reduce(&state, .tick(now: deadline), isOnCall: true).contains(.pauseMedia),
+                "a deferred break hasn't started – the call's audio is not media to pause")
+        #expect(reduce(&state, .tick(now: deadline.addingTimeInterval(300))).contains(.pauseMedia))
+    }
+
+    @Test func startBreakNowPausesMedia() {
+        settings.pauseMediaOnBreak = true
+        var state = PomodoroState()
+        let deadline = startFocusSession(&state)
+        _ = reduce(&state, .tick(now: deadline), isOnCall: true)
+        #expect(reduce(&state, .startPendingBreak(now: deadline.addingTimeInterval(30)), isOnCall: true).contains(.pauseMedia))
+    }
 }

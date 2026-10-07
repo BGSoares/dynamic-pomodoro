@@ -9,6 +9,7 @@
 09:02:00  [menu] “Abandon session” appears in the dolphin menu
 09:02:00  [menu bar] F 20:00
 09:22:00  [log] focusCompleted 09:02:00–09:22:00 · 20 min
+09:22:00  [media] anything playing pauses
 09:22:00  ♪ Glass — the focus-complete chime
 09:22:00  [notification] Focus complete — Step away. The next session needs you fresh.
 09:22:00  [overlay ON] every display blacks out — the 5-minute break card:
@@ -33,6 +34,7 @@
 09:29:00  [menu] “Abandon session” appears in the dolphin menu
 09:29:00  [menu bar] F 21:00
 09:50:00  [log] focusCompleted 09:29:00–09:50:00 · 21 min
+09:50:00  [media] anything playing pauses
 09:50:00  ♪ Glass — the focus-complete chime
 09:50:00  [notification] Focus complete — Step away. The next session needs you fresh.
 09:50:00  [overlay ON] every display blacks out — the 5-minute break card:
@@ -53,6 +55,7 @@
 09:56:45  [menu] “Abandon session” appears in the dolphin menu
 09:56:45  [menu bar] F 22:00
 10:18:45  [log] focusCompleted 09:56:45–10:18:45 · 22 min
+10:18:45  [media] anything playing pauses
 10:18:45  ♪ Glass — the focus-complete chime
 10:18:45  [notification] Focus complete — Step away. The next session needs you fresh.
 10:18:45  [overlay ON] every display blacks out — the 5-minute break card:
@@ -77,6 +80,7 @@
 10:25:45  [menu] “Abandon session” appears in the dolphin menu
 10:25:45  [menu bar] F 25:00
 10:50:45  [log] focusCompleted 10:25:45–10:50:45 · 25 min
+10:50:45  [media] anything playing pauses
 10:50:45  ♪ Glass — the focus-complete chime
 10:50:45  [notification] Focus complete — Step away. The next session needs you fresh.
 10:50:45  [overlay ON] every display blacks out — the 5-minute break card:
@@ -97,6 +101,7 @@
 10:57:30  [menu] “Abandon session” appears in the dolphin menu
 10:57:30  [menu bar] F 28:00
 11:25:30  [log] focusCompleted 10:57:30–11:25:30 · 28 min
+11:25:30  [media] anything playing pauses
 11:25:30  ♪ Glass — the focus-complete chime
 11:25:30  [notification] Focus complete — Step away. The next session needs you fresh.
 11:25:30  [overlay ON] every display blacks out — the 6-minute break card:
@@ -118,6 +123,7 @@
 11:26:20  [menu bar] F 31:00
 11:30:30  you:  you come back and unlock the screen
 11:57:20  [log] focusCompleted 11:26:20–11:57:20 · 31 min
+11:57:20  [media] anything playing pauses
 11:57:20  ♪ Glass — the focus-complete chime
 11:57:20  [notification] Focus complete — Step away. The next session needs you fresh.
 11:57:20  [overlay ON] every display blacks out — the 6-minute break card:
@@ -138,6 +144,7 @@
 12:05:05  [menu] “Abandon session” appears in the dolphin menu
 12:05:05  [menu bar] F 35:00
 12:40:05  [log] focusCompleted 12:05:05–12:40:05 · 35 min
+12:40:05  [media] anything playing pauses
 12:40:05  ♪ Glass — the focus-complete chime
 12:40:05  [notification] Focus complete — Step away. The next session needs you fresh.
 12:40:05  [overlay ON] every display blacks out — the 7-minute break card:
@@ -161,6 +168,7 @@
 12:49:05  [menu] “Abandon session” appears in the dolphin menu
 12:49:05  [menu bar] F 39:00
 13:28:05  [log] focusCompleted 12:49:05–13:28:05 · 39 min
+13:28:05  [media] anything playing pauses
 13:28:05  ♪ Glass — the focus-complete chime
 13:28:05  [notification] Focus complete — Step away. The next session needs you fresh.
 13:28:05  [overlay ON] every display blacks out — the 8-minute break card:
@@ -181,6 +189,7 @@
 13:37:50  [menu] “Abandon session” appears in the dolphin menu
 13:37:50  [menu bar] F 40:00
 14:17:50  [log] focusCompleted 13:37:50–14:17:50 · 40 min
+14:17:50  [media] anything playing pauses
 14:17:50  ♪ Glass — the focus-complete chime
 14:17:50  [notification] Focus complete — Step away. The next session needs you fresh.
 14:17:50  [overlay ON] every display blacks out — the 8-minute break card:
@@ -204,6 +213,7 @@
 14:27:50  [menu] “Abandon session” appears in the dolphin menu
 14:27:50  [menu bar] F 39:00
 15:06:50  [log] focusCompleted 14:27:50–15:06:50 · 39 min
+15:06:50  [media] anything playing pauses
 15:06:50  ♪ Glass — the focus-complete chime
 15:06:50  [notification] Focus complete — Step away. The next session needs you fresh.
 15:06:50  [overlay ON] every display blacks out — the 8-minute break card:
@@ -224,6 +234,7 @@
 15:16:35  [menu] “Abandon session” appears in the dolphin menu
 15:16:35  [menu bar] F 37:00
 15:53:35  [log] focusCompleted 15:16:35–15:53:35 · 37 min
+15:53:35  [media] anything playing pauses
 15:53:35  ♪ Glass — the focus-complete chime
 15:53:35  [notification] Focus complete — Step away. The next session needs you fresh.
 15:53:35  [overlay ON] every display blacks out — the 7-minute break card:
@@ -247,6 +258,7 @@
 16:02:35  [menu] “Abandon session” appears in the dolphin menu
 16:02:35  [menu bar] F 34:00
 16:36:35  [log] focusCompleted 16:02:35–16:36:35 · 34 min
+16:36:35  [media] anything playing pauses
 16:36:35  ♪ Glass — the focus-complete chime
 16:36:35  [notification] Focus complete — Step away. The next session needs you fresh.
 16:36:35  [overlay ON] every display blacks out — the 7-minute break card:
@@ -267,6 +279,7 @@
 16:45:20  [menu] “Abandon session” appears in the dolphin menu
 16:45:20  [menu bar] F 32:00
 17:17:20  [log] focusCompleted 16:45:20–17:17:20 · 32 min
+17:17:20  [media] anything playing pauses
 17:17:20  ♪ Glass — the focus-complete chime
 17:17:20  [notification] Focus complete — Step away. The next session needs you fresh.
 17:17:20  [overlay ON] every display blacks out — the 6-minute break card:
@@ -290,6 +303,7 @@
 17:25:20  [menu] “Abandon session” appears in the dolphin menu
 17:25:20  [menu bar] F 30:00
 17:55:20  [log] focusCompleted 17:25:20–17:55:20 · 30 min
+17:55:20  [media] anything playing pauses
 17:55:20  ♪ Glass — the focus-complete chime
 17:55:20  [notification] Focus complete — Step away. The next session needs you fresh.
 17:55:20  [overlay ON] every display blacks out — the 6-minute break card:

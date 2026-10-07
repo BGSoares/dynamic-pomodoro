@@ -54,6 +54,13 @@ final class SettingsTests {
         #expect(defaults.object(forKey: "minFocusMinutes") == nil, "the legacy key is never written")
     }
 
+    @Test func pauseMediaOnBreakIsOffUntilTickedAndPersists() {
+        let s = Settings(defaults: defaults)
+        #expect(!s.pauseMediaOnBreak)
+        s.pauseMediaOnBreak = true
+        #expect(Settings(defaults: defaults).pauseMediaOnBreak)
+    }
+
     /// The maximum is held above both floors, whichever is higher – the
     /// same rule the steppers enforce, applied to whatever the file says.
     @Test func maximumIsClampedAboveTheHigherFloor() {

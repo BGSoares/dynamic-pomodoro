@@ -68,7 +68,7 @@ struct WindowSnapshotTests {
     }
 
     @Test @MainActor func settingsWindow() throws {
-        try snapshot(SettingsView(settings: settings), size: NSSize(width: 380, height: 400), name: "settings")
+        try snapshot(SettingsView(settings: settings), size: NSSize(width: 380, height: 474), name: "settings")
     }
 
     // MARK: - Machinery

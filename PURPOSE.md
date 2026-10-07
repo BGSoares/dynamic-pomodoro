@@ -33,7 +33,7 @@ A break that says "take 5 minutes" produces another browser tab. A break that sa
 Starting a focus session is one click. Skipping a break costs a 15-second hold and one final line of resistance. The screen locks 30 seconds into the break. Every other display is blacked out. This is not a productivity-shaming UX — it is the recognition that the impulse to skip a break is *exactly* the moment willpower fails, so the tool absorbs that decision instead of asking you to make it.
 
 **5. The smallest surface that does the job.**
-Five settings. No onboarding. No accounts. No cloud. No streaks, scores, leaderboards, or weekly summary emails. The recent collapse from ~4k to under 2k LOC was not refactoring for its own sake – it was deleting everything that wasn't the core loop, and the core loop is small. New features have to earn their way in past this principle.
+Six settings. No onboarding. No accounts. No cloud. No streaks, scores, leaderboards, or weekly summary emails. The recent collapse from ~4k to under 2k LOC was not refactoring for its own sake – it was deleting everything that wasn't the core loop, and the core loop is small. New features have to earn their way in past this principle.
 
 **6. Local, private, native.**
 Settings live in `UserDefaults`. Sessions log to `~/Library/Application Support/DynamicPomodoro/sessions.json`. Nothing leaves the machine. Native Swift was chosen over Electron specifically for battery, polish, and menu-bar fit — not portability. There is no mobile app and there will not be one.
@@ -71,7 +71,7 @@ This app has one user, no beta channel, no crash reporting and no QA team — an
 
 - **Not a coaching app.** It does not score me, rank me, or congratulate me. A skipped break is logged, not flagged. There are no achievements.
 
-- **Not configurable infinitely.** The five settings are: workday start, workday end, the focus minimum at the start of the day, the focus minimum at the end of it, and the focus maximum. That is the entire surface of personalisation. Everything else is the opinion of the tool. If I disagree with the opinion, I edit the source – that is the privilege of a personal tool over a product.
+- **Not configurable infinitely.** The six settings are: workday start, workday end, the focus minimum at the start of the day, the focus minimum at the end of it, the focus maximum, and whether a break pauses whatever media is playing. That is the entire surface of personalisation. Everything else is the opinion of the tool. If I disagree with the opinion, I edit the source – that is the privilege of a personal tool over a product.
 
 - **Not building toward a v2 product.** There is no roadmap. There is the loop, and there are bug fixes and small refinements when the loop reveals them. The roadmap is "use it for another week."
 
@@ -93,6 +93,6 @@ When deciding whether to add, remove, or change something, the order of priority
 
 ## A note for future me (or any agent reading this)
 
-The hardest decisions in this app are the ones about what *not* to do. The codebase has at various points held: an onboarding flow, a curve preview, a cycling-news RSS reader, a calendar sync, a custom-activity editor, media auto-pause, and more. Each of those was added in good faith and then deleted because it didn't earn its place in the loop. That oscillation is not failure — it is the design process. New ideas are cheap; the work is in noticing when they have stopped paying rent.
+The hardest decisions in this app are the ones about what *not* to do. The codebase has at various points held: an onboarding flow, a curve preview, a cycling-news RSS reader, a calendar sync, a custom-activity editor, media auto-pause, and more. Each of those was added in good faith and then deleted because it didn't earn its place in the loop. That oscillation is not failure — it is the design process. New ideas are cheap; the work is in noticing when they have stopped paying rent. The oscillation runs both ways: media auto-pause came back in October 2026 as one off-by-default checkbox, because a break where the music keeps playing in my headphones is a break spent half at the desk.
 
 When in doubt, the answer is usually: simpler, more local, more opinionated, more cycling.

@@ -33,7 +33,7 @@ These exist by intent. Flagging them is noise.
 - The full-screen overlay + hold-to-skip + screen-lock combination. The friction is the feature (PURPOSE §4).
 - The curated activity library and its category / band / time-of-day filtering in `Logic/ActivitySelector.swift` and `Resources/activities.json`. The opinion is the product (PURPOSE §3).
 - The cycling-themed reminder messages and narrative activities. Not decoration (PURPOSE §7).
-- The five settings (workday start, workday end, min focus at start, min focus at end, max focus). The smallness is the design (PURPOSE §5).
+- The six settings (workday start, workday end, min focus at start, min focus at end, max focus, pause media on break). The smallness is the design (PURPOSE §5).
 
 If you think one of these is genuinely overweight, the bar is naming the specific implementation cost (not the feature) and proposing a cut that preserves the behaviour exactly.
 

@@ -33,7 +33,7 @@ struct StatsView: View {
     @State private var timelineWeeks: [TimelineWeek] = []
     /// Which read-out is on screen. Remembered across launches — it is how
     /// the chart is read, not a preference about how the app behaves, so it
-    /// keeps its own key here rather than growing `Settings` or the five
+    /// keeps its own key here rather than growing `Settings` or the six
     /// values `SettingsView` exposes (PURPOSE principle 5).
     @AppStorage("statsIncludeBreakTime") private var includeBreakTime = false
     private let calendar = Calendar.current

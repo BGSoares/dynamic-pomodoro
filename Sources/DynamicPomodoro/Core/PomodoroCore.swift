@@ -99,6 +99,9 @@ enum PomodoroEffect: Equatable {
     /// Every other notification keeps the default sound.
     case notify(title: String, body: String, silent: Bool)
     case logSession(SessionLogEntry)
+    /// Pause whatever media is playing, as a break starts with the
+    /// setting on. One-way: nothing playing means nothing happens.
+    case pauseMedia
     case playFocusCompleteChime
     case playBreakCompleteChime
     case startTicker
@@ -348,7 +351,10 @@ enum PomodoroReducer {
         ), seconds: breakSeconds)
         state.breakOverridesCall = overridingCall
 
-        return [
+        // Media goes quiet first, so the chime lands in silence rather than
+        // under the music.
+        let pause: [PomodoroEffect] = settings.pauseMediaOnBreak ? [.pauseMedia] : []
+        return pause + [
             .playFocusCompleteChime,
             .notify(title: "Focus complete", body: "Step away. The next session needs you fresh.", silent: false),
         ]

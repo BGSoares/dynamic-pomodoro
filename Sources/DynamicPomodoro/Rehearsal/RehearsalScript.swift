@@ -47,13 +47,14 @@ struct RehearsalScript {
     /// The rehearsed date (in the rehearsal's own fixed calendar).
     var year = 2026, month = 1, day = 14
 
-    // The five real settings. The two unexposed countdown timings are
+    // The six real settings. The two unexposed countdown timings are
     // rehearsed at the defaults the app ships with.
     var workdayStartMinutes = 9 * 60
     var workdayEndMinutes = 18 * 60
     var minFocusStartMinutes = 20
     var minFocusEndMinutes = 20
     var maxFocusMinutes = 40
+    var pauseMediaOnBreak = false
 
     /// Call windows (mic live), minutes since midnight.
     var calls: [ClosedRange<Int>] = []
@@ -83,6 +84,7 @@ struct RehearsalScript {
         name: "canonical",
         summary: "an ordinary day — every break taken, one afternoon skip, countdown fires",
         minFocusEndMinutes: 30,
+        pauseMediaOnBreak: true,
         ops: [
             TimedOp(trigger: .breakStarted(ordinal: 5), op: .holdSkip),
         ]
@@ -158,6 +160,7 @@ struct RehearsalScript {
         // the sweep plays days that taper, days that don't, and days that
         // end longer than they began.
         script.minFocusEndMinutes = Int.random(in: 15...35, using: &rng)
+        script.pauseMediaOnBreak = Bool.random(using: &rng)
         return script
     }
 }

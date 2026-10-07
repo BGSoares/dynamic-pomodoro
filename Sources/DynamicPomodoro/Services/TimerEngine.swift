@@ -110,6 +110,8 @@ final class TimerEngine: ObservableObject {
             notifications.notify(title: title, body: body, silent: silent)
         case .logSession(let entry):
             log.append(entry)
+        case .pauseMedia:
+            MediaControlService.pauseAllMedia()
         case .playFocusCompleteChime:
             SoundService.focusComplete()
         case .playBreakCompleteChime:

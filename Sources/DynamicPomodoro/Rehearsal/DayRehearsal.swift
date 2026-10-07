@@ -109,6 +109,7 @@ final class DayRehearsal {
         s.minFocusStartMinutes = script.minFocusStartMinutes
         s.minFocusEndMinutes = script.minFocusEndMinutes
         s.maxFocusMinutes = script.maxFocusMinutes
+        s.pauseMediaOnBreak = script.pauseMediaOnBreak
         settings = s
 
         storeDir = FileManager.default.temporaryDirectory
@@ -379,6 +380,12 @@ final class DayRehearsal {
             store.append(entry)
             app("[log] \(describe(entry))")
 
+        case .pauseMedia:
+            // Mirrors MediaControlService.pauseAllMedia: one-way, so the
+            // only promise to check is *when* it is sent.
+            app("[media] anything playing pauses")
+            checkMediaPause()
+
         case .playFocusCompleteChime:
             app("♪ Glass — the focus-complete chime")
             checkSound(kind: "the Glass chime", silent: false)
@@ -590,6 +597,20 @@ final class DayRehearsal {
         guard onCall, !silent else { return }
         if lastUserActionAt == clock { return }
         finding("\(stamp()) \(kind) sounded during a live call, unasked — principle 7")
+    }
+
+    /// Media is paused only as a break begins, and only when asked to – a
+    /// pause landing mid-focus or mid-break would be the app reaching into
+    /// other apps for no reason the user gave it.
+    private func checkMediaPause() {
+        guard settings.pauseMediaOnBreak else {
+            finding("\(stamp()) media was paused with the setting off")
+            return
+        }
+        guard case .breakRunning(_, let startedAt, _, _, _) = state.phase, startedAt == clock else {
+            finding("\(stamp()) media was paused somewhere other than the start of a break")
+            return
+        }
     }
 
     private func checkLock() {
